@@ -33,6 +33,7 @@ Giai đoạn 2: hoàn thiện để dùng nội bộ:
 - [x] Tạo danh sách item UI tiếng Việt có dấu.
 - [x] Bổ sung bối cảnh dự án trong thư mục `.agents/context/`.
 - [x] Tinh gọn `.agents`, loại bỏ skill/rule lệch domain bán hàng, framework không dùng và phần chỉ mục mã nguồn chưa cần ở MVP.
+- [x] Tạo workflow `wf-feature-intake` để tiếp nhận tính năng mới trước khi triển khai.
 - [ ] Khởi tạo bản MVP bằng HTML, CSS, JavaScript và Node.js.
 - [ ] Tích hợp luồng render bằng HyperFrames.
 - [ ] Tạo template video đầu tiên.

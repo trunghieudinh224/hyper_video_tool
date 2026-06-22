@@ -5,6 +5,7 @@
 
 ## Planning
 
+- `wf-feature-intake` — Tiếp nhận yêu cầu tính năng mới, chốt phạm vi MVP và cập nhật `.agents/tasks/current-task.md` sau khi được duyệt.
 - `plan-quality` — Kiểm tra chất lượng kế hoạch trước khi triển khai việc lớn.
 - `domain-glossary` — Thống nhất thuật ngữ nghiệp vụ khi tên gọi còn mơ hồ.
 

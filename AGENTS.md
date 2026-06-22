@@ -40,6 +40,7 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 
 ### Planning / Coordination
 - Trước khi lập implementation plan hoặc checklist lớn: dùng `plan-quality`.
+- Khi người dùng yêu cầu tính năng mới nhưng scope chưa rõ: dùng `wf-feature-intake`.
 
 Các workflow nghiên cứu/planning không được tự sửa code nếu chưa có yêu cầu hoặc approval rõ ràng.
 <!-- shared-skills:end -->
