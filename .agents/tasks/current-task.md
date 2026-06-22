@@ -2,7 +2,7 @@
 
 ## Trạng thái workflow
 
-needs_refactor
+completed
 
 ## Yêu Cầu Mới
 
@@ -11,6 +11,21 @@ UI hiện tại đã dựng được MVP tĩnh, nhưng đang gom toàn bộ màn
 Yêu cầu mới: refactor UI sang cấu trúc nhiều trang tĩnh. Mỗi màn hình chính phải có HTML riêng, CSS riêng và JS riêng nếu có logic riêng. Phần dùng chung như topbar, sidebar, validation panel, modal, toast, theme toggle, state, storage và navigation phải tách vào file chung.
 
 Task chi tiết nằm ở `.agents/tasks/ui-refactor-multipage.md`. Antigravity cần đọc file đó trước khi tiếp tục sửa UI.
+
+## Kết Quả Refactor Multi-page
+
+Đã refactor UI từ một `app/index.html` dạng SPA tab sang cấu trúc nhiều trang tĩnh:
+
+- `app/index.html` chỉ còn là entry dẫn tới `app/pages/overview.html`.
+- 10 màn hình chính đã tách thành HTML riêng trong `app/pages/`.
+- CSS page riêng nằm trong `app/styles/pages/`.
+- JS page riêng nằm trong `app/scripts/pages/`.
+- JS dùng chung nằm trong `app/scripts/common/`.
+- Shell chung được render bằng `app/scripts/common/shell.js`.
+- Navigation dùng link HTML thật, không còn `data-tab` hoặc `.tab-pane`.
+- Sample data dùng embedded mock data để tránh lỗi fetch khi chạy local bằng static server hoặc file protocol.
+
+Responsive mobile/tablet chưa làm ở phase này theo yêu cầu mới của user.
 
 ## Feature Intake
 

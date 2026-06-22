@@ -284,20 +284,21 @@ Ví dụ hướng cấu trúc:
 
 ## Checklist
 
-- [ ] Tạo `app/shared/base.html` mô tả shell chuẩn.
-- [ ] Đổi `app/index.html` thành trang entry gọn, dẫn tới `pages/overview.html`.
-- [ ] Tạo `app/pages/overview.html` và port nội dung Tổng quan sang page riêng.
-- [ ] Tạo `app/scripts/common/shell.js`, `navigation.js`, `theme.js`, `toast.js`, `modal.js`.
-- [ ] Di chuyển state/storage/validation/constants sang `app/scripts/common/`.
-- [ ] Tạo `app/styles/pages/overview.css` và `app/scripts/pages/overview.js`.
-- [ ] Verify overview page chạy được độc lập qua browser.
-- [ ] Tách lần lượt các page: content, features, timeline, assets, template, preview, render, outputs, settings.
-- [ ] Xóa cơ chế `.tab-pane`, `data-tab`, `workspace-tabs-content` sau khi tất cả page đã tách xong.
-- [ ] Kiểm tra light/dark mode còn lưu và áp dụng đúng khi chuyển page.
-- [ ] Kiểm tra navigation active đúng ở từng page.
-- [ ] Kiểm tra validation panel không lỗi khi page không có form.
-- [ ] Kiểm tra responsive desktop/mobile.
-- [ ] Cập nhật `current-task.md` với Test Report sau khi xong.
+- [x] Tạo `app/shared/base.html` mô tả shell chuẩn.
+- [x] Đổi `app/index.html` thành trang entry gọn, dẫn tới `pages/overview.html`.
+- [x] Tạo `app/pages/overview.html` và port nội dung Tổng quan sang page riêng.
+- [x] Tạo `app/scripts/common/shell.js`, `navigation.js`, `theme.js`, `toast.js`, `modal.js`.
+- [x] Di chuyển state/storage/validation/constants sang `app/scripts/common/`.
+- [x] Tạo `app/styles/pages/overview.css` và `app/scripts/pages/overview.js`.
+- [x] Verify overview page chạy được độc lập qua browser.
+- [x] Tách lần lượt các page: content, features, timeline, assets, template, preview, render, outputs, settings.
+- [x] Xóa cơ chế `.tab-pane`, `data-tab`, `workspace-tabs-content` sau khi tất cả page đã tách xong.
+- [x] Kiểm tra light/dark mode còn lưu và áp dụng đúng khi chuyển page.
+- [x] Kiểm tra navigation active đúng ở từng page.
+- [x] Kiểm tra validation panel không lỗi khi page không có form.
+- [x] Kiểm tra desktop/basic runtime cho 10 page.
+- [ ] Kiểm tra responsive mobile/tablet. Bỏ qua ở phase này theo yêu cầu mới của user.
+- [x] Cập nhật `current-task.md` với Test Report sau khi xong.
 
 ## Verification Plan
 
@@ -325,20 +326,27 @@ Antigravity chỉ triển khai refactor này, không thêm backend/Node.js/Hyper
 
 ## Test Report
 
-Status: pending
+Status: passed
 
-- Total checks/tests:
-- Passed:
-- Failed:
+- Total checks/tests: 3 nhóm kiểm tra
+- Passed: 3
+- Failed: 0
 
 Commands run:
-- Pending
+- `for f in app/scripts/common/*.js app/scripts/pages/*.js; do node --check "$f"; done`
+- Playwright/Chrome desktop smoke test 10 page tại `http://127.0.0.1:4173/pages/<page>.html`
+- Playwright/Chrome desktop interaction test: đổi theme, click sidebar sang Content, load sample data, đi tới Preview
 
 Manual/UI checks:
-- [ ] Pending
+- [x] 10 page trả HTTP 200.
+- [x] Mỗi page có H1 đúng và active sidebar đúng.
+- [x] Console không có lỗi runtime.
+- [x] Light/Dark mode giữ khi chuyển page.
+- [x] Dữ liệu mẫu load được bằng embedded mock data, không fetch file ngoài.
+- [x] Không còn `data-tab` hoặc `.tab-pane`.
 
 Artifacts:
-- Pending
+- None
 
 Remaining risks:
-- Pending
+- Responsive mobile/tablet chưa kiểm vì user yêu cầu bỏ qua, làm sau.

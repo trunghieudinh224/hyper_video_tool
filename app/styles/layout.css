@@ -1,0 +1,234 @@
+/* App Shell Layout & Responsive Structure */
+
+.app-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Sidebar styling (Left column - Full Height) */
+.sidebar {
+  position: relative; /* Ensure z-index works on desktop */
+  width: var(--sidebar-width);
+  height: 100%;
+  background-color: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 101; /* Overlays on top of workspace elements on mobile if open */
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), width var(--transition-normal), left var(--transition-normal);
+}
+
+.sidebar-header {
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-size: var(--font-base);
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.3px;
+}
+
+/* Right main container (Top bar + workspace) */
+.app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+}
+
+.topbar {
+  position: relative; /* Ensure z-index works consistently */
+  height: var(--topbar-height);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-8); /* Padding align with workspace padding (32px) */
+  z-index: 90; /* Stack below sidebar */
+  flex-shrink: 0;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.divider {
+  color: var(--color-border-strong);
+  margin: 0 var(--space-1);
+}
+
+.project-name-display {
+  font-weight: 600;
+  font-size: var(--font-sm);
+}
+
+/* Workspace wrapper under topbar */
+.app-workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Main workspace styling */
+.main-workspace {
+  flex: 1;
+  background-color: var(--color-bg);
+  overflow-y: auto;
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevents flex items from breaking layout width */
+  transition: background-color var(--transition-normal), padding var(--transition-normal);
+}
+
+/* Validation panel styling */
+.validation-panel {
+  width: var(--validation-width);
+  height: 100%;
+  background-color: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), width var(--transition-normal), right var(--transition-normal);
+}
+
+/* Workspace main layouts */
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+  flex-shrink: 0;
+}
+
+.workspace-content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Grid helper layouts for forms/settings */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}
+
+/* Layout for preview and detail panel */
+.preview-layout {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+/* Responsive breakdowns (max-width: 1024px) - Tablet view */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 200px;
+    --validation-width: 280px;
+  }
+  
+  .topbar {
+    padding: 0 var(--space-6);
+  }
+
+  .main-workspace {
+    padding: var(--space-6);
+  }
+  
+  .preview-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive breakdowns (max-width: 768px) - Mobile view */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px; /* Hide sidebar by default on mobile */
+    --validation-width: 0px; /* Hide validation panel by default on mobile */
+  }
+
+  .sidebar {
+    position: absolute;
+    left: -240px;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    height: 100vh;
+    box-shadow: var(--shadow-md);
+    border-right: 1px solid var(--color-border);
+    z-index: 1010; /* Ensure sidebar is on top of mobile topbar */
+  }
+
+  .sidebar.mobile-open {
+    left: 0;
+  }
+
+  .validation-panel {
+    position: absolute;
+    right: -320px;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    height: 100vh;
+    box-shadow: var(--shadow-md);
+    border-left: 1px solid var(--color-border);
+    z-index: 1010; /* Ensure validation panel is on top of mobile topbar */
+  }
+
+  .validation-panel.mobile-open {
+    right: 0;
+  }
+
+  .topbar {
+    padding: 0 var(--space-4);
+  }
+
+  .main-workspace {
+    padding: var(--space-4);
+  }
+
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  /* Show hamburger controls on mobile */
+  .mobile-nav-toggle {
+    display: flex !important;
+  }
+}
