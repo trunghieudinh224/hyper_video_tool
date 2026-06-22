@@ -6,6 +6,7 @@
 ## Planning
 
 - `wf-feature-intake` — Tiếp nhận yêu cầu tính năng mới, chốt phạm vi MVP và cập nhật `.agents/tasks/current-task.md` sau khi được duyệt.
+- `wf-explore-project` — Hỏi path project nguồn, đọc context/docs, nghiên cứu tính năng cụ thể và tạo video brief JSON sau khi người dùng duyệt.
 - `plan-quality` — Kiểm tra chất lượng kế hoạch trước khi triển khai việc lớn.
 - `domain-glossary` — Thống nhất thuật ngữ nghiệp vụ khi tên gọi còn mơ hồ.
 
