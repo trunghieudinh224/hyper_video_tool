@@ -164,6 +164,87 @@ Remaining risks:
 - Template HyperFrames chưa đọc payload này; đó là phase tiếp theo.
 - Payload contract hiện mới validate shape cơ bản, chưa enforce giới hạn độ dài text cho từng scene.
 
+## Phase Hiện Tại - Template Adapter MVP
+
+### Objective
+
+Refactor template `project-showcase-90s` để đọc render payload mẫu và dựng đủ scene MVP. Sau phase này template có thể preview bằng `data/render-payload.sample.json` mà không cần sửa hardcode trong template.
+
+### Scope
+
+Sẽ làm:
+
+- Template tự đọc `data/render-payload.sample.json` khi mở qua static server ở root project.
+- Template hỗ trợ `postMessage` action `updatePayload` để UI/backend phase sau bơm payload mới vào preview.
+- Giữ tương thích action cũ `updateData` ở mức adapter để preview UI cũ chưa bị gãy ngay.
+- Map đủ 7 scene MVP: intro, problem, solution, features, timeline, impact, outro.
+- Dùng DOM API và `textContent` cho nội dung động, tránh render HTML string từ dữ liệu người dùng.
+- Thêm fallback khi thiếu field hoặc thiếu asset logo.
+- Chỉnh CSS template để không phụ thuộc biến CSS của UI app.
+
+Không làm trong phase này:
+
+- Không gọi HyperFrames render thật bằng template này.
+- Không làm animation phức tạp.
+- Không thêm voiceover/audio.
+- Không nối Render page của UI với backend.
+
+Files impact:
+
+- `templates/project-showcase-90s/index.html`
+- `templates/project-showcase-90s/style.css`
+- `templates/project-showcase-90s/script.js`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `node --check templates/project-showcase-90s/script.js`
+- Browser smoke test mở template qua static server ở root project.
+- Xác nhận template đọc sample payload, có đủ 7 scene và không lỗi console.
+- `npm --prefix backend run check`
+- `npm --prefix backend run payload:check`
+- `npm --prefix backend run hf:lint:spike`
+
+### Test Report - Template Adapter MVP
+
+Status: passed
+
+- Created/updated:
+  - `templates/project-showcase-90s/index.html`
+  - `templates/project-showcase-90s/style.css`
+  - `templates/project-showcase-90s/script.js`
+- Template tự đọc `data/render-payload.sample.json` khi mở qua static server root project.
+- Template render đủ 7 scene MVP: intro, problem, solution, features, timeline, impact, outro.
+- Features scene render 4 tính năng từ payload.
+- Timeline scene render 5 cột mốc từ payload.
+- `postMessage` action `updatePayload` đã được smoke test, đổi được nội dung title/features/timeline bằng payload động.
+- Giữ adapter cho action cũ `updateData`.
+- Nội dung động render bằng DOM API và `textContent`, không dùng HTML string từ dữ liệu nhập.
+- Browser smoke test bằng Google Chrome headless:
+  - URL: `http://127.0.0.1:8123/templates/project-showcase-90s/index.html`
+  - `#intro-title`: `Internal Analytics Dashboard`
+  - `.feature-item`: 4
+  - `.timeline-node`: 5
+  - `.scene`: 7
+  - Console/page errors: none
+- Visual smoke test timeline scene không còn chồng scene cũ sau transition, title timeline đọc được hơn.
+
+Commands run:
+
+```bash
+node --check templates/project-showcase-90s/script.js
+npm --prefix backend run check
+npm --prefix backend run payload:check
+npm --prefix backend run hf:lint:spike
+python3 -m http.server 8123 --bind 127.0.0.1
+```
+
+Remaining risks:
+
+- Template này hiện mới là preview HTML đọc payload, chưa phải HyperFrames composition production.
+- Backend hiện chưa expose `templates/` và `data/`; browser smoke test phase này dùng static server root project.
+- Chưa nối UI Preview/Render page với action `updatePayload`.
+
 ## Yêu Cầu Mới
 
 UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.
