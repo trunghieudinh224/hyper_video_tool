@@ -1,6 +1,20 @@
-const SAMPLE_PAYLOAD_PATH = "../../data/render-payload.sample.json";
+const ROOT_SAMPLE_PAYLOAD_PATH = "../../data/render-payload.sample.json";
+const WORKDIR_PAYLOAD_PATH = "./render-payload.json";
+const COMPOSITION_ID = "project-showcase-90s";
+const SCENE_TIMELINE = [
+  { id: "scene-intro", start: 0, duration: 6 },
+  { id: "scene-problem", start: 6, duration: 10 },
+  { id: "scene-solution", start: 16, duration: 10 },
+  { id: "scene-features", start: 26, duration: 18 },
+  { id: "scene-timeline", start: 44, duration: 14 },
+  { id: "scene-impact", start: 58, duration: 10 },
+  { id: "scene-outro", start: 68, duration: 6 },
+];
 
-window.addEventListener("DOMContentLoaded", initializeTemplate);
+window.addEventListener("DOMContentLoaded", () => {
+  registerHyperFramesTimeline();
+  initializeTemplate();
+});
 
 window.addEventListener("message", (event) => {
   if (!event.data || typeof event.data !== "object") {
@@ -33,16 +47,27 @@ async function initializeTemplate() {
 }
 
 async function fetchSamplePayload() {
-  const response = await fetch(SAMPLE_PAYLOAD_PATH, { cache: "no-store" });
+  const payloadPath = getRenderPayloadPath();
+  const response = await fetch(payloadPath, { cache: "no-store" });
   if (!response.ok) {
-    throw new Error(`Không đọc được ${SAMPLE_PAYLOAD_PATH}: ${response.status}`);
+    throw new Error(`Không đọc được ${payloadPath}: ${response.status}`);
   }
 
   return response.json();
 }
 
+function getRenderPayloadPath() {
+  if (window.location.pathname.includes("/templates/project-showcase-90s/")) {
+    return ROOT_SAMPLE_PAYLOAD_PATH;
+  }
+
+  return WORKDIR_PAYLOAD_PATH;
+}
+
 function showScene(sceneId) {
   document.querySelectorAll(".scene").forEach((scene) => {
+    scene.style.opacity = "";
+    scene.style.pointerEvents = "";
     scene.classList.remove("active");
   });
 
@@ -51,6 +76,38 @@ function showScene(sceneId) {
   if (activeScene) {
     activeScene.classList.add("active");
   }
+}
+
+function registerHyperFramesTimeline() {
+  if (window.__timelines && window.__timelines[COMPOSITION_ID]) {
+    showScene(getActiveSceneType());
+    return;
+  }
+
+  if (!window.gsap) {
+    console.warn("GSAP chưa sẵn sàng, HyperFrames timeline không được đăng ký.");
+    return;
+  }
+
+  const tl = window.gsap.timeline({ paused: true });
+  const allSceneSelectors = SCENE_TIMELINE.map((scene) => `#${scene.id}`).join(", ");
+
+  tl.set(allSceneSelectors, { opacity: 0, pointerEvents: "none" }, 0);
+
+  SCENE_TIMELINE.forEach((scene) => {
+    tl.set(`#${scene.id}`, { opacity: 1, pointerEvents: "auto" }, scene.start);
+    tl.fromTo(
+      `#${scene.id} .scene-label, #${scene.id} .scene-header, #${scene.id} .logo-box, #${scene.id} h1, #${scene.id} p, #${scene.id} .problem-box, #${scene.id} .solution-box, #${scene.id} .feature-item, #${scene.id} .timeline-node, #${scene.id} .impact-val, #${scene.id} .impact-desc, #${scene.id} .highlight-box, #${scene.id} .meta-box`,
+      { opacity: 0, y: 18 },
+      { opacity: 1, y: 0, duration: 0.5, stagger: 0.04 },
+      scene.start + 0.1
+    );
+    tl.set(`#${scene.id}`, { opacity: 0, pointerEvents: "none" }, scene.start + scene.duration);
+  });
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines[COMPOSITION_ID] = tl;
+  showScene(getActiveSceneType());
 }
 
 function updateTemplatePayload(payload) {

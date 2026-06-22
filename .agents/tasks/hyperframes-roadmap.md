@@ -161,6 +161,21 @@ Approval gate:
 
 - Chỉ implement khi payload contract đã ổn.
 
+### Status
+
+Completed, ngày 23/06/2026.
+
+- `templates/project-showcase-90s/` đã đọc được render payload sample khi preview qua static server root project.
+- Template đã map đủ 7 scene MVP: intro, problem, solution, features, timeline, impact, outro.
+- Template đã có HyperFrames composition metadata và timeline registry inline.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint` pass `0 errors, 0 warnings`.
+- Render thử với payload tạm `render-payload.json` pass, xuất `/private/tmp/hyper-video-tool-project-showcase.mp4`.
+- `ffprobe` xác nhận output `duration=74.000000`, `size=1652781`.
+
+Next gate:
+
+- Phase tiếp theo là Backend Render Runner: backend tạo working directory, ghi `render-payload.json`, gọi HyperFrames runner và lưu MP4 vào `outputs/`.
+
 ## Phase 4 - Backend Render Runner
 
 ### Objective

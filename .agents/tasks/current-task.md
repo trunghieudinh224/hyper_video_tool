@@ -192,7 +192,6 @@ Không làm trong phase này:
 Files impact:
 
 - `templates/project-showcase-90s/index.html`
-- `templates/project-showcase-90s/style.css`
 - `templates/project-showcase-90s/script.js`
 - `.agents/tasks/current-task.md`
 
@@ -244,6 +243,98 @@ Remaining risks:
 - Template này hiện mới là preview HTML đọc payload, chưa phải HyperFrames composition production.
 - Backend hiện chưa expose `templates/` và `data/`; browser smoke test phase này dùng static server root project.
 - Chưa nối UI Preview/Render page với action `updatePayload`.
+
+## Phase Hiện Tại - HyperFrames Composition Compatibility
+
+### Objective
+
+Làm `templates/project-showcase-90s` trở thành HyperFrames composition hợp lệ. Sau phase này template payload hiện tại phải lint và render được bằng HyperFrames local runner, thay vì chỉ preview trong browser.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm `data-composition-id`, width/height và metadata cần thiết cho composition root.
+- Thêm clip metadata cho 7 scene theo timeline MVP.
+- Đăng ký `window.__timelines["project-showcase-90s"]` để HyperFrames điều khiển scene.
+- Giữ khả năng preview bằng `showScene` và `updatePayload`.
+- Render thử MP4 ngoài git để chứng minh template chạy được.
+
+Không làm trong phase này:
+
+- Không tạo backend render API.
+- Không nối UI Render page.
+- Không thêm voiceover/audio.
+- Không làm nhiều template.
+
+Files impact:
+
+- `templates/project-showcase-90s/index.html`
+- `templates/project-showcase-90s/style.css`
+- `templates/project-showcase-90s/script.js`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `node --check templates/project-showcase-90s/script.js`
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint`
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s render --output /private/tmp/hyper-video-tool-project-showcase.mp4`
+- `ffprobe` output MP4 để xác nhận duration/size.
+- Browser smoke test nhanh để đảm bảo preview cũ không gãy.
+
+### Test Report - HyperFrames Composition Compatibility
+
+Status: passed
+
+- Updated:
+  - `templates/project-showcase-90s/index.html`
+  - `templates/project-showcase-90s/script.js`
+- Template `project-showcase-90s` hiện có:
+  - `data-composition-id="project-showcase-90s"`
+  - `data-width="1920"`
+  - `data-height="1080"`
+  - Clip metadata cho 7 scene theo timeline 74 giây.
+  - `window.__timelines["project-showcase-90s"]` đăng ký inline trong HTML để HyperFrames lint/render nhận được.
+- Template tự chọn path payload theo runtime:
+  - Khi chạy qua static server root project: `../../data/render-payload.sample.json`.
+  - Khi chạy trong HyperFrames working dir: `./render-payload.json`.
+- Browser preview vẫn hoạt động:
+  - `#intro-title`: `Internal Analytics Dashboard`
+  - `.feature-item`: 4
+  - `.timeline-node`: 5
+  - `.scene`: 7
+  - `window.__timelines["project-showcase-90s"]`: true
+  - `postMessage showScene` chuyển được sang `scene-timeline`
+  - Console/page errors: none
+- HyperFrames render test:
+  - Tạo `templates/project-showcase-90s/render-payload.json` tạm từ `data/render-payload.sample.json`.
+  - Render output: `/private/tmp/hyper-video-tool-project-showcase.mp4`.
+  - Xóa payload tạm sau render, không commit.
+  - `ffprobe`: `duration=74.000000`, `size=1652781`.
+- Ghi chú review:
+  - Render thử đầu tiên từng pass nhưng dùng fallback vì HyperFrames file server không serve được `../../data/render-payload.sample.json`; kết quả đó không tính là pass.
+  - Đã sửa bằng cơ chế `./render-payload.json` cho working dir, phù hợp với phase Backend Render Runner sau này.
+
+Commands run:
+
+```bash
+node --check templates/project-showcase-90s/script.js
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
+cp data/render-payload.sample.json templates/project-showcase-90s/render-payload.json
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s render --output /private/tmp/hyper-video-tool-project-showcase.mp4
+rm -f templates/project-showcase-90s/render-payload.json
+.cache/hyperframes-runner/bin/ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /private/tmp/hyper-video-tool-project-showcase.mp4
+python3 -m http.server 8123 --bind 127.0.0.1
+npm --prefix backend run check
+npm --prefix backend run payload:check
+npm --prefix backend run hf:lint:spike
+git diff --check
+```
+
+Remaining risks:
+
+- Backend Render Runner chưa tạo `render-payload.json` tự động; đó là phase kế tiếp.
+- Template dùng GSAP CDN giống spike hiện tại; nếu offline hoàn toàn, render có thể cần vendor local ở phase hardening.
 
 ## Yêu Cầu Mới
 

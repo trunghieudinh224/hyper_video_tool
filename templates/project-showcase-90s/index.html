@@ -8,9 +8,22 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="video-container" id="video-container">
+  <div
+    class="video-container"
+    id="video-container"
+    data-composition-id="project-showcase-90s"
+    data-start="0"
+    data-width="1920"
+    data-height="1080"
+  >
     <!-- Intro Scene -->
-    <div class="scene active" id="scene-intro">
+    <div
+      class="scene active clip"
+      id="scene-intro"
+      data-start="0"
+      data-duration="6"
+      data-track-index="0"
+    >
       <div class="logo-box" id="intro-logo"></div>
       <h1 id="intro-title">Tên dự án</h1>
       <p id="intro-tagline">Tagline giới thiệu dự án nội bộ</p>
@@ -19,7 +32,13 @@
     </div>
 
     <!-- Problem Scene -->
-    <div class="scene" id="scene-problem">
+    <div
+      class="scene clip"
+      id="scene-problem"
+      data-start="6"
+      data-duration="10"
+      data-track-index="1"
+    >
       <div class="scene-label">Thực trạng & Vấn đề</div>
       <h2 class="scene-header">Nỗi đau khách hàng gặp phải</h2>
       <div class="problem-box" id="problem-content">Nội dung vấn đề...</div>
@@ -36,7 +55,13 @@
     </div>
 
     <!-- Solution Scene -->
-    <div class="scene" id="scene-solution">
+    <div
+      class="scene clip"
+      id="scene-solution"
+      data-start="16"
+      data-duration="10"
+      data-track-index="2"
+    >
       <div class="scene-label">Giải pháp</div>
       <h2 class="scene-header">Sản phẩm giải quyết nỗi đau thế nào?</h2>
       <div class="solution-box" id="solution-content">Nội dung giải pháp...</div>
@@ -44,7 +69,13 @@
     </div>
 
     <!-- Features Scene -->
-    <div class="scene" id="scene-features">
+    <div
+      class="scene clip"
+      id="scene-features"
+      data-start="26"
+      data-duration="18"
+      data-track-index="3"
+    >
       <div class="scene-label">Tính năng nổi bật</div>
       <h2 class="scene-header">Các chức năng cốt lõi</h2>
       <div class="features-grid" id="features-list-target">
@@ -53,7 +84,13 @@
     </div>
 
     <!-- Timeline Scene -->
-    <div class="scene" id="scene-timeline">
+    <div
+      class="scene clip"
+      id="scene-timeline"
+      data-start="44"
+      data-duration="14"
+      data-track-index="4"
+    >
       <div class="scene-label">Hành trình phát triển</div>
       <h2 class="scene-header">Các cột mốc quan trọng</h2>
       <div class="timeline-row" id="timeline-target">
@@ -62,7 +99,13 @@
     </div>
 
     <!-- Impact Scene -->
-    <div class="scene" id="scene-impact">
+    <div
+      class="scene clip"
+      id="scene-impact"
+      data-start="58"
+      data-duration="10"
+      data-track-index="5"
+    >
       <div class="scene-label">Kết quả & Tác động</div>
       <h2 class="scene-header">Giá trị mang lại</h2>
       <div class="impact-val" id="impact-value">Giảm 70% thời gian</div>
@@ -71,7 +114,13 @@
     </div>
 
     <!-- Outro Scene -->
-    <div class="scene" id="scene-outro">
+    <div
+      class="scene clip"
+      id="scene-outro"
+      data-start="68"
+      data-duration="6"
+      data-track-index="6"
+    >
       <div class="logo-box" id="outro-logo"></div>
       <h2 class="outro-header">CẢM ƠN BẠN ĐÃ THEO DÕI!</h2>
       <p class="outro-desc" id="outro-note">Chúc dự án thành công!</p>
@@ -79,6 +128,34 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script>
+    const projectShowcaseTl = gsap.timeline({ paused: true });
+    const projectShowcaseScenes = [
+      { id: "scene-intro", start: 0, duration: 6 },
+      { id: "scene-problem", start: 6, duration: 10 },
+      { id: "scene-solution", start: 16, duration: 10 },
+      { id: "scene-features", start: 26, duration: 18 },
+      { id: "scene-timeline", start: 44, duration: 14 },
+      { id: "scene-impact", start: 58, duration: 10 },
+      { id: "scene-outro", start: 68, duration: 6 }
+    ];
+    const projectShowcaseSelectors = projectShowcaseScenes.map((scene) => `#${scene.id}`).join(", ");
+
+    projectShowcaseTl.set(projectShowcaseSelectors, { opacity: 0, pointerEvents: "none" }, 0);
+    projectShowcaseScenes.forEach((scene) => {
+      projectShowcaseTl.set(`#${scene.id}`, { opacity: 1, pointerEvents: "auto" }, scene.start);
+      projectShowcaseTl.fromTo(
+        `#${scene.id} .scene-label, #${scene.id} .scene-header, #${scene.id} .logo-box, #${scene.id} h1, #${scene.id} p, #${scene.id} .problem-box, #${scene.id} .solution-box, #${scene.id} .feature-item, #${scene.id} .timeline-node, #${scene.id} .impact-val, #${scene.id} .impact-desc, #${scene.id} .highlight-box, #${scene.id} .meta-box`,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.04 },
+        scene.start + 0.1
+      );
+      projectShowcaseTl.set(`#${scene.id}`, { opacity: 0, pointerEvents: "none" }, scene.start + scene.duration);
+    });
+    window.__timelines = window.__timelines || {};
+    window.__timelines["project-showcase-90s"] = projectShowcaseTl;
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
