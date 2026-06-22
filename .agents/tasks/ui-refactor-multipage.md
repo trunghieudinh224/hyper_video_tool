@@ -345,6 +345,9 @@ Manual/UI checks:
 - [x] Dữ liệu mẫu load được bằng embedded mock data, không fetch file ngoài.
 - [x] Không còn `data-tab` hoặc `.tab-pane`.
 - [x] Layout content desktop đã đồng bộ width: `features`, `timeline`, `content`, `settings` không còn hardcode `max-width: 800px`.
+- [x] Preview canvas dark theme đọc rõ title/text.
+- [x] Settings không còn báo HyperFrames/FFmpeg đã sẵn sàng khi chưa tích hợp thật.
+- [x] Các field nội dung dài dùng textarea để tránh cắt text.
 
 Artifacts:
 - None

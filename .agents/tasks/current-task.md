@@ -25,6 +25,7 @@ Task chi tiết nằm ở `.agents/tasks/ui-refactor-multipage.md`. Antigravity 
 - Navigation dùng link HTML thật, không còn `data-tab` hoặc `.tab-pane`.
 - Sample data dùng embedded mock data để tránh lỗi fetch khi chạy local bằng static server hoặc file protocol.
 - Đã chuẩn hóa chiều ngang content: form/list/card của các trang `content`, `features`, `timeline`, `settings` stretch theo `workspace-content`, không còn hardcode `max-width: 800px` gây trống bên phải.
+- Đã polish các lỗi UI ưu tiên: preview canvas dark theme đọc rõ chữ, form nội dung dùng textarea cho field dài, status mock trong Settings phản ánh đúng phase UI, layout Render nới rộng card cấu hình.
 
 Responsive mobile/tablet chưa làm ở phase này theo yêu cầu mới của user.
 

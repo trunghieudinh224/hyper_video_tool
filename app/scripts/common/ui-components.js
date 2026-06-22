@@ -296,28 +296,28 @@ const AppUI = (() => {
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label" for="field-targetUsers">Người dùng mục tiêu</label>
-            <input type="text" id="field-targetUsers" class="form-control" value="${data.targetUsers || ''}" placeholder="ví dụ: Quản lý dự án, End-users">
+            <textarea id="field-targetUsers" class="form-control" rows="2" placeholder="ví dụ: Quản lý dự án, End-users">${data.targetUsers || ''}</textarea>
           </div>
           <div class="form-group">
             <label class="form-label" for="field-useCase">Bối cảnh sử dụng</label>
-            <input type="text" id="field-useCase" class="form-control" value="${data.useCase || ''}" placeholder="ví dụ: Họp hàng tuần, Training nhân viên">
+            <textarea id="field-useCase" class="form-control" rows="2" placeholder="ví dụ: Họp hàng tuần, Training nhân viên">${data.useCase || ''}</textarea>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label" for="field-keyHighlight">Điểm nổi bật nhất</label>
-            <input type="text" id="field-keyHighlight" class="form-control" value="${data.keyHighlight || ''}" placeholder="ví dụ: Tự động cảnh báo Slack">
+            <textarea id="field-keyHighlight" class="form-control" rows="2" placeholder="ví dụ: Tự động cảnh báo Slack">${data.keyHighlight || ''}</textarea>
           </div>
           <div class="form-group">
             <label class="form-label" for="field-resultImpact">Kết quả / Tác động đạt được</label>
-            <input type="text" id="field-resultImpact" class="form-control" value="${data.resultImpact || ''}" placeholder="ví dụ: Tiết kiệm 70% thời gian báo cáo">
+            <textarea id="field-resultImpact" class="form-control" rows="2" placeholder="ví dụ: Tiết kiệm 70% thời gian báo cáo">${data.resultImpact || ''}</textarea>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="field-endingNote">Lời kết thúc video</label>
-          <input type="text" id="field-endingNote" class="form-control" value="${data.endingNote || ''}" placeholder="Lời cảm ơn hoặc lời kêu gọi hành động...">
+          <textarea id="field-endingNote" class="form-control" rows="2" placeholder="Lời cảm ơn hoặc lời kêu gọi hành động...">${data.endingNote || ''}</textarea>
         </div>
       </form>
     `;
@@ -1239,9 +1239,11 @@ const AppUI = (() => {
     const accentId = data.templateConfig.accentColor;
     const accentObj = THEME_ACCENT_COLORS.find(c => c.id === accentId) || THEME_ACCENT_COLORS[0];
     const accentColor = accentObj.value;
+    const canvasTextColor = videoTheme === 'light' ? '#1e293b' : '#f8fafc';
+    const canvasMutedColor = videoTheme === 'light' ? '#475569' : '#cbd5e1';
 
     canvas.style.backgroundColor = videoTheme === 'light' ? '#f8f9fa' : '#0f172a';
-    canvas.style.color = videoTheme === 'light' ? '#1e293b' : '#f1f5f9';
+    canvas.style.color = canvasTextColor;
 
     // Title Font Scale
     let titleFontSize = "24px";
@@ -1263,15 +1265,15 @@ const AppUI = (() => {
       case "intro":
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 8px; letter-spacing: 1px;">Giới thiệu dự án</div>
-          <h1 style="font-size: ${titleFontSize}; font-weight:800; margin-bottom:12px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">${data.projectName || 'DỰ ÁN CHƯA ĐẶT TÊN'}</h1>
-          <p style="font-size: var(--font-base); max-width:480px; opacity:0.85; line-height:1.4;">"${data.tagline || 'Tagline dự án...'}"</p>
-          <div style="position:absolute; bottom:16px; font-size:var(--font-xs); opacity:0.7;">Đại diện: ${data.ownerTeam || 'Team phụ trách'}</div>
+          <h1 style="font-size: ${titleFontSize}; font-weight:800; margin-bottom:12px; color:${canvasTextColor}; text-shadow: 0 2px 10px rgba(0,0,0,0.28);">${data.projectName || 'DỰ ÁN CHƯA ĐẶT TÊN'}</h1>
+          <p style="font-size: var(--font-base); max-width:480px; color:${canvasTextColor}; opacity:0.9; line-height:1.4;">"${data.tagline || 'Tagline dự án...'}"</p>
+          <div style="position:absolute; bottom:16px; font-size:var(--font-xs); color:${canvasMutedColor};">Đại diện: ${data.ownerTeam || 'Team phụ trách'}</div>
         `;
         break;
       case "problem":
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:var(--color-danger); font-weight:700; margin-bottom: 8px; letter-spacing: 1px;">Thực trạng & Vấn đề</div>
-          <h2 style="font-size: 20px; font-weight:700; margin-bottom:16px; max-width:500px;">Nỗi đau & Vấn đề gặp phải là gì?</h2>
+          <h2 style="font-size: 20px; font-weight:700; margin-bottom:16px; max-width:500px; color:${canvasTextColor};">Nỗi đau & Vấn đề gặp phải là gì?</h2>
           <p style="font-size: var(--font-base); max-content: 480px; padding: 12px var(--space-4); border-left: 4px solid var(--color-danger); background-color:${videoTheme === 'light' ? '#fee2e2' : '#7f1d1d33'}; color:${videoTheme === 'light' ? '#991b1b' : '#fca5a5'}; max-width:500px; text-align:left; border-radius: 0 4px 4px 0;">
             ${data.problemContext || 'Nội dung mô tả vấn đề đang gặp phải chưa được điền...'}
           </p>
@@ -1280,8 +1282,8 @@ const AppUI = (() => {
       case "solution":
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 8px; letter-spacing: 1px;">Giải pháp đã phát triển</div>
-          <h2 style="font-size: 20px; font-weight:700; margin-bottom:16px;">Sản phẩm của chúng ta giải quyết thế nào?</h2>
-          <p style="font-size: var(--font-base); max-width:480px; opacity:0.9; line-height:1.5;">
+          <h2 style="font-size: 20px; font-weight:700; margin-bottom:16px; color:${canvasTextColor};">Sản phẩm của chúng ta giải quyết thế nào?</h2>
+          <p style="font-size: var(--font-base); max-width:480px; color:${canvasTextColor}; opacity:0.9; line-height:1.5;">
             ${data.solutionWhat || 'Nội dung mô tả giải pháp đã phát triển chưa được điền...'}
           </p>
         `;
@@ -1307,7 +1309,7 @@ const AppUI = (() => {
         
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 4px; letter-spacing: 1px;">Tính năng nổi bật</div>
-          <h2 style="font-size: 18px; font-weight:700; margin-bottom:8px;">Các chức năng cốt lõi hoạt động</h2>
+          <h2 style="font-size: 18px; font-weight:700; margin-bottom:8px; color:${canvasTextColor};">Các chức năng cốt lõi hoạt động</h2>
           ${featsHTML}
         `;
         break;
@@ -1336,18 +1338,18 @@ const AppUI = (() => {
 
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 4px; letter-spacing: 1px;">Cột mốc phát triển</div>
-          <h2 style="font-size: 18px; font-weight:700; margin-bottom:4px;">Hành trình xây dựng sản phẩm</h2>
+          <h2 style="font-size: 18px; font-weight:700; margin-bottom:4px; color:${canvasTextColor};">Hành trình xây dựng sản phẩm</h2>
           ${msHTML}
         `;
         break;
       case "impact":
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 8px; letter-spacing: 1px;">Kết quả & Tác động</div>
-          <h2 style="font-size: 18px; font-weight:700; margin-bottom:12px;">Đo lường sự thành công</h2>
+          <h2 style="font-size: 18px; font-weight:700; margin-bottom:12px; color:${canvasTextColor};">Đo lường sự thành công</h2>
           <div style="font-size: 32px; font-weight:800; color:${accentColor}; margin-bottom:12px; letter-spacing: -0.5px;">
             ${data.resultImpact ? data.resultImpact.split(' ').slice(0, 3).join(' ') : 'KẾT QUẢ ĐẠT ĐƯỢC'}
           </div>
-          <p style="font-size: var(--font-base); max-width:440px; opacity:0.85;">
+          <p style="font-size: var(--font-base); max-width:440px; color:${canvasTextColor}; opacity:0.9;">
             ${data.resultImpact || 'Thông số kết quả cụ thể đo lường được...'}
           </p>
         `;
@@ -1359,8 +1361,8 @@ const AppUI = (() => {
 
         innerHTML += `
           ${outroLogoHTML}
-          <h2 style="font-size: 22px; font-weight:800; margin-bottom:12px;">CẢM ƠN BẠN ĐÃ THEO DÕI!</h2>
-          <p style="font-size: var(--font-sm); opacity:0.8; max-width:440px; line-height:1.4;">
+          <h2 style="font-size: 22px; font-weight:800; margin-bottom:12px; color:${canvasTextColor};">CẢM ƠN BẠN ĐÃ THEO DÕI!</h2>
+          <p style="font-size: var(--font-sm); color:${canvasTextColor}; opacity:0.86; max-width:440px; line-height:1.4;">
             ${data.endingNote || 'Lời chào kết thúc video.'}
           </p>
         `;
@@ -1392,7 +1394,7 @@ const AppUI = (() => {
         <h1>Render xuất bản Video</h1>
       </div>
 
-      <div class="preview-layout" style="grid-template-columns: 2fr 3fr;">
+      <div class="preview-layout" style="grid-template-columns: minmax(360px, 1fr) minmax(0, 1.25fr);">
         <!-- Left: Render configuration settings -->
         <div style="display:flex; flex-direction:column; gap: var(--space-4);">
           <div class="card">
@@ -1681,15 +1683,15 @@ const AppUI = (() => {
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span>Công cụ render HyperFrames:</span>
-              <span class="status-pill status-success">Đã kết nối</span>
+              <span class="status-pill status-warning">Chưa tích hợp</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span>Trình giải mã FFmpeg:</span>
-              <span class="status-pill status-success">Đã sẵn sàng</span>
+              <span class="status-pill status-warning">Chưa kiểm tra</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span>Máy chủ Node.js cục bộ:</span>
-              <span class="status-pill status-warning">Tạm ngắt (Chưa cần thiết)</span>
+              <span class="status-pill status-info">Chưa dùng trong phase UI</span>
             </div>
           </div>
         </div>
