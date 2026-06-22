@@ -1,0 +1,19 @@
+{
+  "name": "hyper-video-tool-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local backend for Hyper Video Tool.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "check": "node --check src/config.js && node --check src/server.js && node --check scripts/check-hyperframes.js",
+    "check:hyperframes": "node scripts/check-hyperframes.js",
+    "hf:setup": "node scripts/run-hyperframes-local.js --setup-only",
+    "hf:doctor:spike": "node scripts/run-hyperframes-local.js --cwd templates/hyperframes-spike doctor",
+    "hf:lint:spike": "node scripts/run-hyperframes-local.js --cwd templates/hyperframes-spike lint",
+    "hf:render:spike": "node scripts/run-hyperframes-local.js --cwd templates/hyperframes-spike render --output /private/tmp/hyper-video-tool-spike.mp4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

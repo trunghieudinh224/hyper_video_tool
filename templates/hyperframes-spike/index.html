@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hyper Video Tool Spike</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main
+    id="stage"
+    data-composition-id="hyper-video-tool-spike"
+    data-start="0"
+    data-width="1920"
+    data-height="1080"
+  >
+    <p
+      id="spike-eyebrow"
+      class="eyebrow clip"
+      data-start="0"
+      data-duration="5"
+      data-track-index="0"
+    >
+      Hyper Video Tool
+    </p>
+    <h1
+      id="spike-title"
+      class="title clip"
+      data-start="0.3"
+      data-duration="4.4"
+      data-track-index="1"
+    >
+      Video thuyết trình dự án nội bộ
+    </h1>
+    <p
+      id="spike-subtitle"
+      class="subtitle clip"
+      data-start="1"
+      data-duration="3.7"
+      data-track-index="2"
+    >
+      Spike tối thiểu để kiểm tra HyperFrames CLI, composition contract và render pipeline.
+    </p>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.from("#spike-eyebrow", { opacity: 0, y: 24, duration: 0.6 }, 0);
+    tl.from("#spike-title", { opacity: 0, y: 36, duration: 0.8 }, 0.3);
+    tl.from("#spike-subtitle", { opacity: 0, y: 28, duration: 0.7 }, 1);
+    tl.to("#spike-subtitle", { opacity: 1, duration: 0.1 }, 4.9);
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hyper-video-tool-spike"] = tl;
+  </script>
+</body>
+</html>

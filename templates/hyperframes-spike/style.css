@@ -1,0 +1,59 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: #0b0f17;
+  color: #f8fafc;
+  font-family: sans-serif;
+}
+
+#stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background-color: #101624;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 160px;
+}
+
+.clip {
+  margin: 0;
+}
+
+.eyebrow {
+  color: #8fb2ff;
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  max-width: 1240px;
+  margin-top: 36px;
+  color: #ffffff;
+  font-size: 104px;
+  font-weight: 850;
+  line-height: 1.02;
+}
+
+.subtitle {
+  max-width: 980px;
+  margin-top: 44px;
+  color: #b8c2d6;
+  font-size: 40px;
+  font-weight: 520;
+  line-height: 1.35;
+}

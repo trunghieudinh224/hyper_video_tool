@@ -1,7 +1,10 @@
 .DS_Store
 .codegraph/
+.cache/
 node_modules/
 dist/
 outputs/*.mp4
 *.log
 *.sqlite
+.env
+.env.*
