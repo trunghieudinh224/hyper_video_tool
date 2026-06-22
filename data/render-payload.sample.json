@@ -1,0 +1,215 @@
+{
+  "version": "1.0.0",
+  "source": {
+    "projectName": "Internal Analytics Dashboard",
+    "projectSlug": "internal-analytics-dashboard",
+    "ownerTeam": "Platform Team",
+    "presenterRole": "Product Owner"
+  },
+  "template": {
+    "id": "project-showcase-90s",
+    "config": {
+      "theme": "dark",
+      "accentColor": "blue",
+      "fontSize": "default",
+      "logoPosition": "top-left"
+    }
+  },
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "format": "mp4",
+    "estimatedDuration": 74
+  },
+  "assets": {
+    "logo": {
+      "id": "asset_1",
+      "name": "logo_platform_team.svg",
+      "type": "logo",
+      "url": "https://placehold.co/120x120/1f4fd8/ffffff?text=Platform+Logo",
+      "useInVideo": true
+    },
+    "screenshots": [
+      {
+        "id": "asset_2",
+        "name": "dashboard_overview.png",
+        "type": "screenshot",
+        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Dashboard+Overview",
+        "useInVideo": true
+      },
+      {
+        "id": "asset_3",
+        "name": "weekly_performance_chart.png",
+        "type": "screenshot",
+        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Performance+Chart",
+        "useInVideo": true
+      }
+    ],
+    "videos": [],
+    "all": [
+      {
+        "id": "asset_1",
+        "name": "logo_platform_team.svg",
+        "type": "logo",
+        "url": "https://placehold.co/120x120/1f4fd8/ffffff?text=Platform+Logo",
+        "useInVideo": true
+      },
+      {
+        "id": "asset_2",
+        "name": "dashboard_overview.png",
+        "type": "screenshot",
+        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Dashboard+Overview",
+        "useInVideo": true
+      },
+      {
+        "id": "asset_3",
+        "name": "weekly_performance_chart.png",
+        "type": "screenshot",
+        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Performance+Chart",
+        "useInVideo": true
+      },
+      {
+        "id": "asset_4",
+        "name": "slack_notification_demo.mp4",
+        "type": "video",
+        "url": "",
+        "useInVideo": false
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "type": "intro",
+      "title": "Giới thiệu dự án",
+      "duration": 6,
+      "content": {
+        "projectName": "Internal Analytics Dashboard",
+        "tagline": "Bản điều khiển giúp team theo dõi hiệu suất dự án theo thời gian thực.",
+        "ownerTeam": "Platform Team",
+        "summary": "Hệ thống tổng hợp và trực quan hóa dữ liệu hiệu suất của các dự án đang chạy trong công ty."
+      }
+    },
+    {
+      "id": "scene-problem",
+      "type": "problem",
+      "title": "Bối cảnh và vấn đề",
+      "duration": 10,
+      "content": {
+        "problem": "Dữ liệu tiến độ nằm rải rác nhiều nguồn, khó nhìn tổng quan khiến việc đưa ra quyết định chậm trễ.",
+        "targetUsers": "Quản lý dự án, team lead và các thành viên vận hành nội bộ.",
+        "useCase": "Sử dụng trong các buổi họp tiến độ hàng tuần và báo cáo tháng của các bộ phận."
+      }
+    },
+    {
+      "id": "scene-solution",
+      "type": "solution",
+      "title": "Giải pháp",
+      "duration": 10,
+      "content": {
+        "solution": "Gom dữ liệu vào dashboard nội bộ có biểu đồ trực quan, hệ thống cảnh báo tự động và báo cáo nhanh.",
+        "keyHighlight": "Tự động gửi cảnh báo qua Slack/Email khi có task trễ hạn quá 2 ngày."
+      }
+    },
+    {
+      "id": "scene-features",
+      "type": "features",
+      "title": "Tính năng nổi bật",
+      "duration": 18,
+      "content": {
+        "items": [
+          {
+            "id": "feat_1",
+            "title": "Tổng quan tiến độ theo dự án",
+            "description": "Hiển thị tỷ lệ phần trăm hoàn thành, trạng thái các milestone và timeline của từng dự án.",
+            "benefit": "Giúp quản lý nắm bắt nhanh trạng thái sức khỏe của toàn bộ dự án trong 10 giây."
+          },
+          {
+            "id": "feat_2",
+            "title": "Biểu đồ hiệu suất theo tuần",
+            "description": "Biểu diễn trực quan số lượng task hoàn thành, task mới phát sinh và task tồn đọng.",
+            "benefit": "Phát hiện ngay các điểm nghẽn trong quy trình làm việc của team."
+          },
+          {
+            "id": "feat_3",
+            "title": "Cảnh báo task trễ hạn tự động",
+            "description": "Tự động quét và phát hiện các task đã quá deadline mà chưa được cập nhật.",
+            "benefit": "Hỗ trợ team lead xử lý rủi ro chậm tiến độ một cách chủ động."
+          },
+          {
+            "id": "feat_4",
+            "title": "Xuất báo cáo nhanh cho buổi họp",
+            "description": "Chỉ với 1 click, hệ thống tự động xuất báo cáo PDF/Slides tóm tắt các chỉ số quan trọng.",
+            "benefit": "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần."
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene-timeline",
+      "type": "timeline",
+      "title": "Timeline phát triển",
+      "duration": 14,
+      "content": {
+        "milestones": [
+          {
+            "id": "ms_1",
+            "title": "Khảo sát nhu cầu nội bộ",
+            "date": "Tháng 01/2026",
+            "description": "Phỏng vấn 15 PM và Team Lead để xác định các chỉ số quan trọng cần theo dõi.",
+            "status": "completed"
+          },
+          {
+            "id": "ms_2",
+            "title": "Xây dựng bản MVP",
+            "date": "Tháng 02/2026",
+            "description": "Thiết kế database, tích hợp API từ Jira/Github và dựng các biểu đồ cốt lõi.",
+            "status": "completed"
+          },
+          {
+            "id": "ms_3",
+            "title": "Thử nghiệm nội bộ (Alpha Test)",
+            "date": "Tháng 03/2026",
+            "description": "Triển khai thử nghiệm cho Platform Team để tìm và sửa lỗi phát sinh.",
+            "status": "completed"
+          },
+          {
+            "id": "ms_4",
+            "title": "Mở rộng thử nghiệm (Beta Test)",
+            "date": "Tháng 04/2026",
+            "description": "Mở quyền truy cập cho 5 team dự án khác chạy thử và thu thập feedback.",
+            "status": "active"
+          },
+          {
+            "id": "ms_5",
+            "title": "Ra mắt chính thức bản V1.0",
+            "date": "Tháng 05/2026",
+            "description": "Hoàn thiện các tính năng báo cáo tự động và triển khai diện rộng toàn công ty.",
+            "status": "upcoming"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene-impact",
+      "type": "impact",
+      "title": "Kết quả và tác động",
+      "duration": 10,
+      "content": {
+        "resultImpact": "Giảm 70% thời gian tổng hợp báo cáo thủ công và tăng 25% hiệu suất xử lý công việc quá hạn.",
+        "highlight": "Tự động gửi cảnh báo qua Slack/Email khi có task trễ hạn quá 2 ngày."
+      }
+    },
+    {
+      "id": "scene-outro",
+      "type": "outro",
+      "title": "Kết thúc",
+      "duration": 6,
+      "content": {
+        "endingNote": "Hãy truy cập dashboard tại internal.analytics và gửi phản hồi cho Platform Team nhé!",
+        "ownerTeam": "Platform Team"
+      }
+    }
+  ]
+}

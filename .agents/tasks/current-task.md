@@ -91,6 +91,79 @@ Remaining risks:
 - System/global environment vẫn chưa đủ nếu user muốn gọi `npx hyperframes render` trực tiếp ngoài runner.
 - Chưa làm project JSON API, upload asset, render queue hoặc render từ dữ liệu UI thật.
 
+## Phase Hiện Tại - Render Payload Contract
+
+### Objective
+
+Chuẩn hóa contract JSON trung gian giữa project data và template HyperFrames. Sau phase này, `data/sample-project.json` có thể được map thành render payload ổn định, có schema validate cơ bản và sample output để template adapter phase sau sử dụng.
+
+### Scope
+
+Sẽ làm:
+
+- Tạo schema validate render payload bằng JavaScript thuần, không thêm dependency.
+- Tạo mapper từ project JSON sang payload gồm 7 scene MVP: intro, problem, solution, features, timeline, impact, outro.
+- Tạo script sinh `data/render-payload.sample.json` từ `data/sample-project.json`.
+- Thêm npm script để kiểm tra/sinh payload.
+- Cập nhật Test Report sau khi chạy test.
+
+Không làm trong phase này:
+
+- Không refactor template HyperFrames để đọc payload.
+- Không gọi render bằng payload mới.
+- Không tạo API backend.
+- Không nối UI Render page.
+
+Files impact:
+
+- `backend/src/render/render-payload-schema.js`
+- `backend/src/render/project-to-render-payload.js`
+- `backend/scripts/generate-render-payload-sample.js`
+- `backend/scripts/test-render-payload.js`
+- `backend/package.json`
+- `data/render-payload.sample.json`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `npm --prefix backend run check`
+- `npm --prefix backend run payload:check`
+- `npm --prefix backend run payload:write`
+- So sánh sample payload sinh ra không làm dirty sau khi chạy lại.
+
+### Test Report - Render Payload Contract
+
+Status: passed
+
+- Created:
+  - `backend/src/render/render-payload-schema.js`
+  - `backend/src/render/project-to-render-payload.js`
+  - `backend/scripts/generate-render-payload-sample.js`
+  - `backend/scripts/test-render-payload.js`
+  - `data/render-payload.sample.json`
+- Passed:
+  - Mapper sinh payload từ `data/sample-project.json`.
+  - Payload có đủ 7 scene MVP theo thứ tự: intro, problem, solution, features, timeline, impact, outro.
+  - Payload pass schema validation.
+  - Sample payload up to date.
+  - Fallback payload từ input rỗng vẫn hợp lệ.
+  - HyperFrames spike lint vẫn pass.
+
+Commands run:
+
+```bash
+npm --prefix backend run payload:write
+npm --prefix backend run payload:check
+npm --prefix backend run payload:test
+npm --prefix backend run check
+npm --prefix backend run hf:lint:spike
+```
+
+Remaining risks:
+
+- Template HyperFrames chưa đọc payload này; đó là phase tiếp theo.
+- Payload contract hiện mới validate shape cơ bản, chưa enforce giới hạn độ dài text cho từng scene.
+
 ## Yêu Cầu Mới
 
 UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.
