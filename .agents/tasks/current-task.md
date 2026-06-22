@@ -4,9 +4,96 @@
 
 completed
 
+## Cập Nhật Cấu Trúc Thư Mục UI Và Backend
+
+Đã chuẩn hóa cấu trúc project để chuẩn bị phase backend sau này:
+
+- UI tĩnh chuyển từ `app/` sang `frontend/`.
+- `frontend/index.html` là entry UI, dẫn tới `frontend/pages/overview.html`.
+- `frontend/pages/`, `frontend/styles/`, `frontend/scripts/`, `frontend/shared/` giữ đúng mô hình multi-page tĩnh.
+- Thêm `backend/README.md` làm ranh giới cho backend local ở phase sau.
+- `data/` và `templates/` giữ ở root vì dữ liệu mẫu/template render sẽ được cả UI và backend dùng.
+- Cập nhật `AGENTS.md`, `GEMINI.md`, rule UI và context để agent sau này không tạo UI vào `app/` nữa.
+
+Backend vẫn chưa triển khai trong phase này.
+
+## Roadmap Backend Và HyperFrames
+
+Đã tạo roadmap phase-by-phase để chuẩn bị triển khai sau khi user review:
+
+- `.agents/tasks/backend-roadmap.md`: backend local, static serve, project JSON API, asset upload, render job API mock, hardening.
+- `.agents/tasks/hyperframes-roadmap.md`: research HyperFrames, render payload contract, template adapter, render runner, UI integration render thật, hardening.
+- `.agents/rules/project-structure.md`: rule ranh giới `frontend/`, `backend/`, `data/`, `templates/`, `.agents/`.
+
+Đã triển khai bước setup ban đầu theo hướng không làm full backend:
+
+- Backend Phase 1 tối thiểu trong `backend/`: Node HTTP server, `/api/health`, serve UI từ `frontend/`.
+- HyperFrames preflight script: `backend/scripts/check-hyperframes.js`.
+- HyperFrames spike composition: `templates/hyperframes-spike/`.
+- Ghi chú kết quả setup: `.agents/context/hyperframes-notes.md`.
+
+Chưa làm Project JSON API, upload asset, render queue thật hoặc full backend.
+
+### Test Report - Backend Phase 1 Và HyperFrames Setup
+
+Status: passed for initial setup
+
+- Passed:
+  - `npm --prefix backend run check` pass.
+  - Backend server chạy được với `HVT_PORT=3010 npm --prefix backend start`.
+  - `GET http://127.0.0.1:3010/api/health` trả JSON success.
+  - `GET http://127.0.0.1:3010/` trả `200 OK`.
+  - `GET http://127.0.0.1:3010/pages/overview.html` trả `200 OK`.
+  - `GET http://127.0.0.1:3010/api/unknown` trả JSON lỗi chuẩn.
+  - `npx --yes hyperframes lint` trong `templates/hyperframes-spike/` pass `0 errors, 0 warnings`.
+  - `npm --prefix backend run hf:setup` pass, tạo local runner trong `.cache/hyperframes-runner/` bằng lockfile.
+  - `npm --prefix backend run hf:doctor:spike` pass cho local render requirements: Node 24, FFmpeg, FFprobe, Chrome. Docker thiếu nhưng optional.
+  - `npm --prefix backend run hf:lint:spike` pass `0 errors, 0 warnings`.
+  - `npm --prefix backend run hf:render:spike` pass, xuất `/private/tmp/hyper-video-tool-spike.mp4`.
+- `.cache/hyperframes-runner/bin/ffprobe ... /private/tmp/hyper-video-tool-spike.mp4` xác nhận `duration=5.000000`, `size=425203`.
+- Review fixes:
+  - Runner kiểm đủ `node`, `hyperframes`, `ffmpeg-static`, `ffprobe-static` trước khi skip install.
+  - Runner dùng `npm ci` từ `backend/hyperframes-runner-package-lock.json`.
+  - Static server xử lý `HEAD` không stream body.
+  - `/api/health` không trả absolute local path nữa.
+- Known system/global limitation:
+  - `npm --prefix backend run check:hyperframes` fail vì Node hệ thống là `v20.16.0`, trong khi HyperFrames docs yêu cầu Node.js 22+.
+  - `npm --prefix backend run check:hyperframes` fail vì thiếu `ffmpeg`.
+  - `npx --yes hyperframes render --output /private/tmp/hyper-video-tool-spike.mp4` nếu chạy trực tiếp bằng system env sẽ fail vì thiếu FFmpeg/FFprobe.
+
+Commands run:
+
+```bash
+npm --prefix backend run check
+npm --prefix backend run check:hyperframes
+npm --prefix backend run hf:setup
+npm --prefix backend run hf:doctor:spike
+npm --prefix backend run hf:lint:spike
+npm --prefix backend run hf:render:spike
+rm -rf .cache/hyperframes-runner
+npm --prefix backend run hf:setup
+rm -rf .cache/hyperframes-runner/node_modules/ffmpeg-static
+npm --prefix backend run hf:setup
+HVT_PORT=3010 npm --prefix backend start
+curl -s http://127.0.0.1:3010/api/health
+curl -s -I http://127.0.0.1:3010/
+curl -s -I http://127.0.0.1:3010/pages/overview.html
+curl -s http://127.0.0.1:3010/api/unknown
+npx --yes hyperframes lint
+npx --yes hyperframes doctor
+npx --yes hyperframes render --output /private/tmp/hyper-video-tool-spike.mp4
+.cache/hyperframes-runner/bin/ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /private/tmp/hyper-video-tool-spike.mp4
+```
+
+Remaining risks:
+
+- Local runner hiện phục vụ spike render tốt, nhưng chưa nối vào backend render job API.
+- System/global environment vẫn chưa đủ nếu user muốn gọi `npx hyperframes render` trực tiếp ngoài runner.
+- Chưa làm project JSON API, upload asset, render queue hoặc render từ dữ liệu UI thật.
+
 ## Yêu Cầu Mới
 
-UI hiện tại đã dựng được MVP tĩnh, nhưng đang gom toàn bộ màn hình vào một `app/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.
+UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.
 
 Yêu cầu mới: refactor UI sang cấu trúc nhiều trang tĩnh. Mỗi màn hình chính phải có HTML riêng, CSS riêng và JS riêng nếu có logic riêng. Phần dùng chung như topbar, sidebar, validation panel, modal, toast, theme toggle, state, storage và navigation phải tách vào file chung.
 
@@ -14,14 +101,14 @@ Task chi tiết nằm ở `.agents/tasks/ui-refactor-multipage.md`. Antigravity 
 
 ## Kết Quả Refactor Multi-page
 
-Đã refactor UI từ một `app/index.html` dạng SPA tab sang cấu trúc nhiều trang tĩnh:
+Đã refactor UI từ một `frontend/index.html` dạng SPA tab sang cấu trúc nhiều trang tĩnh:
 
-- `app/index.html` chỉ còn là entry dẫn tới `app/pages/overview.html`.
-- 10 màn hình chính đã tách thành HTML riêng trong `app/pages/`.
-- CSS page riêng nằm trong `app/styles/pages/`.
-- JS page riêng nằm trong `app/scripts/pages/`.
-- JS dùng chung nằm trong `app/scripts/common/`.
-- Shell chung được render bằng `app/scripts/common/shell.js`.
+- `frontend/index.html` chỉ còn là entry dẫn tới `frontend/pages/overview.html`.
+- 10 màn hình chính đã tách thành HTML riêng trong `frontend/pages/`.
+- CSS page riêng nằm trong `frontend/styles/pages/`.
+- JS page riêng nằm trong `frontend/scripts/pages/`.
+- JS dùng chung nằm trong `frontend/scripts/common/`.
+- Shell chung được render bằng `frontend/scripts/common/shell.js`.
 - Navigation dùng link HTML thật, không còn `data-tab` hoặc `.tab-pane`.
 - Sample data dùng embedded mock data để tránh lỗi fetch khi chạy local bằng static server hoặc file protocol.
 - Đã chuẩn hóa chiều ngang content: form/list/card của các trang `content`, `features`, `timeline`, `settings` stretch theo `workspace-content`, không còn hardcode `max-width: 800px` gây trống bên phải.
@@ -46,7 +133,7 @@ Responsive mobile/tablet chưa làm ở phase này theo yêu cầu mới của u
   - Kết nối thật với engine HyperFrames để xuất file video MP4 thực tế.
   - Trình biên tập timeline kéo thả phức tạp.
 - **Khu vực ảnh hưởng**:
-  - Thư mục `app/` chứa các tệp HTML/CSS/JS của ứng dụng.
+  - Thư mục `frontend/` chứa các tệp HTML/CSS/JS của ứng dụng.
   - Thư mục `templates/` chứa tài nguyên template demo.
   - Thư mục `data/` chứa dữ liệu dự án mẫu.
 - **Rủi ro**:
@@ -84,18 +171,18 @@ Dựng toàn bộ giao diện tĩnh MVP chạy local cho Hyper Video Tool bằng
 ### Files Impact
 
 - **[NEW]** `data/sample-project.json`
-- **[NEW]** `app/index.html`
-- **[NEW]** `app/styles/tokens.css`
-- **[NEW]** `app/styles/base.css`
-- **[NEW]** `app/styles/layout.css`
-- **[NEW]** `app/styles/components.css`
-- **[NEW]** `app/scripts/constants.js`
-- **[NEW]** `app/scripts/state.js`
-- **[NEW]** `app/scripts/storage.js`
-- **[NEW]** `app/scripts/validation.js`
-- **[NEW]** `app/scripts/render-preview.js`
-- **[NEW]** `app/scripts/ui.js`
-- **[NEW]** `app/scripts/app.js`
+- **[NEW]** `frontend/index.html`
+- **[NEW]** `frontend/styles/tokens.css`
+- **[NEW]** `frontend/styles/base.css`
+- **[NEW]** `frontend/styles/layout.css`
+- **[NEW]** `frontend/styles/components.css`
+- **[NEW]** `frontend/scripts/constants.js`
+- **[NEW]** `frontend/scripts/state.js`
+- **[NEW]** `frontend/scripts/storage.js`
+- **[NEW]** `frontend/scripts/validation.js`
+- **[NEW]** `frontend/scripts/render-preview.js`
+- **[NEW]** `frontend/scripts/ui.js`
+- **[NEW]** `frontend/scripts/app.js`
 - **[NEW]** `templates/project-showcase-90s/index.html`
 - **[NEW]** `templates/project-showcase-90s/style.css`
 - **[NEW]** `templates/project-showcase-90s/script.js`
@@ -138,7 +225,7 @@ Dựng toàn bộ giao diện tĩnh MVP chạy local cho Hyper Video Tool bằng
 ## Verification Plan
 
 ### Manual Verification
-- Mở file `app/index.html` bằng trình duyệt Chrome trên macOS.
+- Mở file `frontend/index.html` bằng trình duyệt Chrome trên macOS.
 - Bấm nút "Tải dữ liệu mẫu" trong Cài đặt hoặc Dự án để điền thông tin tự động.
 - Chuyển đổi giữa 10 tab để kiểm tra hiển thị.
 - Kiểm tra nút chuyển đổi theme Sáng/Tối ở Top bar.

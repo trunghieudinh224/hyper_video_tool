@@ -58,4 +58,7 @@ Người dùng nhập dữ liệu trên UI
 
 - `.agents/tasks/ui-roadmap.md`: roadmap giao diện tổng thể.
 - `.agents/tasks/ui-items.md`: danh sách item chi tiết cần có trên từng màn hình.
+- `.agents/tasks/backend-roadmap.md`: roadmap backend local theo từng phase.
+- `.agents/tasks/hyperframes-roadmap.md`: roadmap tích hợp HyperFrames/render MP4.
+- `.agents/context/hyperframes-notes.md`: ghi chú setup, dependency và kết quả test HyperFrames.
 - `.agents/tasks/current-task.md`: trạng thái công việc hiện tại.
