@@ -24,6 +24,7 @@ Task chi tiết nằm ở `.agents/tasks/ui-refactor-multipage.md`. Antigravity 
 - Shell chung được render bằng `app/scripts/common/shell.js`.
 - Navigation dùng link HTML thật, không còn `data-tab` hoặc `.tab-pane`.
 - Sample data dùng embedded mock data để tránh lỗi fetch khi chạy local bằng static server hoặc file protocol.
+- Đã chuẩn hóa chiều ngang content: form/list/card của các trang `content`, `features`, `timeline`, `settings` stretch theo `workspace-content`, không còn hardcode `max-width: 800px` gây trống bên phải.
 
 Responsive mobile/tablet chưa làm ở phase này theo yêu cầu mới của user.
 

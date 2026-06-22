@@ -344,6 +344,7 @@ Manual/UI checks:
 - [x] Light/Dark mode giữ khi chuyển page.
 - [x] Dữ liệu mẫu load được bằng embedded mock data, không fetch file ngoài.
 - [x] Không còn `data-tab` hoặc `.tab-pane`.
+- [x] Layout content desktop đã đồng bộ width: `features`, `timeline`, `content`, `settings` không còn hardcode `max-width: 800px`.
 
 Artifacts:
 - None

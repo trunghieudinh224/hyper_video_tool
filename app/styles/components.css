@@ -787,12 +787,14 @@ textarea.form-control {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  width: 100%;
 }
 
 .list-row-item {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  width: 100%;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);

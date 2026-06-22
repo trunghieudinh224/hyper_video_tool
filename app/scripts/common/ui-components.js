@@ -245,7 +245,7 @@ const AppUI = (() => {
         </div>
       </div>
 
-      <form id="content-form" style="display:flex; flex-direction:column; gap: var(--space-5); max-width: 800px;">
+      <form id="content-form" class="page-form-stack">
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label" for="field-projectName">Tên dự án *</label>
@@ -449,7 +449,7 @@ const AppUI = (() => {
         <h1>Tính năng nổi bật (${list.length})</h1>
         ${list.length > 0 ? `<button id="features-add-btn" class="btn btn-primary">Thêm tính năng</button>` : ''}
       </div>
-      <div style="max-width: 800px;">
+      <div class="page-section-stack">
         ${rowsHTML}
       </div>
     `;
@@ -659,7 +659,7 @@ const AppUI = (() => {
         <h1>Các cột mốc Timeline (${list.length})</h1>
         ${list.length > 0 ? `<button id="timeline-add-btn" class="btn btn-primary">Thêm cột mốc</button>` : ''}
       </div>
-      <div style="max-width: 800px;">
+      <div class="page-section-stack">
         ${rowsHTML}
       </div>
     `;
@@ -1650,7 +1650,7 @@ const AppUI = (() => {
         <h1>Cài đặt hệ thống</h1>
       </div>
 
-      <div class="grid-2 mb-6" style="max-width: 800px;">
+      <div class="grid-2 mb-6">
         <!-- Local Folders Mock configuration -->
         <div class="card">
           <div class="card-header">
@@ -1696,7 +1696,7 @@ const AppUI = (() => {
       </div>
 
       <!-- Backup, Import, and Reset Data Actions -->
-      <div class="section-block" style="max-width: 800px; margin-top: var(--space-8);">
+      <div class="section-block mt-6">
         <h3 class="mb-4">Nhập/Xuất & Dữ liệu</h3>
         <div style="display:flex; gap: var(--space-4); flex-wrap: wrap;">
           <button id="set-btn-export" class="btn btn-secondary">Xuất Backup dự án (.JSON)</button>
