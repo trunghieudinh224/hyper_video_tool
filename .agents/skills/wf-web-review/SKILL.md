@@ -1,9 +1,8 @@
 ---
 name: wf-web-review
 description: >
-  Workflow review thay đổi web app chung cho HTML/CSS/JS, templates, routes,
-  forms và API endpoints. Dùng được cho code thuần, Laravel, Python web hoặc
-  stack web tương tự.
+  Workflow review thay đổi web app cho Hyper Video Tool: HTML/CSS/JS thuần,
+  Node API local, templates, forms, preview và render endpoints.
 ---
 
 # Workflow: Web Review

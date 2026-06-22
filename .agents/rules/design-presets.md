@@ -1,127 +1,84 @@
-# Design Presets
+# Design Tokens - Hyper Video Tool
 
-File này là template chọn hướng design cho project mới.
+File này thay cho preset bán hàng/dịch vụ mặc định. Dự án này là công cụ nội bộ tạo video, nên chỉ dùng hướng thiết kế cho internal tool.
 
-Khi setup project:
+## Nguyên Tắc
 
-1. Chọn một preset gần nhất.
-2. Copy phần preset đó vào `DESIGN.md` hoặc `.agents/rules/design-presets.md` của project.
-3. Xóa các preset không dùng.
-4. Điều chỉnh token theo brand thật.
+- Dùng CSS variables, không hardcode màu rải rác.
+- Có light mode và dark mode.
+- Không dùng gradient.
+- Không dùng nền tím/xanh kiểu AI.
+- Không dùng glassmorphism, orb, blob hoặc hiệu ứng trang trí rối.
+- Border và spacing quan trọng hơn shadow.
+- Giao diện phải rõ, gọn, sang, dễ thao tác.
 
-Tất cả màu trong code nên dùng CSS variables; không hardcode hex rải rác.
-
-## Preset A: Clean Light
-
-Phù hợp: B2B, admin tool, SaaS nội bộ, dashboard quản lý.
-
-Tone: sáng, tối giản, chuyên nghiệp, tập trung vào nội dung.
+## Light Mode
 
 ```css
 :root {
-    --color-primary: #2563eb;
-    --color-primary-dark: #1d4ed8;
-    --color-primary-light: #dbeafe;
-    --color-secondary: #64748b;
-    --color-danger: #ef4444;
-    --color-success: #22c55e;
-    --color-warning: #f59e0b;
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0f2f5;
+  --color-surface-muted: #e8ebef;
+  --color-overlay: rgba(17, 24, 39, 0.48);
 
-    --color-bg: #f8fafc;
-    --color-surface: #ffffff;
-    --color-surface-alt: #f1f5f9;
-    --color-overlay: rgba(0, 0, 0, 0.45);
+  --color-border: #d9dee7;
+  --color-border-strong: #b9c1cf;
 
-    --color-border: #e2e8f0;
-    --color-border-strong: #cbd5e1;
+  --color-text: #111827;
+  --color-text-muted: #5f6b7a;
+  --color-text-subtle: #8a96a6;
+  --color-text-on-primary: #ffffff;
 
-    --color-text: #0f172a;
-    --color-text-muted: #64748b;
-    --color-text-disabled: #94a3b8;
-    --color-text-on-primary: #ffffff;
+  --color-primary: #1f4fd8;
+  --color-primary-hover: #193fb0;
+  --color-primary-soft: #e8eefc;
 
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --color-success: #16803c;
+  --color-warning: #a16207;
+  --color-danger: #c2410c;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.06);
+  --shadow-md: 0 8px 20px rgba(17, 24, 39, 0.08);
 }
 ```
 
-## Preset B: Night Sanctuary
-
-Phù hợp: ecommerce cao cấp, portfolio, spa/wellness, lifestyle dark-first.
-
-Tone: tối, tĩnh, premium, Zen, không dùng đen tuyền.
-
-Khi dùng preset này, đọc thêm `web/darkmode-night-sanctuary.md`.
+## Dark Mode
 
 ```css
-:root {
-    --color-primary: #f4bb8f;
-    --color-primary-dark: #d39d73;
-    --color-primary-light: rgba(244, 187, 143, 0.15);
-    --color-secondary: #8b9099;
-    --color-danger: #f87171;
-    --color-success: #6ee7b7;
-    --color-warning: #fbbf24;
+[data-theme="dark"] {
+  --color-bg: #101214;
+  --color-surface: #181b1f;
+  --color-surface-alt: #20242a;
+  --color-surface-muted: #2a3038;
+  --color-overlay: rgba(0, 0, 0, 0.68);
 
-    --color-bg: #131313;
-    --color-surface: #20201f;
-    --color-surface-low: #0e0e0e;
-    --color-surface-high: #353535;
-    --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-border: #303743;
+  --color-border-strong: #475160;
 
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-strong: rgba(255, 255, 255, 0.15);
+  --color-text: #eef2f7;
+  --color-text-muted: #a6b0bf;
+  --color-text-subtle: #737f8f;
+  --color-text-on-primary: #0f172a;
 
-    --color-text: #e5e2e1;
-    --color-text-muted: #8b9099;
-    --color-text-disabled: #555555;
-    --color-text-on-primary: #4a2807;
+  --color-primary: #7aa2ff;
+  --color-primary-hover: #9bbaff;
+  --color-primary-soft: #1d2b4a;
+
+  --color-success: #5cc980;
+  --color-warning: #d6a63d;
+  --color-danger: #e07a5f;
 }
 ```
 
-## Preset C: Warm Commerce
+## Component Style
 
-Phù hợp: ecommerce phổ thông, F&B, dịch vụ, SME.
-
-Tone: ấm, thân thiện, conversion-focused.
-
-```css
-:root {
-    --color-primary: #e85d04;
-    --color-primary-dark: #c44d04;
-    --color-primary-light: #fff0e6;
-    --color-secondary: #6d7882;
-    --color-danger: #dc2626;
-    --color-success: #16a34a;
-    --color-warning: #d97706;
-    --color-sale: #dc2626;
-    --color-star: #f59e0b;
-
-    --color-bg: #fafaf9;
-    --color-surface: #ffffff;
-    --color-surface-alt: #f5f3f0;
-    --color-overlay: rgba(0, 0, 0, 0.5);
-
-    --color-border: #e5e0d8;
-    --color-border-strong: #ccc5bb;
-
-    --color-text: #1c1917;
-    --color-text-muted: #6b7280;
-    --color-text-disabled: #9ca3af;
-    --color-text-on-primary: #ffffff;
-
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-    --radius-pill: 999px;
-    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.09);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-}
-```
+- Button chính dùng `--color-primary`.
+- Button phụ dùng surface + border.
+- Card/panel dùng border rõ, shadow nhẹ hoặc không shadow.
+- Status dùng màu semantic nhưng tiết chế.
+- Preview video luôn giữ tỉ lệ 16:9.

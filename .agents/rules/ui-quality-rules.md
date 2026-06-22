@@ -10,15 +10,15 @@ Mục tiêu: UI phải hợp domain, scan tốt, responsive tốt, có hierarchy
 ## Domain Fit
 
 - Admin/ops/dashboard: dense, quiet, utilitarian, ưu tiên scan và thao tác lặp lại.
-- Ecommerce: product-first, CTA rõ, trust, price/stock/promo dễ đọc.
-- Service/booking: ấm, rõ gói dịch vụ, dễ đặt lịch/liên hệ, tạo tin cậy.
-- Landing/client page: first viewport phải cho thấy brand/product/service thật, không chỉ text chung chung.
+- Hyper Video Tool là công cụ nội bộ: không làm giao diện bán hàng, booking, landing page hoặc trang marketing.
+- First viewport phải là màn hình làm việc thật: dashboard/editor/preview/render, không phải hero giới thiệu.
 
 ## Anti-Slop
 
 Tránh:
 
 - Purple/blue gradient làm chủ đạo nếu không thuộc brand.
+- Bất kỳ gradient nào trong app UI. Project này đã chốt không dùng gradient.
 - Quá nhiều card nổi trên nền nhạt.
 - Hero quá lớn cho admin/tool.
 - Text marketing rỗng như "seamless experience", "unlock potential".
@@ -27,10 +27,12 @@ Tránh:
 - Section lặp một nhịp: title, paragraph, three cards.
 - Placeholder/lorem/fake stat không có ngữ cảnh.
 - Ảnh stock tối/mờ/crop không giúp hiểu sản phẩm/dịch vụ.
+- Copywriting kiểu bán hàng, conversion, pricing, promo, trust badge.
 
 ## Hierarchy
 
 - CTA chính nổi hơn CTA phụ.
+- Với tool này, CTA chính thường là `Render video`, `Lưu project`, hoặc `Xem trước`.
 - Heading scale hợp container, không dùng hero-size trong panel nhỏ.
 - Table/list/card phải scan được nhanh.
 - Spacing có rhythm, không cảm tính mỗi section.

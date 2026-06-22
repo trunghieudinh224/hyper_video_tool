@@ -69,7 +69,7 @@ with sync_playwright() as p:
 - Use descriptive selectors: `text=`, `role=`, CSS selectors, or IDs
 - Add appropriate waits: `page.wait_for_selector()` or `page.wait_for_timeout()`
 
-## Usage for Laravel/Web Projects
+## Usage for Hyper Video Tool
 
 Đọc port local từ `.env`, project config, hoặc dev-server output để xác định URL local, ví dụ `http://localhost:{APP_PORT}`. Dùng skill này để:
 - Verify UI sau khi convert Stitch → Blade

@@ -16,7 +16,7 @@ File này giúp biết project đã được onboarding từ phiên bản shared
 - UI: admin-only
 - Database: sqlite
 - Rules: yes
-- CodeGraph: yes
+- Chỉ mục phân tích mã nguồn: đã bật khi onboarding, nhưng đã loại khỏi `.agents` sau khi tinh gọn vì project MVP chưa cần
 - Memory: yes
 - Template: none
 

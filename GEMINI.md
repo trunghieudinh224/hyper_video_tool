@@ -20,14 +20,6 @@ Tài liệu này là entrypoint hướng dẫn Antigravity/Gemini khi làm việ
 
 Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/skills đã cài trong project nếu request khớp.
 
-### CodeGraph
-- Project mới: `wf-codegraph-init` -> `wf-codegraph-explore`.
-- Project cũ: `wf-codegraph-status` -> `wf-codegraph-explore`.
-- Sau khi pull/sửa nhiều code: `wf-codegraph-status` -> `wf-codegraph-sync` -> `wf-codegraph-explore`.
-- Trước khi sửa/refactor symbol quan trọng: `wf-codegraph-impact`.
-- Khi cần hiểu caller/callee/flow: `wf-codegraph-callgraph`.
-- Khi bàn giao giữa agent: `wf-codegraph-handoff`.
-
 ### Engineering
 - Bug, test fail, runtime error, performance regression: dùng `wf-diagnose`.
 - Feature/fix cần test-first hoặc logic rủi ro cao: dùng `wf-tdd-slice`.
@@ -35,7 +27,7 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 - Thuật ngữ nghiệp vụ mơ hồ hoặc cần thống nhất vocabulary: dùng `domain-glossary`.
 
 ### Web
-- UI/layout mới: dùng `frontend-design`, `design-taste-frontend`, `web-design-guidelines`.
+- UI/layout mới: dùng `design-taste-frontend`, `web-design-guidelines`.
 - UI cần responsive: dùng `responsive-ui`.
 - Polish UI sau khi chạy được: dùng `wf-ui-taste-polish`.
 - Test web app hoặc browser smoke test: dùng `webapp-testing`.

@@ -1,13 +1,13 @@
 ---
 name: design-taste-frontend
-description: Anti-slop frontend design taste for real web projects. Use when creating, redesigning, or polishing UI so the result feels intentional, domain-aware, responsive, and not like generic AI-generated frontend. Especially useful for Laravel Blade, vanilla HTML/CSS/JS, admin dashboards, ecommerce, service websites, and Python web apps.
+description: Anti-slop frontend design taste for Hyper Video Tool. Use when creating, redesigning, or polishing the local internal UI so the result feels intentional, restrained, responsive, and not like generic AI-generated frontend.
 ---
 
 # Design Taste Frontend
 
-Dùng skill này khi cần tạo UI mới, polish giao diện, review UI bị "mùi AI", hoặc chuyển mockup/Stitch/image thành giao diện thật.
+Dùng skill này khi cần tạo UI mới, polish giao diện, hoặc review UI bị "mùi AI".
 
-Mục tiêu: UI phải có chủ đích, hợp domain, dùng design system của project, không dùng pattern generic như card dày đặc, purple gradient, hero marketing vô nghĩa, icon/emoji trang trí quá tay, text placeholder, spacing thiếu nhất quán.
+Mục tiêu: UI phải có chủ đích, hợp domain công cụ nội bộ, dùng design system của project, không dùng pattern generic như card dày đặc, gradient, hero marketing vô nghĩa, icon/emoji trang trí quá tay, text placeholder, spacing thiếu nhất quán.
 
 ## Context bắt buộc
 
@@ -17,8 +17,8 @@ Mục tiêu: UI phải có chủ đích, hợp domain, dùng design system của
 2. `.agents/rules/project-config.md` nếu có
 3. `.agents/rules/frontend_architecture.md` hoặc `.agents/rules/frontend-architecture.md` nếu có
 4. `.agents/rules/design-presets.md` hoặc `DESIGN.md` nếu có
-5. `doc/admin-design.md` nếu làm Admin UI
-6. UI/Blade/CSS/JS hiện tại liên quan
+5. `.agents/context/ui-direction.md`
+6. UI/HTML/CSS/JS hiện tại liên quan
 7. Screenshot/mockup/reference image nếu user cung cấp
 
 Nếu project đã có design system, không tự phát minh lại brand. Hãy cải thiện trong biên độ của system đó.
@@ -27,11 +27,11 @@ Nếu project đã có design system, không tự phát minh lại brand. Hãy c
 
 Trước khi code, xác định nhanh:
 
-- Domain: ecommerce, booking/service, dashboard, landing, admin ops, content, auth, checkout, profile...
-- User: khách hàng, admin, nhân viên vận hành, owner, developer...
-- Tone: quiet utility, premium retail, clean editorial, warm service, technical dashboard, playful campaign...
-- Density: tool dùng lặp lại hằng ngày cần dense; landing/client page cần thoáng hơn.
-- Main job: scan, compare, buy, book, configure, approve, monitor, read, contact...
+- Domain: công cụ nội bộ tạo video thuyết trình dự án.
+- User: nhân viên nội bộ, team lead, người muốn tạo video MP4 từ dữ liệu dự án.
+- Tone: quiet utility, internal premium tool, technical dashboard.
+- Density: dùng lặp lại hằng ngày nên gọn, scan nhanh, không quá thưa.
+- Main job: nhập dữ liệu, quản lý tài nguyên, chọn template, xem trước, render, kiểm tra output.
 
 UI tốt là UI đúng việc. Đừng làm admin dashboard như landing page.
 
@@ -39,7 +39,7 @@ UI tốt là UI đúng việc. Đừng làm admin dashboard như landing page.
 
 Tránh các dấu hiệu sau trừ khi project yêu cầu rõ:
 
-- Purple/blue gradient làm chủ đạo.
+- Bất kỳ gradient nào trong app UI.
 - Quá nhiều card nổi trên background nhạt.
 - Hero quá lớn cho tool/dashboard/admin page.
 - Text marketing chung chung: "Unlock your potential", "Seamless experience", "Powerful insights".
@@ -47,18 +47,16 @@ Tránh các dấu hiệu sau trừ khi project yêu cầu rõ:
 - Badge/pill dày đặc không có mục đích.
 - Placeholder content, lorem ipsum, fake stat không có ngữ cảnh.
 - Section lặp lại cùng một rhythm: title, paragraph, three cards.
-- Ảnh stock/tối/mờ/crop không giúp người dùng hiểu sản phẩm/dịch vụ.
+- Ảnh stock/tối/mờ/crop không giúp người dùng hiểu dự án hoặc video preview.
 - Mobile chỉ thu nhỏ desktop, không sắp xếp lại ưu tiên.
 
 ## Taste checklist
 
 Trước khi implement hoặc polish, chọn ít nhất một hướng visual rõ:
 
-- Quiet utilitarian: cho admin, CRM, dashboard, ops tool.
-- Premium retail: cho ecommerce, product, brand page.
-- Warm local service: cho booking, nail/spa/service website.
-- Clean editorial: cho content/portfolio/blog.
-- Technical control room: cho analytics, trading, monitoring.
+- Quiet utilitarian: giao diện gọn, rõ, ưu tiên thao tác.
+- Internal premium tool: sang vừa đủ, không màu mè, không marketing.
+- Technical control room: phù hợp preview/render/status/log.
 
 Sau đó kiểm tra:
 
@@ -74,15 +72,15 @@ Sau đó kiểm tra:
 
 ## Implementation guardrails
 
-Với Laravel/Blade hoặc vanilla CSS/JS:
+Với HTML/CSS/JS thuần:
 
 - Dùng CSS file riêng theo convention project.
-- Không inline style trong Blade/HTML.
+- Không inline style trong HTML.
 - Dùng CSS variables/tokens sẵn có.
 - Không thêm framework mới nếu project đang dùng vanilla CSS/JS.
 - Không phá layout/component có sẵn nếu chỉ cần polish.
 - Nếu cần icon, dùng icon library project đang có.
-- Nếu có image, dùng ảnh thật/reference/generated bitmap phù hợp thay vì background gradient vô nghĩa.
+- Nếu có image, dùng ảnh thật/reference/generated bitmap phù hợp thay vì background trang trí vô nghĩa.
 
 ## Required final pass
 

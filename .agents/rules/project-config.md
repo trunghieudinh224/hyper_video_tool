@@ -1,140 +1,80 @@
-# Project Configuration Template
+# Cấu Hình Dự Án
 
-> File này chứa thông tin riêng từng project.
-> Copy file này vào `.agents/rules/project-config.md`, sau đó thay toàn bộ placeholder.
-> Không để credential thật trong shared rule.
+File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu credential, token, password hoặc secret thật trong file này.
 
----
+## Định Danh
 
-## Project Identity
+- Tên dự án: Hyper Video Tool
+- Slug: hyper-video-tool
+- Loại dự án: công cụ nội bộ chạy local
+- Mục đích: tạo video thuyết trình dự án cá nhân/nội bộ bằng HyperFrames
+- Đối tượng dùng: nhân viên hoặc team nội bộ
+- Domain local dự kiến: internal.local
 
-- **Project Name**: `Hyper Video Tool`
-- **Project Slug**: `hyper-video-tool`
-- **Project Type**: `{ecommerce | service-web | admin-tool | content | other}`
-- **Client / Owner**: `{CLIENT_NAME}`
-- **Domain**: `internal.local`
-- **Short Description**: `Hyper Video Tool`
+## Công Nghệ Dự Kiến
 
----
+- Frontend: HTML, CSS, JavaScript thuần
+- Backend local: Node.js
+- Render engine: HyperFrames
+- Video output: MP4
+- Dữ liệu MVP: JSON local
+- Database sau MVP: SQLite nếu cần quản lý nhiều project/output
+- Upload: thư mục local `uploads/`
+- Output: thư mục local `outputs/`
 
-## Tech Stack
+## Cổng Và URL Local
 
-- **Framework**: Laravel `{LARAVEL_VERSION}`
-- **Language**: PHP `{PHP_VERSION}`
-- **Database**: MySQL
-- **Frontend**: Blade templating + Vanilla JS + Vanilla CSS
-- **Package manager**: npm
-- **HTTP client (JS)**: axios
+- Cổng mặc định: `3000`
+- URL app: `http://127.0.0.1:3000`
+- URL preview dự kiến: `http://127.0.0.1:3000/preview`
 
----
+## Đường Dẫn Dự Kiến
 
-## Database
+- UI app: `app/`
+- CSS: `app/styles/`
+- JavaScript: `app/scripts/`
+- Template video: `templates/`
+- Dữ liệu mẫu: `data/sample-project.json`
+- Project JSON: `data/projects/`
+- Upload: `uploads/`
+- Video xuất ra: `outputs/`
 
-- **DB Name**: `hyper_video_tool.sqlite`
-- **DB User**: đọc từ `.env DB_USERNAME` hoặc `{DB_USER}`
-- **Backup folder**: `{BACKUP_FOLDER}` ví dụ `database/backups/`
-- **Backup command**:
+## Quy Tắc Giao Diện
 
-```bash
-mysqldump -u {DB_USERNAME} hyper_video_tool.sqlite > {BACKUP_FOLDER}/YYYYMMDD_HHMMSS_backup_db.sql
-```
+- Có light mode và dark mode.
+- Không dùng gradient.
+- Không làm landing page.
+- Không dùng hero section.
+- Không làm giao diện bán hàng.
+- Không dùng emoji trang trí.
+- Ưu tiên giao diện công cụ nội bộ: rõ, gọn, sang, dễ scan.
 
----
+## Quy Tắc Lưu Trữ
 
-## Asset Paths
+- Không commit `node_modules/`.
+- Không commit `.codegraph/`.
+- Không commit file MP4 output.
+- Không commit database local.
+- Không commit secret.
 
-- **CSS source**: `public/css/`
-  - Client: `public/css/client/`
-  - Admin: `public/css/admin/`
-- **JS source**: `public/js/`
-  - Client: `public/js/client/`
-  - Admin: `public/js/admin/`
-  - Common: `public/js/sys-common/`
-- **Static images**: `public/images/`
-- **Uploaded images**: `public/storage/uploads/`
-- **Minification script**: `ALLOW_MINIFY=1 npm run minify` cho deploy thủ công, hoặc `npm run minify` trong CI có `CI=true`
+## API Response Dự Kiến
 
----
-
-## View Paths
-
-- **Blade views**: `resources/views/`
-  - Client: `resources/views/client/`
-  - Admin: `resources/views/admin/`
-  - Common components: `resources/views/common-components/`
-- **Admin layout**: `{ADMIN_LAYOUT_PATH}`
-  - Extend: `{ADMIN_LAYOUT_EXTENDS}`
-- **Client layout**: `{CLIENT_LAYOUT_PATH}`
-  - Extend: `{CLIENT_LAYOUT_EXTENDS}`
-- **Asset helper**: `{{ asset_v('css/...') }}` và `{{ asset_v('js/...') }}`
-
----
-
-## Documentation Paths
-
-- **Doc folder**: `doc/`
-- **Template CSS**: `{CSS_TEMPLATE_PATH}` ví dụ `.agents/templates/view_file_template/css_template.css`
-- **Template JS**: `{JS_TEMPLATE_PATH}` ví dụ `.agents/templates/view_file_template/js_template.js`
-- **Business rules**: `doc/4_business_rule.md`
-- **Feature list**: `doc/2_feature_list.md`
-- **Database schema**: `doc/3_database.md`
-- **API spec**: `doc/5_api_spec.md`
-- **System prompt**: `doc/6_system_prompt.md`
-
----
-
-## Deployment
-
-- **Server**: `{SERVER_PROVIDER}`
-- **Deploy script**: `./deploy_hyper-video-tool.sh`
-- **SSH config**: xem `.agents/workflows/deploy.md`
-- **Credential rule**: không commit password/token/key thật.
-
----
-
-## Local Environment
-
-- **APP_PORT**: đọc từ `.env`, không hardcode
-- **Local URL**: `http://localhost:3000`
-- **Admin URL**: `http://localhost:3000/admin/login`
-- **Chrome remote debugging**: `9222` nếu project dùng browser/CDP test
-
-Nếu workflow test UI cần Chrome debug port, agent nên tự bật Chrome ở port `9222` nếu chưa mở, thay vì báo lỗi ngay.
-
----
-
-## CSS Breakpoints
-
-Responsive theo `max-width`, từ cao xuống thấp:
-
-| Name | max-width |
-|---|---:|
-| xxl | 1600px |
-| xl | 1400px |
-| lg | 1200px |
-| md | 992px |
-| sm | 768px |
-| xs | 576px |
-| xxs | 450px |
-
----
-
-## API Response Format
+Thành công:
 
 ```json
 {
   "success": true,
-  "message": "...",
+  "message": "Đã xử lý thành công.",
   "data": {}
 }
 ```
 
-Validation/error:
+Lỗi:
 
 ```json
 {
   "success": false,
-  "message": "...",
+  "message": "Không thể xử lý yêu cầu.",
   "errors": {}
 }
 ```

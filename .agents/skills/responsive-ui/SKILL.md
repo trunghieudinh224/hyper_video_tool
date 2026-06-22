@@ -1,11 +1,11 @@
 ---
 name: responsive-ui
-description: Audit, design, and fix responsive UI for Laravel/Blade or vanilla HTML/CSS/JS projects. Use when creating or modifying layouts, breakpoints, mobile/tablet/desktop states, touch targets, responsive typography, responsive images, horizontal-scroll bugs, overlapping UI, or viewport verification. Read project rules first and follow the project's CSS/JS conventions instead of introducing a framework.
+description: Audit, design, and fix responsive UI for Hyper Video Tool with vanilla HTML/CSS/JS. Use when creating or modifying layouts, breakpoints, mobile/tablet/desktop states, touch targets, responsive typography, responsive media, horizontal-scroll bugs, overlapping UI, or viewport verification. Read project rules first and follow the project's CSS/JS conventions instead of introducing a framework.
 ---
 
 # Skill: Responsive UI
 
-Dùng khi cần tạo, sửa, hoặc audit responsive cho web project dùng Blade/HTML, CSS thuần, và vanilla JS.
+Dùng khi cần tạo, sửa, hoặc audit responsive cho Hyper Video Tool dùng HTML, CSS thuần và vanilla JS.
 
 Skill này reusable: không hardcode business, route, layout, hoặc breakpoint của một project cụ thể. Luôn lấy convention thật từ project hiện tại.
 
@@ -14,14 +14,12 @@ Skill này reusable: không hardcode business, route, layout, hoặc breakpoint 
 Đọc trước khi sửa UI/CSS/JS:
 
 1. `GEMINI.md` hoặc entrypoint tương đương nếu có
-2. `.agents/rules/coding-rules.md`
-3. `.agents/rules/project-config.md`
-4. `.agents/rules/frontend_architecture.md` nếu có
+2. `.agents/rules/project-config.md`
+3. `.agents/rules/frontend_architecture.md` hoặc `.agents/rules/frontend-architecture.md` nếu có
+4. `.agents/context/ui-direction.md` nếu có
 5. `.agents/templates/view_file_template/css_template.css` trước khi sửa/tạo CSS nếu có
 6. `.agents/templates/view_file_template/js_template.js` trước khi sửa/tạo JS nếu có
-7. `DESIGN.md` nếu task liên quan client/public UI
-8. `doc/admin-design.md` nếu task liên quan Admin UI
-9. `doc/4_business_rule.md` nếu responsive ảnh hưởng flow nghiệp vụ
+7. `.agents/tasks/ui-items.md` nếu task liên quan màn hình mới
 
 ## Nguyên tắc chính
 

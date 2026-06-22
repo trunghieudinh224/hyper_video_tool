@@ -29,11 +29,7 @@ Dùng khi user muốn xem codebase/module có đang khó sửa, khó test, hoặ
 
 ### 1. Explore
 
-Đọc rule/docs/domain context của project nếu có. Dùng CodeGraph nếu project hỗ trợ:
-
-- `wf-codegraph-explore` cho khu vực cần review.
-- `wf-codegraph-impact` cho symbol nghi ngờ có blast radius lớn.
-- `wf-codegraph-callgraph` cho flow khó hiểu.
+Đọc rule/docs/domain context của project nếu có. Với MVP nhỏ, ưu tiên đọc trực tiếp các file liên quan trong `app/`, `server.js`, `templates/`, `data/` và tài liệu trong `.agents/context/`.
 
 ### 2. Tìm friction
 

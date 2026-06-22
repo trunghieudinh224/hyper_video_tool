@@ -38,8 +38,6 @@ Lấy thuật ngữ từ:
 - Tên module/class/function chính.
 - Flow nghiệp vụ đang làm.
 
-Nếu có CodeGraph, dùng `wf-codegraph-explore` để tìm symbol/domain terms trong khu vực liên quan.
-
 ### 3. Làm rõ nghĩa
 
 Với mỗi thuật ngữ quan trọng, ghi:
