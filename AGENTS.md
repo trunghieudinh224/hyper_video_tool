@@ -8,6 +8,7 @@ Tài liệu này là entrypoint hướng dẫn AI agent khi làm việc trong pr
 - Đọc `.agents/rules/` trước khi sửa code liên quan.
 - Đọc `.agents/context/project-overview.md` để nắm tổng quan project.
 - Đọc `.agents/memory/learnings.md` trước khi debug, review, refactor hoặc sửa lỗi lặp lại.
+- Khi sửa UI trong `app/`, bắt buộc đọc `.agents/rules/static-multipage-ui.md` trước. Rule này thắng nếu tài liệu cũ còn nhắc tới SPA/tab trong một `index.html`.
 
 ## Skills Và Workflows
 
@@ -32,6 +33,7 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 - Polish UI sau khi chạy được: dùng `wf-ui-taste-polish`.
 - Test web app hoặc browser smoke test: dùng `webapp-testing`.
 - Review thay đổi form/UI/HTML/CSS/JS: dùng `wf-web-review`. API/backend chỉ xét ở phase sau.
+- Với Hyper Video Tool UI tĩnh: tuân thủ `.agents/rules/static-multipage-ui.md`; không gom nhiều màn hình vào một HTML dạng SPA.
 
 ### Memory / Learnings
 - Trước khi debug, review, refactor hoặc sửa lỗi lặp lại: đọc `.agents/memory/learnings.md`.
