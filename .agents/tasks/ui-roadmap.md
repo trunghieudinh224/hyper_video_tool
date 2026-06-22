@@ -2,7 +2,7 @@
 
 ## Objective
 
-Xay dung UI noi bo de tao video thuyet trinh du an ca nhan trong cong ty bang HyperFrames. Tool chay local tren may ca nhan sau khi clone project ve, khong can cloud/deploy phuc tap trong MVP.
+Xay dung UI noi bo de tao video thuyet trinh du an ca nhan trong cong ty. Giai doan hien tai chi lam UI tinh bang HTML/CSS/JS va dung du lieu mock de minh hoa; HyperFrames render va backend de phase sau.
 
 UI can de nhin, sang, gon, day du chuc nang, khong mang cam giac landing page AI. Uu tien workflow tao video nhanh, preview ro, render de theo doi.
 
@@ -12,7 +12,7 @@ UI can de nhin, sang, gon, day du chuc nang, khong mang cam giac landing page AI
 
 - Nhan vien hoac team noi bo muon tao video gioi thieu project ca nhan/cong ty.
 - Nguoi dung khong can biet HyperFrames hoat dong ben duoi.
-- Nguoi dung chay tool tai may ca nhan, nhap data, preview, render MP4.
+- Giai doan UI: nguoi dung xem flow minh hoa bang du lieu mock, chua render MP4 that.
 
 ### Core workflow
 
@@ -22,7 +22,7 @@ Open app
 -> fill project content
 -> choose template and theme
 -> preview scenes
--> render video
+-> render video mock
 -> download/open output
 ```
 
@@ -131,7 +131,7 @@ Mobile/tablet:
 
 ### Phase 1 - MVP UI skeleton
 
-Muc tieu: co app shell dung duoc, local-first, chua can render that.
+Muc tieu: co app shell dung duoc, local-first, chua can backend va chua can render that.
 
 Screens:
 
@@ -174,7 +174,7 @@ Controls:
 - Add/remove/reorder key features.
 - Add/remove milestones.
 - Inline validation.
-- Save draft local JSON.
+- Save draft bang state/localStorage neu can, chua can ghi file that.
 - Load sample data.
 
 Acceptance:
@@ -202,10 +202,11 @@ UI:
 - Empty state gon.
 - Asset detail inspector.
 
-Local MVP:
+Local UI MVP:
 
-- Luu file vao local uploads qua Node server.
+- Mo phong upload bang UI state/du lieu mock.
 - UI co fallback neu asset loi load.
+- Chua can upload that qua backend.
 
 Acceptance:
 
@@ -272,7 +273,7 @@ Acceptance:
 
 ### Phase 6 - Render Queue
 
-Muc tieu: bam render, theo doi tien trinh, lay MP4.
+Muc tieu: bam render mock, theo doi tien trinh gia lap, xem output mau.
 
 Render panel:
 
@@ -300,7 +301,7 @@ Acceptance:
 
 ### Phase 7 - Outputs History
 
-Muc tieu: quan ly cac video da render local.
+Muc tieu: quan ly danh sach video output mau. File video that de phase sau.
 
 UI:
 
@@ -360,16 +361,16 @@ Can xu ly:
 - unsaved changes
 - invalid project data
 - valid but missing optional assets
-- render in progress
-- render failed
-- render completed
+- render mock in progress
+- render mock failed
+- render mock completed
 
 ### Saving model
 
-MVP nen local-first:
+MVP UI nen local-first:
 
 - Auto-save draft vao browser localStorage de tranh mat form.
-- Nut `Save project JSON` ghi qua Node API vao `data/projects`.
+- Nut `Save project JSON` chi la UI mock trong phase UI.
 - Nut `Export JSON` de backup/chia se.
 - Nut `Import JSON` de load lai.
 
@@ -425,9 +426,9 @@ data/
   sample-project.json
   projects/
 
-uploads/
+uploads/        # phase sau
 
-outputs/
+outputs/        # phase sau
 ```
 
 ## Implementation Order For Antigravity
@@ -439,7 +440,7 @@ outputs/
 5. Add template picker and preview frame placeholder.
 6. Add asset manager UI.
 7. Add render queue UI placeholder.
-8. Wire Node API and HyperFrames render after UI skeleton is stable.
+8. Chi wire Node API va HyperFrames render o phase sau, sau khi UI skeleton on dinh.
 9. Run desktop/mobile browser verification.
 10. Run `wf-ui-taste-polish` before handoff.
 

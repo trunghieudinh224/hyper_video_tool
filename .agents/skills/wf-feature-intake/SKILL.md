@@ -125,7 +125,7 @@ Nếu có khả năng đổi format dữ liệu, đánh dấu rủi ro và yêu 
 Liệt kê khu vực dự kiến bị tác động:
 
 - UI app: `app/index.html`, `app/styles/`, `app/scripts/`
-- Node server: `server.js`, route API local
+- Backend/API: chưa thuộc scope UI hiện tại, chỉ liệt kê nếu người dùng yêu cầu rõ
 - Template video: `templates/`
 - Dữ liệu mẫu: `data/sample-project.json`
 - Upload/output: `uploads/`, `outputs/`
@@ -157,7 +157,7 @@ Chọn một phương án phù hợp nhất với Hyper Video Tool:
 
 - local-first
 - HTML/CSS/JS thuần
-- Node server nhẹ
+- UI tĩnh trước; backend/API để phase sau
 - không gradient
 - không landing page
 - không scope cloud/auth nếu chưa cần

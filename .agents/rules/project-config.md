@@ -14,19 +14,19 @@ File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu 
 ## Công Nghệ Dự Kiến
 
 - Frontend: HTML, CSS, JavaScript thuần
-- Backend local: Node.js
-- Render engine: HyperFrames
-- Video output: MP4
-- Dữ liệu MVP: JSON local
-- Database sau MVP: SQLite nếu cần quản lý nhiều project/output
-- Upload: thư mục local `uploads/`
-- Output: thư mục local `outputs/`
+- Backend local: chưa làm trong giai đoạn UI
+- Render engine: HyperFrames để phase sau
+- Video output: MP4 để phase sau
+- Dữ liệu MVP: dữ liệu tĩnh/mock trong frontend
+- Database sau MVP: JSON local hoặc SQLite nếu cần quản lý nhiều project/output
+- Upload: mô phỏng bằng UI trước, thư mục local `uploads/` để phase sau
+- Output: mô phỏng bằng UI trước, thư mục local `outputs/` để phase sau
 
 ## Cổng Và URL Local
 
-- Cổng mặc định: `3000`
-- URL app: `http://127.0.0.1:3000`
-- URL preview dự kiến: `http://127.0.0.1:3000/preview`
+- Giai đoạn UI có thể mở trực tiếp `app/index.html`.
+- Nếu dùng static server, cổng gợi ý là `3000`.
+- Chưa cần route preview riêng.
 
 ## Đường Dẫn Dự Kiến
 
@@ -35,9 +35,9 @@ File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu 
 - JavaScript: `app/scripts/`
 - Template video: `templates/`
 - Dữ liệu mẫu: `data/sample-project.json`
-- Project JSON: `data/projects/`
-- Upload: `uploads/`
-- Video xuất ra: `outputs/`
+- Project JSON thật: `data/projects/` ở phase sau.
+- Upload thật: `uploads/` ở phase sau.
+- Video xuất ra thật: `outputs/` ở phase sau.
 
 ## Quy Tắc Giao Diện
 
@@ -57,7 +57,7 @@ File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu 
 - Không commit database local.
 - Không commit secret.
 
-## API Response Dự Kiến
+## API Response Dự Kiến Cho Phase Backend Sau
 
 Thành công:
 

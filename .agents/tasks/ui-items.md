@@ -410,7 +410,7 @@ Item cần có:
 Thông tin hệ thống:
 
 - Phiên bản app
-- Node version nếu lấy được
+- Node version nếu phase sau có backend
 - HyperFrames status:
   - Đã sẵn sàng
   - Chưa cài
@@ -418,6 +418,12 @@ Thông tin hệ thống:
 - FFmpeg status:
   - Đã sẵn sàng
   - Chưa tìm thấy
+
+Ghi chú cho giai đoạn UI:
+
+- Các trạng thái Node/HyperFrames/FFmpeg chỉ là UI mock.
+- Chưa cần kiểm tra thật trên máy.
+- Chưa cần backend/API.
 
 ## 13. Panel Kiểm Tra Dữ Liệu
 

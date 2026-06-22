@@ -31,7 +31,7 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 - UI cần responsive: dùng `responsive-ui`.
 - Polish UI sau khi chạy được: dùng `wf-ui-taste-polish`.
 - Test web app hoặc browser smoke test: dùng `webapp-testing`.
-- Review thay đổi route/form/API/UI: dùng `wf-web-review`.
+- Review thay đổi form/UI/HTML/CSS/JS: dùng `wf-web-review`. API/backend chỉ xét ở phase sau.
 
 ### Memory / Learnings
 - Trước khi debug, review, refactor hoặc sửa lỗi lặp lại: đọc `.agents/memory/learnings.md`.

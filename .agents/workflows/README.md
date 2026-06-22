@@ -25,7 +25,7 @@
 ## Web
 
 - `webapp-testing` — Kiểm thử UI/web app local bằng browser hoặc script phù hợp.
-- `wf-web-review` — Review thay đổi HTML/CSS/JS, Node API, preview hoặc render endpoint.
+- `wf-web-review` — Review thay đổi HTML/CSS/JS và UI behavior; Node API/render endpoint chỉ xét ở phase sau.
 
 ## Memory
 

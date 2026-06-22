@@ -6,8 +6,9 @@ Không lưu password/token/secret thật trong file này.
 
 ## URL Local Dự Kiến
 
-- App UI: `http://127.0.0.1:3000`
-- Preview template: có thể nằm trong app hoặc route riêng, ví dụ `http://127.0.0.1:3000/preview`
+- Giai đoạn UI có thể mở trực tiếp `app/index.html` hoặc chạy static server đơn giản nếu cần.
+- Nếu dùng static server, URL gợi ý: `http://127.0.0.1:3000`.
+- Chưa cần route preview riêng.
 
 ## Dữ Liệu Project Mẫu
 
@@ -56,5 +57,5 @@ Timeline mẫu:
 7. Chọn template `Giới thiệu dự án 90 giây`.
 8. Mở màn hình xem trước.
 9. Kiểm tra panel cảnh báo dữ liệu.
-10. Bấm render khi dữ liệu hợp lệ.
-11. Kiểm tra video xuất hiện trong danh sách video đã xuất.
+10. Bấm render mock khi dữ liệu hợp lệ.
+11. Kiểm tra trạng thái render giả lập và danh sách video đã xuất bằng dữ liệu mock.

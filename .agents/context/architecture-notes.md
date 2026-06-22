@@ -1,8 +1,10 @@
 # Ghi Chú Kiến Trúc
 
-## Hướng MVP
+## Hướng MVP Hiện Tại
 
-MVP nên dùng HTML, CSS, JavaScript thuần và Node.js server. Không cần React/Next.js ở giai đoạn đầu vì mục tiêu là tool nội bộ chạy local, ít người dùng, ít yêu cầu cộng tác.
+MVP hiện tại chỉ tập trung dựng UI tĩnh bằng HTML, CSS và JavaScript thuần. Dữ liệu dùng để hiển thị là dữ liệu tĩnh/mock. Chưa cần Node.js server, backend API, upload thật, lưu file thật hoặc render HyperFrames thật.
+
+Không cần React/Next.js ở giai đoạn đầu vì mục tiêu là tool nội bộ chạy local, ít người dùng, ít yêu cầu cộng tác.
 
 ## Cấu Trúc Dự Kiến
 
@@ -17,12 +19,14 @@ templates/
 
 data/
   sample-project.json
-  projects/
+```
 
+Các thư mục/file backend để sau:
+
+```text
+data/projects/
 uploads/
-
 outputs/
-
 server.js
 package.json
 ```
@@ -37,7 +41,7 @@ package.json
 
 ## Backend Local
 
-Node server cần xử lý:
+Chưa làm trong giai đoạn UI. Khi chuyển sang backend phase, Node server có thể xử lý:
 
 - Serve app UI.
 - Lưu và đọc project JSON.
@@ -49,7 +53,9 @@ Node server cần xử lý:
 
 ## Render
 
-Luồng render dự kiến:
+Chưa gọi HyperFrames thật trong giai đoạn UI. Màn hình Render chỉ mô phỏng trạng thái.
+
+Luồng render dự kiến cho phase sau:
 
 ```text
 Project JSON
@@ -61,7 +67,12 @@ Project JSON
 
 ## Lưu Trữ
 
-Giai đoạn đầu ưu tiên:
+Giai đoạn UI:
+
+- Dùng dữ liệu tĩnh/mock để minh họa.
+- Có thể lưu nháp bằng `localStorage` nếu cần, nhưng không bắt buộc.
+
+Giai đoạn backend sau này:
 
 - Project data: JSON.
 - Upload: file local.
