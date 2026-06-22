@@ -1,0 +1,176 @@
+"use strict";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
+const crypto = require("node:crypto");
+const { config } = require("../config");
+const { validateRenderPayload } = require("./render-payload-schema");
+
+const jobs = new Map();
+const SUPPORTED_TEMPLATE_ID = "project-showcase-90s";
+
+function stableJson(value) {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function relativePath(filePath) {
+  return path.relative(config.projectRoot, filePath);
+}
+
+function sanitizeLog(value) {
+  return String(value || "").replaceAll(config.projectRoot, ".");
+}
+
+function ensureDirectory(directoryPath) {
+  fs.mkdirSync(directoryPath, { recursive: true });
+}
+
+function getOutputPath(jobId) {
+  return path.join(config.projectRoot, "outputs", `${jobId}.mp4`);
+}
+
+function getWorkDir(jobId) {
+  return path.join(config.projectRoot, ".cache", "render-jobs", jobId);
+}
+
+function getRunnerScriptPath() {
+  return path.join(config.projectRoot, "backend", "scripts", "run-hyperframes-local.js");
+}
+
+function createJobRecord(payload) {
+  const jobId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const outputPath = getOutputPath(jobId);
+
+  return {
+    id: jobId,
+    status: "queued",
+    templateId: payload.template.id,
+    projectName: payload.source.projectName,
+    outputPath: relativePath(outputPath),
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    completedAt: null,
+    durationMs: null,
+    exitCode: null,
+    logs: []
+  };
+}
+
+function validateJobPayload(payload) {
+  const validation = validateRenderPayload(payload);
+  if (!validation.valid) {
+    return validation;
+  }
+
+  if (payload.template.id !== SUPPORTED_TEMPLATE_ID) {
+    return {
+      valid: false,
+      errors: [
+        {
+          path: "template.id",
+          message: `Only template ${SUPPORTED_TEMPLATE_ID} is supported by the MVP render runner.`
+        }
+      ]
+    };
+  }
+
+  return { valid: true, errors: [] };
+}
+
+function prepareWorkDir(jobId, payload) {
+  const templateDir = path.join(config.projectRoot, "templates", SUPPORTED_TEMPLATE_ID);
+  const workDir = getWorkDir(jobId);
+  const compositionDir = path.join(workDir, "composition");
+
+  fs.rmSync(workDir, { recursive: true, force: true });
+  ensureDirectory(workDir);
+  fs.cpSync(templateDir, compositionDir, { recursive: true });
+  fs.writeFileSync(path.join(compositionDir, "render-payload.json"), stableJson(payload));
+
+  return compositionDir;
+}
+
+function runHyperFramesRender(compositionDir, outputPath) {
+  return spawnSync(
+    process.execPath,
+    [
+      getRunnerScriptPath(),
+      "--cwd",
+      compositionDir,
+      "render",
+      "--output",
+      outputPath
+    ],
+    {
+      cwd: config.projectRoot,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024 * 20
+    }
+  );
+}
+
+function renderPayloadToVideo(payload) {
+  const validation = validateJobPayload(payload);
+  if (!validation.valid) {
+    const error = new Error("Render payload validation failed.");
+    error.code = "VALIDATION_FAILED";
+    error.validationErrors = validation.errors;
+    throw error;
+  }
+
+  const job = createJobRecord(payload);
+  jobs.set(job.id, job);
+
+  const outputPath = getOutputPath(job.id);
+  const startedAt = Date.now();
+  job.status = "running";
+  job.startedAt = new Date(startedAt).toISOString();
+  job.updatedAt = job.startedAt;
+
+  try {
+    ensureDirectory(path.dirname(outputPath));
+    const compositionDir = prepareWorkDir(job.id, payload);
+    const result = runHyperFramesRender(compositionDir, outputPath);
+
+    job.exitCode = result.status;
+    job.logs = [result.stdout, result.stderr].filter(Boolean).map(sanitizeLog);
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (result.status !== 0) {
+      const error = new Error(`HyperFrames render failed with exit code ${result.status}.`);
+      error.code = "RENDER_FAILED";
+      throw error;
+    }
+
+    const stats = fs.statSync(outputPath);
+    job.status = "succeeded";
+    job.outputSize = stats.size;
+    job.completedAt = new Date().toISOString();
+    job.updatedAt = job.completedAt;
+    job.durationMs = Date.now() - startedAt;
+    return job;
+  } catch (error) {
+    job.status = "failed";
+    job.error = error.message;
+    job.completedAt = new Date().toISOString();
+    job.updatedAt = job.completedAt;
+    job.durationMs = Date.now() - startedAt;
+    return job;
+  }
+}
+
+function getRenderJob(jobId) {
+  return jobs.get(jobId) || null;
+}
+
+module.exports = {
+  SUPPORTED_TEMPLATE_ID,
+  getRenderJob,
+  renderPayloadToVideo
+};

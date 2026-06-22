@@ -64,6 +64,40 @@ Output render spike mặc định:
 /private/tmp/hyper-video-tool-spike.mp4
 ```
 
+## Render project showcase qua API
+
+Backend đã có render API MVP chạy đồng bộ:
+
+```bash
+HVT_PORT=3011 npm start
+```
+
+Tạo render job từ payload mẫu:
+
+```bash
+curl -sS -X POST http://127.0.0.1:3011/api/render-jobs \
+  -H 'Content-Type: application/json' \
+  --data-binary @../data/render-payload.sample.json
+```
+
+Response trả metadata job, trong đó `outputPath` trỏ tới file MP4 local:
+
+```text
+outputs/{jobId}.mp4
+```
+
+Đọc lại metadata khi server còn chạy:
+
+```bash
+curl -sS http://127.0.0.1:3011/api/render-jobs/{jobId}
+```
+
+Ghi chú:
+
+- Phase hiện tại render đồng bộ, request có thể chờ khoảng 35-45 giây.
+- Job metadata lưu trong memory nên restart server sẽ mất trạng thái job cũ.
+- File MP4 trong `outputs/` không được commit.
+
 Ghi chú:
 
 - Runner local tải dependency vào `.cache/hyperframes-runner/`.

@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { config } = require("./config");
+const { handleRenderJobs } = require("./routes/render-jobs");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -77,7 +78,7 @@ function serveStatic(request, response) {
   });
 }
 
-function requestHandler(request, response) {
+async function requestHandler(request, response) {
   const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
 
   if (request.method === "GET" && requestUrl.pathname === "/api/health") {
@@ -91,6 +92,13 @@ function requestHandler(request, response) {
       }
     });
     return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/render-jobs")) {
+    const handled = await handleRenderJobs(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
   }
 
   if (requestUrl.pathname.startsWith("/api/")) {
@@ -113,7 +121,15 @@ function requestHandler(request, response) {
 }
 
 function createServer() {
-  return http.createServer(requestHandler);
+  return http.createServer((request, response) => {
+    requestHandler(request, response).catch((error) => {
+      sendJson(response, 500, {
+        success: false,
+        message: error.message || "Internal server error.",
+        errors: null
+      });
+    });
+  });
 }
 
 if (require.main === module) {

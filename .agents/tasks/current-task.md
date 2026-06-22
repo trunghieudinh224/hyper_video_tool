@@ -336,6 +336,109 @@ Remaining risks:
 - Backend Render Runner chưa tạo `render-payload.json` tự động; đó là phase kế tiếp.
 - Template dùng GSAP CDN giống spike hiện tại; nếu offline hoàn toàn, render có thể cần vendor local ở phase hardening.
 
+## Phase Hiện Tại - Backend Render Runner MVP
+
+### Objective
+
+Thêm backend render job API tối thiểu để render payload hiện tại thành MP4 thật bằng HyperFrames local runner. Sau phase này có thể gọi API local, backend tự tạo working directory, ghi `render-payload.json`, render template `project-showcase-90s` và lưu output vào `outputs/`.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm render runner service trong `backend/src/render/`.
+- Thêm route `POST /api/render-jobs` nhận render payload JSON và render đồng bộ.
+- Thêm route `GET /api/render-jobs/:id` trả metadata job trong memory.
+- Validate payload bằng schema hiện có trước khi render.
+- Copy template vào `.cache/render-jobs/{jobId}/composition`.
+- Ghi `render-payload.json` vào working dir để template đọc khi HyperFrames render.
+- Ghi MP4 vào `outputs/{jobId}.mp4`.
+- Capture stdout/stderr cơ bản và sanitize project root trong log trả về.
+
+Không làm trong phase này:
+
+- Không nối UI Render/Outputs.
+- Không làm queue async nhiều worker.
+- Không persist job metadata qua restart backend.
+- Không làm download endpoint riêng cho MP4.
+- Không thêm auth/cloud/database.
+
+Files impact:
+
+- `backend/src/render/render-runner.js`
+- `backend/src/routes/render-jobs.js`
+- `backend/src/server.js`
+- `backend/package.json`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `npm --prefix backend run check`
+- Chạy backend local.
+- `POST /api/render-jobs` với `data/render-payload.sample.json`.
+- Xác nhận response `status=succeeded`, output path nằm trong `outputs/`.
+- `GET /api/render-jobs/:id` trả lại metadata.
+- `ffprobe outputs/{jobId}.mp4` xác nhận duration/size.
+
+### Test Report - Backend Render Runner MVP
+
+Status: passed
+
+- Created:
+  - `backend/src/render/render-runner.js`
+  - `backend/src/routes/render-jobs.js`
+- Updated:
+  - `backend/src/server.js`
+  - `backend/package.json`
+- API added:
+  - `POST /api/render-jobs`
+  - `GET /api/render-jobs/:id`
+- Render flow verified:
+  - Validate render payload bằng schema hiện có.
+  - Tạo job id bằng `crypto.randomUUID()`.
+  - Copy template `templates/project-showcase-90s` vào `.cache/render-jobs/{jobId}/composition`.
+  - Ghi `render-payload.json` vào working dir.
+  - Gọi `backend/scripts/run-hyperframes-local.js`.
+  - Xuất MP4 vào `outputs/{jobId}.mp4`.
+  - Job metadata lưu trong memory cho `GET /api/render-jobs/:id`.
+  - Logs trả về đã sanitize project root absolute path.
+- Render API smoke test:
+  - Server: `HVT_PORT=3011 npm --prefix backend start`
+  - Payload: `data/render-payload.sample.json`
+  - Response: `success=true`, `status=succeeded`
+  - Job id: `f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf`
+  - Output: `outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4`
+  - Output size: `1652781`
+  - Render duration: `44111ms`
+  - `ffprobe`: `duration=74.000000`, `size=1652781`
+- `GET /api/render-jobs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf` trả lại metadata job `succeeded`.
+- Invalid payload smoke test:
+  - Body: `{"version":"invalid"}`
+  - HTTP status: `422`
+  - Response: `success=false`, message `Render payload validation failed.`
+
+Commands run:
+
+```bash
+npm --prefix backend run check
+HVT_PORT=3011 npm --prefix backend start
+curl -sS -X POST http://127.0.0.1:3011/api/render-jobs -H 'Content-Type: application/json' --data-binary @data/render-payload.sample.json
+curl -sS http://127.0.0.1:3011/api/render-jobs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf
+.cache/hyperframes-runner/bin/ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4
+printf '{"version":"invalid"}' | curl -sS -o /tmp/hvt-render-invalid-response.json -w '%{http_code}\n' -X POST http://127.0.0.1:3011/api/render-jobs -H 'Content-Type: application/json' --data-binary @-
+npm --prefix backend run payload:check
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
+npm --prefix backend run hf:lint:spike
+git diff --check
+```
+
+Remaining risks:
+
+- Render API hiện chạy đồng bộ nên request sẽ chờ khoảng 35-45 giây; phase sau nên chuyển sang async job/poll nếu nối UI.
+- Job metadata đang lưu memory, restart server sẽ mất trạng thái job cũ.
+- Chưa có endpoint download/serve MP4; output path hiện là local relative path.
+- Output MP4 trong `outputs/` được ignore, không commit.
+
 ## Yêu Cầu Mới
 
 UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.

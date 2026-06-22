@@ -218,6 +218,21 @@ Approval gate:
 
 - Chỉ implement khi backend roadmap Phase 4 đã có render job API mock hoặc được user cho phép gộp có kiểm soát.
 
+### Status
+
+Completed as MVP, ngày 23/06/2026.
+
+- Backend có `POST /api/render-jobs` nhận render payload và render đồng bộ bằng HyperFrames local runner.
+- Backend có `GET /api/render-jobs/:id` đọc metadata job trong memory.
+- Runner copy template vào `.cache/render-jobs/{jobId}/composition`, ghi `render-payload.json`, rồi xuất MP4 vào `outputs/{jobId}.mp4`.
+- Smoke test với `data/render-payload.sample.json` pass, output `duration=74.000000`, `size=1652781`.
+
+Remaining:
+
+- Chưa async queue/poll thật cho UI.
+- Chưa persist job metadata qua restart backend.
+- Chưa có endpoint download/serve MP4.
+
 ## Phase 5 - UI Integration Với Render Thật
 
 ### Objective
