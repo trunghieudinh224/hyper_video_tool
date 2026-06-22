@@ -2,13 +2,13 @@
 
 ## Objective
 
-Refactor giao diện hiện tại từ một file `app/index.html` dạng SPA tab ẩn/hiện sang cấu trúc nhiều trang tĩnh. Mỗi màn hình chính có HTML riêng, CSS riêng và JS riêng khi cần; phần dùng chung như theme, sidebar, topbar, modal, toast, validation và dữ liệu mock được gom vào module chung.
+Refactor giao diện hiện tại từ một file `frontend/index.html` dạng SPA tab ẩn/hiện sang cấu trúc nhiều trang tĩnh. Mỗi màn hình chính có HTML riêng, CSS riêng và JS riêng khi cần; phần dùng chung như theme, sidebar, topbar, modal, toast, validation và dữ liệu mock được gom vào module chung.
 
 Mục tiêu là để code dễ đọc, dễ mở rộng, phù hợp tool nội bộ chạy local bằng HTML/CSS/JS thuần, chưa cần Node.js, backend hoặc build step.
 
 ## Bối Cảnh Hiện Tại
 
-Antigravity đã dựng được UI MVP, nhưng đang gom nhiều màn hình vào một `app/index.html`:
+Antigravity đã dựng được UI MVP, nhưng đang gom nhiều màn hình vào một `frontend/index.html`:
 
 - `view-overview`
 - `view-content`
@@ -30,17 +30,17 @@ Tham khảo pattern từ project `crypto-trading-bot`:
 - CSS chung nằm ở `web/static/css/common.css`.
 - CSS/JS riêng từng page nằm ở `web/static/css/<page>.css` và `web/static/js/<page>.js`.
 
-Vì Hyper Video Tool hiện tại là HTML tĩnh không có template engine, áp dụng pattern tương đương bằng `app/shared/base.html` và JS chung để render shell.
+Vì Hyper Video Tool hiện tại là HTML tĩnh không có template engine, áp dụng pattern tương đương bằng `frontend/shared/base.html` và JS chung để render shell.
 
 ## Scope
 
 ### Sẽ làm
 
-- Tách 10 màn hình chính thành 10 file HTML riêng trong `app/pages/`.
-- Giữ `app/index.html` thật gọn, chỉ chuyển hướng hoặc dẫn người dùng tới `app/pages/overview.html`.
-- Tạo `app/shared/base.html` làm mẫu shell chung để agent/dev nhìn được cấu trúc chuẩn.
-- Tạo hoặc refactor JS chung vào `app/scripts/common/`.
-- Tạo hoặc refactor CSS riêng từng page vào `app/styles/pages/`.
+- Tách 10 màn hình chính thành 10 file HTML riêng trong `frontend/pages/`.
+- Giữ `frontend/index.html` thật gọn, chỉ chuyển hướng hoặc dẫn người dùng tới `frontend/pages/overview.html`.
+- Tạo `frontend/shared/base.html` làm mẫu shell chung để agent/dev nhìn được cấu trúc chuẩn.
+- Tạo hoặc refactor JS chung vào `frontend/scripts/common/`.
+- Tạo hoặc refactor CSS riêng từng page vào `frontend/styles/pages/`.
 - Chuyển sidebar navigation từ `button data-tab` sang link thật giữa các trang HTML.
 - Giữ dữ liệu mock/localStorage hiện có, nhưng không để từng page tự copy logic lưu trữ.
 - Giữ đầy đủ light mode/dark mode và quy tắc không dùng gradient.
@@ -56,7 +56,7 @@ Vì Hyper Video Tool hiện tại là HTML tĩnh không có template engine, áp
 
 ### Để sau
 
-- Nếu sau này cần backend, có thể chuyển `app/shared/base.html` thành template thật.
+- Nếu sau này cần backend, có thể chuyển `frontend/shared/base.html` thành template thật.
 - Nếu sau này cần nhiều component động hơn, có thể cân nhắc build step nhẹ, nhưng không thuộc phase này.
 
 ## Target Files Impact
@@ -64,34 +64,34 @@ Vì Hyper Video Tool hiện tại là HTML tĩnh không có template engine, áp
 Đây là danh sách file mục tiêu sau khi refactor xong toàn bộ UI. Không triển khai một lần hết danh sách này nếu chưa có checkpoint trung gian.
 
 ```text
-MODIFY app/index.html
-NEW    app/shared/base.html
-NEW    app/pages/overview.html
-NEW    app/pages/content.html
-NEW    app/pages/features.html
-NEW    app/pages/timeline.html
-NEW    app/pages/assets.html
-NEW    app/pages/template.html
-NEW    app/pages/preview.html
-NEW    app/pages/render.html
-NEW    app/pages/outputs.html
-NEW    app/pages/settings.html
-MOVE   app/scripts/constants.js -> app/scripts/common/constants.js
-MOVE   app/scripts/state.js -> app/scripts/common/state.js
-MOVE   app/scripts/storage.js -> app/scripts/common/storage.js
-MOVE   app/scripts/validation.js -> app/scripts/common/validation.js
-MOVE   app/scripts/ui.js -> app/scripts/common/ui-components.js hoặc tách nhỏ hơn
-MOVE   app/scripts/render-preview.js -> app/scripts/pages/preview.js hoặc app/scripts/common/render-preview.js nếu dùng chung
-MOVE   app/scripts/app.js -> app/scripts/common/shell.js và app/scripts/common/navigation.js
-NEW    app/scripts/common/theme.js
-NEW    app/scripts/common/toast.js
-NEW    app/scripts/common/modal.js
-NEW    app/scripts/pages/*.js
-NEW    app/styles/pages/*.css
-MODIFY app/styles/tokens.css
-MODIFY app/styles/base.css
-MODIFY app/styles/layout.css
-MODIFY app/styles/components.css
+MODIFY frontend/index.html
+NEW    frontend/shared/base.html
+NEW    frontend/pages/overview.html
+NEW    frontend/pages/content.html
+NEW    frontend/pages/features.html
+NEW    frontend/pages/timeline.html
+NEW    frontend/pages/assets.html
+NEW    frontend/pages/template.html
+NEW    frontend/pages/preview.html
+NEW    frontend/pages/render.html
+NEW    frontend/pages/outputs.html
+NEW    frontend/pages/settings.html
+MOVE   frontend/scripts/constants.js -> frontend/scripts/common/constants.js
+MOVE   frontend/scripts/state.js -> frontend/scripts/common/state.js
+MOVE   frontend/scripts/storage.js -> frontend/scripts/common/storage.js
+MOVE   frontend/scripts/validation.js -> frontend/scripts/common/validation.js
+MOVE   frontend/scripts/ui.js -> frontend/scripts/common/ui-components.js hoặc tách nhỏ hơn
+MOVE   frontend/scripts/render-preview.js -> frontend/scripts/pages/preview.js hoặc frontend/scripts/common/render-preview.js nếu dùng chung
+MOVE   frontend/scripts/app.js -> frontend/scripts/common/shell.js và frontend/scripts/common/navigation.js
+NEW    frontend/scripts/common/theme.js
+NEW    frontend/scripts/common/toast.js
+NEW    frontend/scripts/common/modal.js
+NEW    frontend/scripts/pages/*.js
+NEW    frontend/styles/pages/*.css
+MODIFY frontend/styles/tokens.css
+MODIFY frontend/styles/base.css
+MODIFY frontend/styles/layout.css
+MODIFY frontend/styles/components.css
 ```
 
 ## Implementation Slices
@@ -105,18 +105,18 @@ Mục tiêu: chứng minh multi-page pattern chạy được với một page đ
 Files impact tối đa:
 
 ```text
-MODIFY app/index.html
-NEW    app/shared/base.html
-NEW    app/pages/overview.html
-NEW    app/scripts/common/shell.js
-NEW    app/scripts/common/navigation.js
-NEW    app/scripts/common/theme.js
-NEW    app/scripts/pages/overview.js
+MODIFY frontend/index.html
+NEW    frontend/shared/base.html
+NEW    frontend/pages/overview.html
+NEW    frontend/scripts/common/shell.js
+NEW    frontend/scripts/common/navigation.js
+NEW    frontend/scripts/common/theme.js
+NEW    frontend/scripts/pages/overview.js
 ```
 
 Acceptance:
 
-- `app/index.html` dẫn tới `app/pages/overview.html`.
+- `frontend/index.html` dẫn tới `frontend/pages/overview.html`.
 - Sidebar/topbar hiển thị từ shell chung.
 - Active nav đúng ở trang Tổng quan.
 - Light/Dark mode hoạt động và giữ khi reload.
@@ -160,7 +160,7 @@ Acceptance:
 ## Cấu Trúc Mong Muốn
 
 ```text
-app/
+frontend/
   index.html
   shared/
     base.html
@@ -284,12 +284,12 @@ Ví dụ hướng cấu trúc:
 
 ## Checklist
 
-- [x] Tạo `app/shared/base.html` mô tả shell chuẩn.
-- [x] Đổi `app/index.html` thành trang entry gọn, dẫn tới `pages/overview.html`.
-- [x] Tạo `app/pages/overview.html` và port nội dung Tổng quan sang page riêng.
-- [x] Tạo `app/scripts/common/shell.js`, `navigation.js`, `theme.js`, `toast.js`, `modal.js`.
-- [x] Di chuyển state/storage/validation/constants sang `app/scripts/common/`.
-- [x] Tạo `app/styles/pages/overview.css` và `app/scripts/pages/overview.js`.
+- [x] Tạo `frontend/shared/base.html` mô tả shell chuẩn.
+- [x] Đổi `frontend/index.html` thành trang entry gọn, dẫn tới `pages/overview.html`.
+- [x] Tạo `frontend/pages/overview.html` và port nội dung Tổng quan sang page riêng.
+- [x] Tạo `frontend/scripts/common/shell.js`, `navigation.js`, `theme.js`, `toast.js`, `modal.js`.
+- [x] Di chuyển state/storage/validation/constants sang `frontend/scripts/common/`.
+- [x] Tạo `frontend/styles/pages/overview.css` và `frontend/scripts/pages/overview.js`.
 - [x] Verify overview page chạy được độc lập qua browser.
 - [x] Tách lần lượt các page: content, features, timeline, assets, template, preview, render, outputs, settings.
 - [x] Xóa cơ chế `.tab-pane`, `data-tab`, `workspace-tabs-content` sau khi tất cả page đã tách xong.
@@ -304,7 +304,7 @@ Ví dụ hướng cấu trúc:
 
 ### Manual
 
-- Mở `app/index.html`, xác nhận chuyển được tới `app/pages/overview.html`.
+- Mở `frontend/index.html`, xác nhận chuyển được tới `frontend/pages/overview.html`.
 - Bấm từng item sidebar, xác nhận URL đổi sang từng HTML riêng.
 - Reload trực tiếp từng page, xác nhận không lỗi runtime.
 - Đổi Light/Dark mode ở một page, chuyển sang page khác, xác nhận theme vẫn giữ.
@@ -333,7 +333,7 @@ Status: passed
 - Failed: 0
 
 Commands run:
-- `for f in app/scripts/common/*.js app/scripts/pages/*.js; do node --check "$f"; done`
+- `for f in frontend/scripts/common/*.js frontend/scripts/pages/*.js; do node --check "$f"; done`
 - Playwright/Chrome desktop smoke test 10 page tại `http://127.0.0.1:4173/pages/<page>.html`
 - Playwright/Chrome desktop interaction test: đổi theme, click sidebar sang Content, load sample data, đi tới Preview
 

@@ -399,7 +399,7 @@ Khong lam trong MVP:
 ## Suggested File Structure
 
 ```text
-app/
+frontend/
   index.html
   styles/
     tokens.css

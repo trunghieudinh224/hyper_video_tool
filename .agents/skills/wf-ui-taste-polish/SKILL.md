@@ -64,8 +64,8 @@ Sửa theo thứ tự ưu tiên:
 Với Hyper Video Tool:
 
 - HTML chỉ giữ cấu trúc.
-- CSS riêng trong `app/styles/...`.
-- JS riêng trong `app/scripts/...`.
+- CSS riêng trong `frontend/styles/...`.
+- JS riêng trong `frontend/scripts/...`.
 - Không thêm framework mới nếu HTML/CSS/JS thuần đã đủ.
 
 ## Bước 5 - Verify

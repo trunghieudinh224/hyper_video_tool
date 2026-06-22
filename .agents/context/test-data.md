@@ -6,7 +6,7 @@ Không lưu password/token/secret thật trong file này.
 
 ## URL Local Dự Kiến
 
-- Giai đoạn UI có thể mở trực tiếp `app/index.html` hoặc chạy static server đơn giản nếu cần.
+- Giai đoạn UI có thể mở trực tiếp `frontend/index.html` hoặc chạy static server đơn giản nếu cần.
 - Nếu dùng static server, URL gợi ý: `http://127.0.0.1:3000`.
 - Chưa cần route preview riêng.
 

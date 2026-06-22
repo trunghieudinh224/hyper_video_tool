@@ -8,7 +8,8 @@ Tài liệu này là entrypoint hướng dẫn Antigravity/Gemini khi làm việ
 - Đọc `.agents/rules/` trước khi sửa code liên quan.
 - Đọc `.agents/context/project-overview.md` để nắm tổng quan project.
 - Đọc `.agents/memory/learnings.md` trước khi debug, review, refactor hoặc sửa lỗi lặp lại.
-- Khi sửa UI trong `app/`, bắt buộc đọc `.agents/rules/static-multipage-ui.md` trước. Rule này thắng nếu tài liệu cũ còn nhắc tới SPA/tab trong một `index.html`.
+- Khi tạo/sửa cấu trúc thư mục, bắt buộc đọc `.agents/rules/project-structure.md` trước.
+- Khi sửa UI trong `frontend/`, bắt buộc đọc `.agents/rules/static-multipage-ui.md` trước. Rule này thắng nếu tài liệu cũ còn nhắc tới SPA/tab trong một `index.html`.
 
 ## Skills Và Workflows
 
@@ -33,7 +34,8 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 - Polish UI sau khi chạy được: dùng `wf-ui-taste-polish`.
 - Test web app hoặc browser smoke test: dùng `webapp-testing`.
 - Review thay đổi form/UI/HTML/CSS/JS: dùng `wf-web-review`. API/backend chỉ xét ở phase sau.
-- Với Hyper Video Tool UI tĩnh: tuân thủ `.agents/rules/static-multipage-ui.md`; không gom nhiều màn hình vào một HTML dạng SPA.
+- Với Hyper Video Tool UI tĩnh trong `frontend/`: tuân thủ `.agents/rules/static-multipage-ui.md`; không gom nhiều màn hình vào một HTML dạng SPA.
+- Với cấu trúc project: tuân thủ `.agents/rules/project-structure.md`; không tạo lại `app/`, không đặt backend ở root.
 
 ### Memory / Learnings
 - Trước khi debug, review, refactor hoặc sửa lỗi lặp lại: đọc `.agents/memory/learnings.md`.

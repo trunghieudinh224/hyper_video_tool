@@ -6,13 +6,18 @@ MVP hiện tại chỉ tập trung dựng UI tĩnh bằng HTML, CSS và JavaScri
 
 Không cần React/Next.js ở giai đoạn đầu vì mục tiêu là tool nội bộ chạy local, ít người dùng, ít yêu cầu cộng tác.
 
-## Cấu Trúc Dự Kiến
+## Cấu Trúc Hiện Tại
 
 ```text
-app/
+frontend/
   index.html
+  pages/
   styles/
   scripts/
+  shared/
+
+backend/
+  README.md
 
 templates/
   project-showcase-90s/
@@ -21,15 +26,13 @@ data/
   sample-project.json
 ```
 
-Các thư mục/file backend để sau:
+`frontend/` là UI tĩnh hiện tại. `backend/` là chỗ dành cho API local, HyperFrames integration và quản lý render ở phase sau. Không tạo `server.js`, `package.json`, API routes hoặc backend runtime ở root nếu chưa có quyết định kiến trúc mới.
 
-```text
-data/projects/
-uploads/
-outputs/
-server.js
-package.json
-```
+Các thư mục dữ liệu runtime để phase backend sau:
+
+- `data/projects/`
+- `uploads/`
+- `outputs/`
 
 ## Frontend
 
@@ -41,15 +44,17 @@ package.json
 
 ## Backend Local
 
-Chưa làm trong giai đoạn UI. Khi chuyển sang backend phase, Node server có thể xử lý:
+Chưa làm trong giai đoạn UI. Khi chuyển sang backend phase, server local trong `backend/` có thể xử lý:
 
-- Serve app UI.
+- Serve UI tĩnh từ `frontend/`.
 - Lưu và đọc project JSON.
 - Nhận upload tài nguyên.
 - Liệt kê tài nguyên.
 - Gọi HyperFrames để render.
 - Liệt kê video đã xuất.
 - Cung cấp trạng thái render.
+
+Roadmap triển khai backend nằm ở `.agents/tasks/backend-roadmap.md`.
 
 ## Render
 
@@ -64,6 +69,8 @@ Project JSON
 -> ghi MP4 vào outputs/
 -> cập nhật trạng thái render cho UI
 ```
+
+Roadmap tích hợp HyperFrames nằm ở `.agents/tasks/hyperframes-roadmap.md`.
 
 ## Lưu Trữ
 

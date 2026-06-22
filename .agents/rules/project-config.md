@@ -24,15 +24,16 @@ File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu 
 
 ## Cổng Và URL Local
 
-- Giai đoạn UI có thể mở trực tiếp `app/index.html`.
+- Giai đoạn UI có thể mở trực tiếp `frontend/index.html`.
 - Nếu dùng static server, cổng gợi ý là `3000`.
 - Chưa cần route preview riêng.
 
 ## Đường Dẫn Dự Kiến
 
-- UI app: `app/`
-- CSS: `app/styles/`
-- JavaScript: `app/scripts/`
+- UI app: `frontend/`
+- CSS: `frontend/styles/`
+- JavaScript: `frontend/scripts/`
+- Backend local phase sau: `backend/`
 - Template video: `templates/`
 - Dữ liệu mẫu: `data/sample-project.json`
 - Project JSON thật: `data/projects/` ở phase sau.

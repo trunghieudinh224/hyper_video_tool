@@ -17,16 +17,16 @@ description: Kiến trúc frontend dùng chung cho web project: layout, CSS vari
 - Mỗi màn hình chính phải là một trang HTML riêng, có CSS riêng và JS riêng nếu có logic riêng.
 - Phần dùng chung như topbar, sidebar, validation panel, modal, toast, theme toggle và navigation phải nằm trong CSS/JS chung.
 - Vì HTML thuần không có `include`/`extends` như template engine, phần "base HTML chung" phải được xử lý theo một trong hai cách:
-  - Dùng file `app/shared/base.html` làm mẫu tham chiếu và copy shell nhất quán sang từng page khi chưa có build step.
-  - Hoặc dùng `app/scripts/common/shell.js` để render shell/topbar/sidebar chung vào từng page. Đây là hướng ưu tiên khi vẫn muốn chạy tĩnh không cần Node.js/backend.
-- `app/index.html` chỉ nên redirect/link sang trang mặc định, ví dụ `pages/overview.html`, không chứa toàn bộ nội dung các màn hình.
+  - Dùng file `frontend/shared/base.html` làm mẫu tham chiếu và copy shell nhất quán sang từng page khi chưa có build step.
+  - Hoặc dùng `frontend/scripts/common/shell.js` để render shell/topbar/sidebar chung vào từng page. Đây là hướng ưu tiên khi vẫn muốn chạy tĩnh không cần Node.js/backend.
+- `frontend/index.html` chỉ nên redirect/link sang trang mặc định, ví dụ `pages/overview.html`, không chứa toàn bộ nội dung các màn hình.
 
 ## Multi-page Static Structure
 
 Áp dụng cấu trúc này cho UI tĩnh:
 
 ```text
-app/
+frontend/
   index.html
   shared/
     base.html
