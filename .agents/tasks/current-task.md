@@ -68,3 +68,39 @@ Status: passed
 - Cancel queued/running job nếu cần UX tốt hơn.
 - Persist render jobs/logs qua backend restart nếu cần audit nội bộ.
 - Explore-project workflow nối sang quy trình tạo brief/script cho video.
+
+## Phase Vertical Video 1 - Contract Và Option Dọc
+
+### Objective
+
+Chuẩn hóa render payload để app hiểu cả video ngang `16:9` và video dọc `9:16` trước khi tạo template dọc.
+
+### Scope
+
+Đã làm:
+
+- Thêm preset video backend cho `16:9` và `9:16`.
+- Thêm metadata `video.aspectRatio` vào payload sample.
+- Cho schema validate template id, aspect ratio và resolution tương ứng.
+- Cho mapper sinh payload dọc `project-showcase-vertical-60s` với `1080x1920`.
+- Thêm test contract cho payload dọc và case mismatch template/aspect.
+
+Không làm trong phase này:
+
+- Chưa tạo template dọc.
+- Chưa render dọc end-to-end.
+- Chưa đổi UI Render.
+
+### Test Report
+
+Status: passed
+
+- `npm --prefix backend run payload:write` pass, cập nhật `data/render-payload.sample.json`.
+- `npm --prefix backend run check` pass.
+- Contract test xác nhận default ngang vẫn là `project-showcase-90s` `1920x1080`.
+- Contract test xác nhận payload dọc là `project-showcase-vertical-60s` `1080x1920`.
+- Contract test xác nhận payload dọc dùng template ngang bị reject.
+
+Remaining risks:
+
+- Backend runner vẫn chưa render template dọc cho tới Phase 3.

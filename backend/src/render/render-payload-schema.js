@@ -1,6 +1,24 @@
 "use strict";
 
 const RENDER_PAYLOAD_VERSION = "1.0.0";
+const VIDEO_PRESETS = {
+  "16:9": {
+    aspectRatio: "16:9",
+    width: 1920,
+    height: 1080,
+    templateId: "project-showcase-90s",
+    templateName: "Showcase 90s"
+  },
+  "9:16": {
+    aspectRatio: "9:16",
+    width: 1080,
+    height: 1920,
+    templateId: "project-showcase-vertical-60s",
+    templateName: "Showcase Vertical 60s"
+  }
+};
+const SUPPORTED_TEMPLATE_IDS = new Set(Object.values(VIDEO_PRESETS).map((preset) => preset.templateId));
+const SUPPORTED_ASPECT_RATIOS = new Set(Object.keys(VIDEO_PRESETS));
 const SCENE_TYPES = new Set([
   "intro",
   "problem",
@@ -88,9 +106,20 @@ function validateRenderPayload(payload) {
   validateStringField(errors, payload, "source.projectSlug");
   validateStringField(errors, payload, "template.id");
 
+  if (isPlainObject(payload.template) && !SUPPORTED_TEMPLATE_IDS.has(payload.template.id)) {
+    pushError(
+      errors,
+      "template.id",
+      `Template id must be one of: ${Array.from(SUPPORTED_TEMPLATE_IDS).join(", ")}.`
+    );
+  }
+
   if (!isPlainObject(payload.video)) {
     pushError(errors, "video", "Video settings object is required.");
   } else {
+    if (!SUPPORTED_ASPECT_RATIOS.has(payload.video.aspectRatio)) {
+      pushError(errors, "video.aspectRatio", `Aspect ratio must be one of: ${Array.from(SUPPORTED_ASPECT_RATIOS).join(", ")}.`);
+    }
     if (!Number.isInteger(payload.video.width) || payload.video.width <= 0) {
       pushError(errors, "video.width", "Video width must be a positive integer.");
     }
@@ -99,6 +128,16 @@ function validateRenderPayload(payload) {
     }
     if (!Number.isInteger(payload.video.fps) || payload.video.fps <= 0) {
       pushError(errors, "video.fps", "Video fps must be a positive integer.");
+    }
+
+    const preset = VIDEO_PRESETS[payload.video.aspectRatio];
+    if (preset) {
+      if (payload.video.width !== preset.width || payload.video.height !== preset.height) {
+        pushError(errors, "video", `Video ${payload.video.aspectRatio} must be ${preset.width}x${preset.height}.`);
+      }
+      if (isPlainObject(payload.template) && payload.template.id !== preset.templateId) {
+        pushError(errors, "template.id", `Template for ${payload.video.aspectRatio} must be ${preset.templateId}.`);
+      }
     }
   }
 
@@ -126,6 +165,8 @@ function validateRenderPayload(payload) {
 
 module.exports = {
   RENDER_PAYLOAD_VERSION,
+  VIDEO_PRESETS,
+  SUPPORTED_TEMPLATE_IDS,
   SCENE_TYPES,
   validateRenderPayload
 };

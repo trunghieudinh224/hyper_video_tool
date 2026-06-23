@@ -32,10 +32,30 @@ assert.deepEqual(
 assert.equal(generatedPayload.scenes.find((scene) => scene.type === "features").content.items.length, 4);
 assert.equal(generatedPayload.scenes.find((scene) => scene.type === "timeline").content.milestones.length, 5);
 assert.equal(generatedPayload.video.estimatedDuration, 74);
+assert.equal(generatedPayload.video.aspectRatio, "16:9");
+assert.equal(generatedPayload.video.width, 1920);
+assert.equal(generatedPayload.video.height, 1080);
 
 const invalidPayload = { ...generatedPayload, version: "invalid" };
 const invalidValidation = validateRenderPayload(invalidPayload);
 assert.equal(invalidValidation.valid, false, "Invalid version should fail validation.");
+
+const verticalPayload = projectToRenderPayload(project, { aspectRatio: "9:16" });
+assert.equal(verticalPayload.template.id, "project-showcase-vertical-60s");
+assert.equal(verticalPayload.video.aspectRatio, "9:16");
+assert.equal(verticalPayload.video.width, 1080);
+assert.equal(verticalPayload.video.height, 1920);
+assert.equal(validateRenderPayload(verticalPayload).valid, true, "Vertical payload should be valid.");
+
+const mismatchedVerticalPayload = {
+  ...verticalPayload,
+  template: {
+    ...verticalPayload.template,
+    id: "project-showcase-90s"
+  }
+};
+const mismatchedValidation = validateRenderPayload(mismatchedVerticalPayload);
+assert.equal(mismatchedValidation.valid, false, "Vertical payload with horizontal template should fail validation.");
 
 const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");

@@ -1,10 +1,11 @@
 "use strict";
 
-const { RENDER_PAYLOAD_VERSION, validateRenderPayload } = require("./render-payload-schema");
+const { RENDER_PAYLOAD_VERSION, VIDEO_PRESETS, validateRenderPayload } = require("./render-payload-schema");
 
 const DEFAULT_VIDEO = {
-  width: 1920,
-  height: 1080,
+  aspectRatio: "16:9",
+  width: VIDEO_PRESETS["16:9"].width,
+  height: VIDEO_PRESETS["16:9"].height,
   fps: 30,
   format: "mp4"
 };
@@ -74,7 +75,25 @@ function createScene(type, title, content) {
   };
 }
 
-function projectToRenderPayload(project = {}) {
+function getVideoPreset(options = {}) {
+  const requestedAspectRatio = typeof options.aspectRatio === "string" ? options.aspectRatio : "";
+  const requestedTemplateId = typeof options.templateId === "string" ? options.templateId : "";
+
+  if (VIDEO_PRESETS[requestedAspectRatio]) {
+    return VIDEO_PRESETS[requestedAspectRatio];
+  }
+
+  const matchedPreset = Object.values(VIDEO_PRESETS).find((preset) => preset.templateId === requestedTemplateId);
+  return matchedPreset || VIDEO_PRESETS["16:9"];
+}
+
+function projectToRenderPayload(project = {}, options = {}) {
+  const hasExplicitAspectRatio = Boolean(options.aspectRatio || project.aspectRatio);
+  const videoPreset = getVideoPreset({
+    aspectRatio: options.aspectRatio || project.aspectRatio,
+    templateId: options.templateId || (hasExplicitAspectRatio ? "" : project.templateId)
+  });
+  const templateId = text(options.templateId || (hasExplicitAspectRatio ? "" : project.templateId), videoPreset.templateId);
   const features = list(project.features)
     .filter((feature) => feature && feature.useInVideo)
     .slice(0, 4)
@@ -99,7 +118,7 @@ function projectToRenderPayload(project = {}) {
       presenterRole: text(project.presenterRole, "Người trình bày")
     },
     template: {
-      id: text(project.templateId, "project-showcase-90s"),
+      id: templateId,
       config: {
         theme: text(project.templateConfig && project.templateConfig.theme, "dark"),
         accentColor: text(project.templateConfig && project.templateConfig.accentColor, "blue"),
@@ -109,6 +128,10 @@ function projectToRenderPayload(project = {}) {
     },
     video: {
       ...DEFAULT_VIDEO,
+      aspectRatio: videoPreset.aspectRatio,
+      width: videoPreset.width,
+      height: videoPreset.height,
+      fps: Number.isInteger(options.fps) && options.fps > 0 ? options.fps : DEFAULT_VIDEO.fps,
       estimatedDuration: Object.values(SCENE_DURATIONS).reduce((total, duration) => total + duration, 0)
     },
     assets: {
@@ -162,5 +185,6 @@ function projectToRenderPayload(project = {}) {
 module.exports = {
   DEFAULT_VIDEO,
   SCENE_DURATIONS,
+  getVideoPreset,
   projectToRenderPayload
 };
