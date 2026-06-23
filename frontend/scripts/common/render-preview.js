@@ -61,6 +61,7 @@ const AppRender = (() => {
     const voiceover = audio.voiceover || {};
     const voiceoverState = projectData.voiceover || {};
     const sceneScripts = voiceoverState.sceneScripts || {};
+    const scriptDisplayMode = projectData.scriptDisplayMode === "stack" ? "stack" : "sequence";
     const timelineMilestoneScript = milestones
       .map((milestone) => milestone.voiceoverScript || "")
       .filter(Boolean)
@@ -112,11 +113,14 @@ const AppRender = (() => {
         title: "Kịch bản chính",
         duration: 18,
         content: {
+          displayMode: scriptDisplayMode,
           items: activeFeatures.map((feature, index) => ({
             id: feature.id || `feature_${index + 1}`,
             title: feature.name || feature.title || "Đoạn chưa đặt tên",
             description: feature.description || "",
-            benefit: feature.benefit || ""
+            benefit: feature.benefit || "",
+            durationSec: Math.min(30, Math.max(3, Number.parseInt(feature.durationSec, 10) || 8)),
+            order: index + 1
           }))
         },
         voiceover: createSceneVoiceover("features", 18, sceneScripts.features || featureSegmentScript)

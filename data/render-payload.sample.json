@@ -156,34 +156,43 @@
       "title": "Tính năng nổi bật",
       "duration": 18,
       "content": {
+        "displayMode": "sequence",
         "items": [
           {
             "id": "feat_1",
             "title": "Tổng quan tiến độ theo dự án",
             "description": "Hiển thị tỷ lệ phần trăm hoàn thành, trạng thái các milestone và timeline của từng dự án.",
             "benefit": "Giúp quản lý nắm bắt nhanh trạng thái sức khỏe của toàn bộ dự án trong 10 giây.",
-            "voiceoverScript": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy."
+            "voiceoverScript": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy.",
+            "durationSec": 8,
+            "order": 1
           },
           {
             "id": "feat_2",
             "title": "Biểu đồ hiệu suất theo tuần",
             "description": "Biểu diễn trực quan số lượng task hoàn thành, task mới phát sinh và task tồn đọng.",
             "benefit": "Phát hiện ngay các điểm nghẽn trong quy trình làm việc của team.",
-            "voiceoverScript": "Biểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên."
+            "voiceoverScript": "Biểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên.",
+            "durationSec": 10,
+            "order": 2
           },
           {
             "id": "feat_3",
             "title": "Cảnh báo task trễ hạn tự động",
             "description": "Tự động quét và phát hiện các task đã quá deadline mà chưa được cập nhật.",
             "benefit": "Hỗ trợ team lead xử lý rủi ro chậm tiến độ một cách chủ động.",
-            "voiceoverScript": "Khi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng."
+            "voiceoverScript": "Khi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng.",
+            "durationSec": 9,
+            "order": 3
           },
           {
             "id": "feat_4",
             "title": "Xuất báo cáo nhanh cho buổi họp",
             "description": "Chỉ với 1 click, hệ thống tự động xuất báo cáo PDF/Slides tóm tắt các chỉ số quan trọng.",
             "benefit": "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần.",
-            "voiceoverScript": "Cuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần."
+            "voiceoverScript": "Cuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần.",
+            "durationSec": 8,
+            "order": 4
           }
         ]
       },

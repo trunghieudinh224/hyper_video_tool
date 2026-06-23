@@ -70,7 +70,9 @@ function mapFeature(feature, index) {
     title: text(feature.name, `Tính năng ${index + 1}`),
     description: text(feature.description, "Chưa có mô tả tính năng."),
     benefit: text(feature.benefit, "Chưa có mô tả giá trị."),
-    voiceoverScript: text(feature.voiceoverScript, "")
+    voiceoverScript: text(feature.voiceoverScript, ""),
+    durationSec: Math.min(30, Math.max(3, Number.parseInt(feature.durationSec, 10) || 8)),
+    order: index + 1
   };
 }
 
@@ -190,6 +192,10 @@ function getVideoPreset(options = {}) {
   return matchedPreset || VIDEO_PRESETS["16:9"];
 }
 
+function normalizeScriptDisplayMode(value) {
+  return text(value, "sequence") === "stack" ? "stack" : "sequence";
+}
+
 function projectToRenderPayload(project = {}, options = {}) {
   const hasExplicitAspectRatio = Boolean(options.aspectRatio || project.aspectRatio);
   const videoPreset = getVideoPreset({
@@ -228,6 +234,7 @@ function projectToRenderPayload(project = {}, options = {}) {
     .map((feature) => text(feature.voiceoverScript, ""))
     .filter(Boolean)
     .join("\n");
+  const scriptDisplayMode = normalizeScriptDisplayMode(project.scriptDisplayMode);
 
   const payload = {
     version: RENDER_PAYLOAD_VERSION,
@@ -278,6 +285,7 @@ function projectToRenderPayload(project = {}, options = {}) {
         keyHighlight: derivedHighlight
       }, sceneScripts.solution),
       createScene("features", "Tính năng nổi bật", {
+        displayMode: scriptDisplayMode,
         items: features
       }, sceneScripts.features || featureSegmentScript),
       createScene("timeline", "Timeline phát triển", {

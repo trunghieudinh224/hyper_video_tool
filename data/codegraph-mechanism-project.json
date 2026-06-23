@@ -1,0 +1,138 @@
+{
+  "projectName": "CodeGraph trong Migration Agent",
+  "projectSlug": "codegraph-mechanism-migration-agent",
+  "contentType": "technical-module",
+  "tagline": "Bản đồ code cục bộ giúp agent đọc đúng class, đúng flow và đúng ngữ cảnh migration.",
+  "ownerTeam": "Migration Agent Team",
+  "presenterRole": "AI Migration Engineer",
+  "shortSummary": "CodeGraph parse source code thành knowledge graph cục bộ để Agent tra cứu symbol, call graph và impact nhanh hơn khi migrate Java NetBeans.",
+  "videoGoal": "Giúp người xem hiểu CodeGraph là gì, vì sao Migration Agent cần nó và cách dùng an toàn trong workspace G/S.",
+  "mainMessage": "CodeGraph giúp Agent hỏi trực tiếp vào bản đồ symbol/call graph thay vì mở hàng trăm file hoặc grep thủ công.",
+  "contentTone": "technical",
+  "contentLanguage": "vi-VN",
+  "scriptDisplayMode": "sequence",
+  "primaryAssetId": "",
+  "problemContext": "Migration Agent phải đọc cùng lúc G_standard, G_special, S_standard và S_special. Nhiều class trùng tên khiến Agent dễ đọc nhầm bản G/S nếu chỉ tìm bằng text.",
+  "solutionWhat": "CodeGraph parse source bằng tree-sitter, trích xuất node/edge, lưu vào SQLite và expose MCP tools để Agent query đúng symbol, đúng caller/callee và đúng path.",
+  "targetUsers": "Developer và AI Agent đang thực hiện migration Java NetBeans.",
+  "useCase": "Onboard agent trước khi phân tích SUMMARY.md và migrate logic từ G_special sang S_special.",
+  "keyHighlight": "Path MgsV3/MgsV4 quan trọng hơn tên class khi symbol trùng nhau.",
+  "resultImpact": "Giảm thời gian đọc code thủ công, giảm rủi ro đọc nhầm class và giúp impact analysis rõ hơn trước khi sửa code.",
+  "endingNote": "Dùng CodeGraph để hiểu nhanh, nhưng vẫn phải build, test và adapt logic theo style của S.",
+  "features": [
+    {
+      "id": "codegraph_parse",
+      "type": "intro",
+      "name": "Parse source thành graph",
+      "description": "CodeGraph dùng tree-sitter để trích xuất file, class, method, variable, import và quan hệ call/import/extends.",
+      "benefit": "Agent có bản đồ code cục bộ thay vì phải mở hàng trăm file.",
+      "voiceoverScript": "Đầu tiên, CodeGraph biến source code thành một graph cục bộ gồm symbol và quan hệ giữa chúng.",
+      "durationSec": 8,
+      "useInVideo": true
+    },
+    {
+      "id": "codegraph_path",
+      "type": "problem",
+      "name": "Phân biệt G/S bằng path",
+      "description": "Workspace dùng MgsV3 cho phía G và MgsV4 cho phía S. Khi class trùng tên, Agent phải đọc theo path.",
+      "benefit": "Tránh lấy nhầm logic từ bản G khi cần sửa trên nền S.",
+      "voiceoverScript": "Điểm quan trọng nhất là path. MgsV3 là phía G, còn MgsV4 là phía S.",
+      "durationSec": 9,
+      "useInVideo": true
+    },
+    {
+      "id": "codegraph_tools",
+      "type": "workflow",
+      "name": "Query bằng MCP tools",
+      "description": "Agent ưu tiên explore để hiểu khu vực code, search để tìm symbol, callers/callees để kiểm tra flow và impact trước khi sửa shared method.",
+      "benefit": "Tra cứu nhanh nhưng vẫn có ngữ cảnh call graph.",
+      "voiceoverScript": "Agent dùng explore, search, node, callers, callees và impact để đi từ câu hỏi đến đúng đoạn code cần đọc.",
+      "durationSec": 10,
+      "useInVideo": true
+    },
+    {
+      "id": "codegraph_limits",
+      "type": "result",
+      "name": "Không thay thế build/test",
+      "description": "CodeGraph chỉ là static analysis. Sau khi sửa code vẫn phải chạy ant build, test và kiểm tra staleness nếu vừa edit source.",
+      "benefit": "Giữ migration an toàn, không tin mù vào index cũ.",
+      "voiceoverScript": "Cuối cùng, CodeGraph giúp hiểu nhanh, nhưng không thay thế build, test hay review logic.",
+      "durationSec": 8,
+      "useInVideo": true
+    }
+  ],
+  "milestones": [
+    {
+      "id": "setup_workspace",
+      "name": "Tạo workspace MgsV3/MgsV4",
+      "date": "Bước 1",
+      "description": "Symlink source G và S vào workspace để path luôn ổn định.",
+      "status": "done",
+      "voiceoverScript": "Bước đầu là tạo workspace với MgsV3 và MgsV4."
+    },
+    {
+      "id": "index_graph",
+      "name": "Khởi tạo index CodeGraph",
+      "date": "Bước 2",
+      "description": "CodeGraph tạo SQLite graph local từ source đã symlink.",
+      "status": "done",
+      "voiceoverScript": "Sau đó chạy init để tạo graph cục bộ."
+    },
+    {
+      "id": "query_flow",
+      "name": "Query đúng symbol và path",
+      "date": "Bước 3",
+      "description": "Agent dùng MCP tools để đọc đúng class, method và call graph.",
+      "status": "in-progress",
+      "voiceoverScript": "Khi làm migration, Agent query symbol nhưng luôn kiểm tra path."
+    },
+    {
+      "id": "adapt_and_verify",
+      "name": "Adapt logic rồi verify",
+      "date": "Bước 4",
+      "description": "Không copy G sang S; phải adapt theo API/style của S và chạy build/test.",
+      "status": "upcoming",
+      "voiceoverScript": "Cuối cùng là adapt vào S và verify bằng build, test."
+    }
+  ],
+  "assets": [],
+  "templateId": "project-showcase-vertical-60s",
+  "templateConfig": {
+    "theme": "dark",
+    "accentColor": "blue",
+    "fontSize": "default",
+    "logoPosition": "none"
+  },
+  "voiceover": {
+    "sceneScripts": {
+      "intro": "CodeGraph là bản đồ code cục bộ giúp Migration Agent tra cứu symbol và call graph nhanh hơn.",
+      "problem": "Trong migration, nhiều bản G và S có class trùng tên. Nếu chỉ grep text, Agent rất dễ đọc nhầm.",
+      "solution": "CodeGraph parse source bằng tree-sitter, lưu graph vào SQLite và expose MCP tools cho Agent query.",
+      "features": "Điểm mấu chốt là dùng path MgsV3/MgsV4, chọn đúng tool và kiểm tra staleness sau khi source thay đổi.",
+      "timeline": "Luồng dùng cơ bản là tạo symlink workspace, index graph, query đúng path, rồi adapt logic vào S.",
+      "impact": "Kết quả là Agent giảm đọc file thủ công, giảm rủi ro nhầm class và hiểu impact trước khi sửa code.",
+      "outro": "CodeGraph giúp hiểu nhanh, nhưng migration an toàn vẫn cần build, test và review theo style của S."
+    }
+  },
+  "audio": {
+    "voiceover": {
+      "enabled": true,
+      "provider": "edge-tts",
+      "language": "vi-VN",
+      "voiceId": "vi-VN-HoaiMyNeural",
+      "rate": "+5%",
+      "volume": "+0%",
+      "script": "CodeGraph là bản đồ code cục bộ cho Migration Agent. Thay vì mở hàng trăm file hoặc grep thủ công, Agent có thể hỏi trực tiếp vào symbol, call graph, import và quan hệ kế thừa. Trong migration Java NetBeans, điều này rất quan trọng vì workspace có nhiều bản G và S, nhiều class trùng tên, và đọc nhầm path có thể dẫn đến migrate sai logic. CodeGraph parse source bằng tree-sitter, lưu node và edge vào SQLite, rồi expose MCP tools như explore, search, node, callers, callees và impact. Khi làm việc, Agent cần ưu tiên path MgsV3 cho phía G và MgsV4 cho phía S, sau đó mới xét tên class hoặc method. Luồng an toàn là tạo symlink workspace, index graph, query đúng path, adapt logic vào S, rồi build và test lại. CodeGraph giúp hiểu code nhanh hơn, nhưng không thay thế review, build, test hay quyết định kỹ thuật của người migrate."
+    },
+    "backgroundMusic": {
+      "enabled": false,
+      "source": "",
+      "volume": 0.12,
+      "ducking": true
+    },
+    "soundEffects": {
+      "enabled": false,
+      "items": []
+    }
+  }
+}

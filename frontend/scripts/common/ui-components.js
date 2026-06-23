@@ -538,6 +538,7 @@ const AppUI = (() => {
     const getSegmentType = (typeId) => segmentTypes.find((type) => type.id === typeId) || segmentTypes.find((type) => type.id === "feature") || { id: "feature", label: "Tính năng" };
     const enabledCount = list.filter((item) => item.useInVideo).length;
     const voiceCount = list.filter((item) => String(item.voiceoverScript || "").trim()).length;
+    const scriptDisplayMode = data.scriptDisplayMode === "stack" ? "stack" : "sequence";
     const estimatedDuration = list
       .filter((item) => item.useInVideo)
       .reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
@@ -705,6 +706,19 @@ const AppUI = (() => {
         ${list.length > 0 ? `<button id="features-add-btn" class="btn btn-primary">Thêm đoạn</button>` : ''}
       </div>
       <div class="page-section-stack">
+        <section class="script-flow-panel" aria-label="Cách hiển thị trong video">
+          <div>
+            <span class="script-flow-eyebrow">Cách hiển thị</span>
+            <h2>Trong video render</h2>
+            <p>${scriptDisplayMode === "sequence"
+              ? "Các đoạn đang bật sẽ xuất hiện lần lượt theo thứ tự kéo thả."
+              : "Các đoạn đang bật sẽ xuất hiện cùng lúc trong một cảnh."}</p>
+          </div>
+          <div class="script-display-toggle" role="group" aria-label="Chọn cách hiển thị đoạn">
+            <button type="button" class="${scriptDisplayMode === "sequence" ? "is-active" : ""}" data-display-mode="sequence">Lần lượt</button>
+            <button type="button" class="${scriptDisplayMode === "stack" ? "is-active" : ""}" data-display-mode="stack">Cùng lúc</button>
+          </div>
+        </section>
         <section class="script-summary">
           <div class="script-stat-card stat-total">
             <span class="script-stat-icon" aria-hidden="true">
@@ -856,6 +870,13 @@ const AppUI = (() => {
     };
 
     // Attach Event Listeners
+    container.querySelectorAll(".script-display-toggle button").forEach((button) => {
+      button.addEventListener("click", () => {
+        AppState.updateProjectField("scriptDisplayMode", button.getAttribute("data-display-mode") || "sequence");
+        renderFeaturesScreen(container, AppState.getProjectData());
+      });
+    });
+
     if (list.length === 0) {
       document.getElementById("features-empty-add-btn").addEventListener("click", () => showFeatureFormModal());
     } else {

@@ -18,6 +18,7 @@ const AppStorage = (() => {
     mainMessage: "Dashboard gom dữ liệu phân tán thành một nơi dễ đọc để team ra quyết định nhanh hơn.",
     contentTone: "internal",
     contentLanguage: "vi-VN",
+    scriptDisplayMode: "sequence",
     primaryAssetId: "asset_2",
     problemContext: "Dữ liệu tiến độ nằm rải rác nhiều nguồn, khó nhìn tổng quan khiến việc đưa ra quyết định chậm trễ.",
     solutionWhat: "Gom dữ liệu vào dashboard nội bộ có biểu đồ trực quan, hệ thống cảnh báo tự động và báo cáo nhanh.",

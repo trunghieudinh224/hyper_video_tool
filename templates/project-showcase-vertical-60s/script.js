@@ -32,7 +32,6 @@ const TEXT_LIMITS = {
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  registerHyperFramesTimeline();
   initializeTemplate();
 });
 
@@ -78,8 +77,9 @@ function getRenderPayloadPath() {
   return WORKDIR_PAYLOAD_PATH;
 }
 
-function registerHyperFramesTimeline() {
-  if (window.__timelines && window.__timelines[COMPOSITION_ID]) {
+function registerHyperFramesTimeline(options = {}) {
+  const shouldRebuild = Boolean(options.rebuild);
+  if (!shouldRebuild && window.__timelines && window.__timelines[COMPOSITION_ID]) {
     showScene(getActiveSceneType());
     return;
   }
@@ -89,18 +89,33 @@ function registerHyperFramesTimeline() {
     return;
   }
 
+  if (window.__timelines && window.__timelines[COMPOSITION_ID] && window.__timelines[COMPOSITION_ID].kill) {
+    window.__timelines[COMPOSITION_ID].kill();
+  }
+
   const tl = window.gsap.timeline({ paused: true });
   const allSceneSelectors = SCENE_TIMELINE.map((scene) => `#${scene.id}`).join(", ");
   tl.set(allSceneSelectors, { opacity: 0, pointerEvents: "none" }, 0);
 
   SCENE_TIMELINE.forEach((scene) => {
+    const featuresTarget = document.getElementById("features-list-target");
+    const isSequenceFeatures = scene.id === "scene-features"
+      && featuresTarget
+      && featuresTarget.classList.contains("is-sequence");
+    const revealSelector = isSequenceFeatures
+      ? `#${scene.id} .scene-label, #${scene.id} .scene-header`
+      : `#${scene.id} .scene-label, #${scene.id} .scene-header, #${scene.id} .logo-box, #${scene.id} h1, #${scene.id} p, #${scene.id} .content-card, #${scene.id} .feature-item, #${scene.id} .timeline-node, #${scene.id} .impact-val, #${scene.id} .impact-desc, #${scene.id} .highlight-box, #${scene.id} .meta-box, #${scene.id} .stack-list > div`;
+
     tl.set(`#${scene.id}`, { opacity: 1, pointerEvents: "auto" }, scene.start);
     tl.fromTo(
-      `#${scene.id} .scene-label, #${scene.id} .scene-header, #${scene.id} .logo-box, #${scene.id} h1, #${scene.id} p, #${scene.id} .content-card, #${scene.id} .feature-item, #${scene.id} .timeline-node, #${scene.id} .impact-val, #${scene.id} .impact-desc, #${scene.id} .highlight-box, #${scene.id} .meta-box, #${scene.id} .stack-list > div`,
+      revealSelector,
       { opacity: 0, y: 28 },
       { opacity: 1, y: 0, duration: 0.45, stagger: 0.045 },
       scene.start + 0.1
     );
+    if (isSequenceFeatures) {
+      animateFeatureSequence(tl, scene);
+    }
     tl.set(`#${scene.id}`, { opacity: 0, pointerEvents: "none" }, scene.start + scene.duration);
   });
 
@@ -118,6 +133,7 @@ function updateTemplatePayload(payload) {
   renderTimelineScene(getScene(safePayload, "timeline"));
   renderImpactScene(getScene(safePayload, "impact"));
   renderOutroScene(getScene(safePayload, "outro"), safePayload);
+  registerHyperFramesTimeline({ rebuild: true });
   showScene(getActiveSceneType());
 }
 
@@ -148,6 +164,8 @@ function renderFeaturesScene(scene) {
   const target = document.getElementById("features-list-target");
   clearChildren(target);
   const items = ((scene.content && scene.content.items) || []).slice(0, 4);
+  const displayMode = scene.content && scene.content.displayMode === "stack" ? "stack" : "sequence";
+  target.className = `features-list is-${displayMode}`;
   if (items.length === 0) {
     target.appendChild(createElement("p", "empty-copy", "Chưa chọn tính năng nào đưa vào video."));
     return;
@@ -155,6 +173,8 @@ function renderFeaturesScene(scene) {
 
   items.forEach((feature, index) => {
     const item = createElement("article", "feature-item");
+    item.dataset.sequenceIndex = String(index);
+    item.dataset.duration = String(feature.durationSec || "");
     item.appendChild(createElement("div", "feature-index", String(index + 1).padStart(2, "0")));
     const content = createElement("div", "feature-copy");
     content.appendChild(createElement("div", "feature-title", feature.title || "Tính năng chưa đặt tên", TEXT_LIMITS.featureTitle));
@@ -162,6 +182,30 @@ function renderFeaturesScene(scene) {
     content.appendChild(createElement("div", "feature-benefit", feature.benefit || "Chưa có giá trị nổi bật.", TEXT_LIMITS.featureBenefit));
     item.appendChild(content);
     target.appendChild(item);
+  });
+}
+
+function animateFeatureSequence(timeline, scene) {
+  const items = Array.from(document.querySelectorAll("#features-list-target.is-sequence .feature-item"));
+  if (items.length === 0) {
+    return;
+  }
+
+  const scenePadding = 1.1;
+  const availableDuration = Math.max(1, scene.duration - scenePadding - 0.4);
+  const slotDuration = availableDuration / items.length;
+  timeline.set(items, { opacity: 0, y: 34, pointerEvents: "none" }, scene.start);
+
+  items.forEach((item, index) => {
+    const itemStart = scene.start + scenePadding + (index * slotDuration);
+    const itemEnd = Math.min(scene.start + scene.duration - 0.2, itemStart + slotDuration - 0.18);
+    timeline.fromTo(
+      item,
+      { opacity: 0, y: 34 },
+      { opacity: 1, y: 0, duration: 0.35, pointerEvents: "auto" },
+      itemStart
+    );
+    timeline.set(item, { opacity: 0, y: -18, pointerEvents: "none" }, itemEnd);
   });
 }
 
