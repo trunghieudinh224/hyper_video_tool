@@ -200,6 +200,10 @@ function projectToRenderPayload(project = {}, options = {}) {
     .filter((feature) => feature && feature.useInVideo)
     .slice(0, 4)
     .map(mapFeature);
+  const derivedHighlight = text(
+    project.keyHighlight,
+    (features[0] && (features[0].benefit || features[0].description || features[0].title)) || ""
+  );
 
   const milestones = list(project.milestones)
     .filter(Boolean)
@@ -263,7 +267,7 @@ function projectToRenderPayload(project = {}, options = {}) {
       }, sceneScripts.problem),
       createScene("solution", "Giải pháp", {
         solution: text(project.solutionWhat, "Chưa có mô tả giải pháp."),
-        keyHighlight: text(project.keyHighlight, "")
+        keyHighlight: derivedHighlight
       }, sceneScripts.solution),
       createScene("features", "Tính năng nổi bật", {
         items: features
@@ -273,7 +277,7 @@ function projectToRenderPayload(project = {}, options = {}) {
       }, sceneScripts.timeline || timelineScript),
       createScene("impact", "Kết quả và tác động", {
         resultImpact: text(project.resultImpact, "Chưa có số liệu tác động."),
-        highlight: text(project.keyHighlight, "")
+        highlight: derivedHighlight
       }, sceneScripts.impact),
       createScene("outro", "Kết thúc", {
         endingNote: text(project.endingNote, "Cảm ơn đã theo dõi."),

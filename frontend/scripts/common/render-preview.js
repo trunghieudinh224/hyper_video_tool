@@ -54,6 +54,8 @@ const AppRender = (() => {
     const videos = selectedAssets.filter((asset) => asset.type === "video" && asset.useInVideo);
     const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
     const milestones = (projectData.milestones || []).slice(0, 5);
+    const derivedHighlight = normalizeText(projectData.keyHighlight)
+      || normalizeText(activeFeatures[0] && (activeFeatures[0].benefit || activeFeatures[0].description || activeFeatures[0].name || activeFeatures[0].title));
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
     const voiceoverState = projectData.voiceover || {};
@@ -95,7 +97,7 @@ const AppRender = (() => {
         duration: 10,
         content: {
           solution: projectData.solutionWhat || "Chưa có mô tả giải pháp.",
-          keyHighlight: projectData.keyHighlight || "Chưa có điểm nhấn chính."
+          keyHighlight: derivedHighlight || "Chưa có điểm nhấn chính."
         },
         voiceover: createSceneVoiceover("solution", 10, sceneScripts.solution)
       },
@@ -138,7 +140,7 @@ const AppRender = (() => {
         duration: 10,
         content: {
           resultImpact: projectData.resultImpact || "Chưa có mô tả kết quả đạt được.",
-          highlight: projectData.keyHighlight || "Chưa có điểm nhấn tác động."
+          highlight: derivedHighlight || "Chưa có điểm nhấn tác động."
         },
         voiceover: createSceneVoiceover("impact", 10, sceneScripts.impact)
       },

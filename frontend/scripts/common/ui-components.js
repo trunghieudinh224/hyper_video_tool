@@ -342,128 +342,141 @@ const AppUI = (() => {
           </details>
         </div>
 
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="field-projectName">Tên dự án *</label>
-            <div class="form-hint">Tên hiển thị trong video, dashboard và phần mở đầu.</div>
-            <input type="text" id="field-projectName" class="form-control" value="${data.projectName || ''}">
+        <section class="content-form-block">
+          <div class="content-form-block-header">
+            <h3>Thông tin video</h3>
+            <p>Tên, định danh và câu giới thiệu chung dùng cho phần mở đầu.</p>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="field-projectSlug">Đường dẫn slug *</label>
-            <div class="form-hint">Mã ngắn dùng để đặt tên file và định danh project.</div>
-            <input type="text" id="field-projectSlug" class="form-control" value="${data.projectSlug || ''}" placeholder="ví dụ: internal-analytics-dashboard">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="field-tagline">Tagline (Khẩu hiệu giới thiệu)</label>
-          <div class="form-hint">Một câu ngắn tóm tắt giá trị chính của project.</div>
-          <input type="text" id="field-tagline" class="form-control" value="${data.tagline || ''}" placeholder="Câu tóm tắt ngắn dưới 80 chữ...">
-          <span class="char-counter"><span id="count-tagline">0</span>/80 ký tự</span>
-        </div>
-
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="field-ownerTeam">Team phụ trách</label>
-            <div class="form-hint">Team hoặc nhóm chịu trách nhiệm phát triển project.</div>
-            <input type="text" id="field-ownerTeam" class="form-control" value="${data.ownerTeam || ''}" placeholder="ví dụ: Platform Team">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="field-presenterRole">Vai trò của người thuyết trình</label>
-            <div class="form-hint">Vai trò xuất hiện trong ngữ cảnh thuyết trình video.</div>
-            <input type="text" id="field-presenterRole" class="form-control" value="${data.presenterRole || ''}" placeholder="ví dụ: Product Owner, Lead Tech">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="field-shortSummary">Mô tả ngắn dự án *</label>
-          <div class="form-hint">Đoạn giới thiệu tổng quan để video mở đầu dễ hiểu.</div>
-          <textarea id="field-shortSummary" class="form-control" rows="3" placeholder="Tóm tắt bối cảnh tổng quát...">${data.shortSummary || ''}</textarea>
-          <span class="char-counter"><span id="count-shortSummary">0</span>/200 ký tự</span>
-        </div>
-        <div class="form-group voice-script-field">
-          <label class="form-label" for="voice-script-intro">Voice intro</label>
-          <div class="form-hint">Kịch bản giọng đọc riêng cho cảnh mở đầu.</div>
-          <textarea id="voice-script-intro" class="form-control" rows="2" placeholder="Kịch bản giọng đọc cho cảnh mở đầu...">${sceneScripts.intro || ''}</textarea>
-          <span class="char-counter"><span id="voice-count-intro">0</span>/6s</span>
-        </div>
-
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="field-problemContext">Vấn đề / Nỗi đau khách hàng *</label>
-            <div class="form-hint">Bối cảnh hoặc khó khăn khiến project này cần được xây dựng.</div>
-            <textarea id="field-problemContext" class="form-control" rows="4" placeholder="Khách hàng đang gặp khó khăn gì?">${data.problemContext || ''}</textarea>
-            <span class="char-counter"><span id="count-problemContext">0</span>/300 ký tự</span>
-            <div class="voice-script-field is-nested">
-              <label class="form-label" for="voice-script-problem">Voice vấn đề</label>
-              <div class="form-hint">Kịch bản đọc cho đoạn mô tả vấn đề.</div>
-              <textarea id="voice-script-problem" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh vấn đề...">${sceneScripts.problem || ''}</textarea>
-              <span class="char-counter"><span id="voice-count-problem">0</span>/10s</span>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="field-projectName">Tên dự án *</label>
+              <div class="form-hint">Tên hiển thị trong video, dashboard và phần mở đầu.</div>
+              <input type="text" id="field-projectName" class="form-control" value="${data.projectName || ''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-projectSlug">Đường dẫn slug *</label>
+              <div class="form-hint">Mã ngắn dùng để đặt tên file và định danh project.</div>
+              <input type="text" id="field-projectSlug" class="form-control" value="${data.projectSlug || ''}" placeholder="ví dụ: internal-analytics-dashboard">
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="field-solutionWhat">Giải pháp đã xây dựng *</label>
-            <div class="form-hint">Cách sản phẩm hoặc hệ thống giải quyết vấn đề ở trên.</div>
-            <textarea id="field-solutionWhat" class="form-control" rows="4" placeholder="Sản phẩm giải quyết nỗi đau đó như thế nào?">${data.solutionWhat || ''}</textarea>
-            <span class="char-counter"><span id="count-solutionWhat">0</span>/300 ký tự</span>
-            <div class="voice-script-field is-nested">
-              <label class="form-label" for="voice-script-solution">Voice giải pháp</label>
-              <div class="form-hint">Kịch bản đọc cho đoạn trình bày giải pháp.</div>
-              <textarea id="voice-script-solution" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh giải pháp...">${sceneScripts.solution || ''}</textarea>
-              <span class="char-counter"><span id="voice-count-solution">0</span>/10s</span>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="field-tagline">Tagline</label>
+              <div class="form-hint">Một câu ngắn tóm tắt giá trị chính của project.</div>
+              <input type="text" id="field-tagline" class="form-control" value="${data.tagline || ''}" placeholder="Câu tóm tắt ngắn dưới 80 chữ...">
+              <span class="char-counter"><span id="count-tagline">0</span>/80 ký tự</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-ownerTeam">Team phụ trách</label>
+              <div class="form-hint">Team hoặc nhóm chịu trách nhiệm phát triển project.</div>
+              <input type="text" id="field-ownerTeam" class="form-control" value="${data.ownerTeam || ''}" placeholder="ví dụ: Platform Team">
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="field-targetUsers">Người dùng mục tiêu</label>
-            <div class="form-hint">Nhóm người hoặc team sẽ trực tiếp dùng project.</div>
-            <textarea id="field-targetUsers" class="form-control" rows="2" placeholder="ví dụ: Quản lý dự án, End-users">${data.targetUsers || ''}</textarea>
+        <section class="content-form-block">
+          <div class="content-form-block-header">
+            <h3>Câu chuyện chính</h3>
+            <p>Nội dung cốt lõi tạo nên flow: giới thiệu, vấn đề, giải pháp, tác động và kết thúc.</p>
           </div>
           <div class="form-group">
-            <label class="form-label" for="field-useCase">Bối cảnh sử dụng</label>
-            <div class="form-hint">Tình huống thực tế mà project được dùng trong công việc.</div>
-            <textarea id="field-useCase" class="form-control" rows="2" placeholder="ví dụ: Họp hàng tuần, Training nhân viên">${data.useCase || ''}</textarea>
+            <label class="form-label" for="field-shortSummary">Mô tả ngắn dự án *</label>
+            <div class="form-hint">Đoạn giới thiệu tổng quan để video mở đầu dễ hiểu.</div>
+            <textarea id="field-shortSummary" class="form-control" rows="3" placeholder="Tóm tắt bối cảnh tổng quát...">${data.shortSummary || ''}</textarea>
+            <span class="char-counter"><span id="count-shortSummary">0</span>/200 ký tự</span>
           </div>
-        </div>
+          <div class="form-group voice-script-field">
+            <label class="form-label" for="voice-script-intro">Voice intro</label>
+            <div class="form-hint">Kịch bản giọng đọc riêng cho cảnh mở đầu.</div>
+            <textarea id="voice-script-intro" class="form-control" rows="2" placeholder="Kịch bản giọng đọc cho cảnh mở đầu...">${sceneScripts.intro || ''}</textarea>
+            <span class="char-counter"><span id="voice-count-intro">0</span>/6s</span>
+          </div>
 
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="field-keyHighlight">Điểm nổi bật nhất</label>
-            <div class="form-hint">Ý quan trọng nhất cần làm nổi bật trong video.</div>
-            <textarea id="field-keyHighlight" class="form-control" rows="2" placeholder="ví dụ: Tự động cảnh báo Slack">${data.keyHighlight || ''}</textarea>
-            <div class="voice-script-field is-nested">
-              <label class="form-label" for="voice-script-features">Voice tính năng</label>
-              <div class="form-hint">Kịch bản đọc cho đoạn tính năng nổi bật.</div>
-              <textarea id="voice-script-features" class="form-control" rows="2" placeholder="Kịch bản đọc cho cảnh tính năng nổi bật...">${sceneScripts.features || ''}</textarea>
-              <span class="char-counter"><span id="voice-count-features">0</span>/18s</span>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="field-problemContext">Vấn đề / Nỗi đau khách hàng *</label>
+              <div class="form-hint">Bối cảnh hoặc khó khăn khiến project này cần được xây dựng.</div>
+              <textarea id="field-problemContext" class="form-control" rows="4" placeholder="Khách hàng đang gặp khó khăn gì?">${data.problemContext || ''}</textarea>
+              <span class="char-counter"><span id="count-problemContext">0</span>/300 ký tự</span>
+              <div class="voice-script-field is-nested">
+                <label class="form-label" for="voice-script-problem">Voice vấn đề</label>
+                <div class="form-hint">Kịch bản đọc cho đoạn mô tả vấn đề.</div>
+                <textarea id="voice-script-problem" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh vấn đề...">${sceneScripts.problem || ''}</textarea>
+                <span class="char-counter"><span id="voice-count-problem">0</span>/10s</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-solutionWhat">Giải pháp đã xây dựng *</label>
+              <div class="form-hint">Cách sản phẩm hoặc hệ thống giải quyết vấn đề ở trên.</div>
+              <textarea id="field-solutionWhat" class="form-control" rows="4" placeholder="Sản phẩm giải quyết nỗi đau đó như thế nào?">${data.solutionWhat || ''}</textarea>
+              <span class="char-counter"><span id="count-solutionWhat">0</span>/300 ký tự</span>
+              <div class="voice-script-field is-nested">
+                <label class="form-label" for="voice-script-solution">Voice giải pháp</label>
+                <div class="form-hint">Kịch bản đọc cho đoạn trình bày giải pháp.</div>
+                <textarea id="voice-script-solution" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh giải pháp...">${sceneScripts.solution || ''}</textarea>
+                <span class="char-counter"><span id="voice-count-solution">0</span>/10s</span>
+              </div>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="field-resultImpact">Kết quả / Tác động đạt được</label>
-            <div class="form-hint">Kết quả, lợi ích hoặc tác động sau khi project được áp dụng.</div>
-            <textarea id="field-resultImpact" class="form-control" rows="2" placeholder="ví dụ: Tiết kiệm 70% thời gian báo cáo">${data.resultImpact || ''}</textarea>
-            <div class="voice-script-field is-nested">
-              <label class="form-label" for="voice-script-impact">Voice tác động</label>
-              <div class="form-hint">Kịch bản đọc cho đoạn kết quả và tác động.</div>
-              <textarea id="voice-script-impact" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết quả...">${sceneScripts.impact || ''}</textarea>
-              <span class="char-counter"><span id="voice-count-impact">0</span>/10s</span>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="field-resultImpact">Kết quả / Tác động đạt được</label>
+              <div class="form-hint">Kết quả, lợi ích hoặc tác động sau khi project được áp dụng.</div>
+              <textarea id="field-resultImpact" class="form-control" rows="2" placeholder="ví dụ: Tiết kiệm 70% thời gian báo cáo">${data.resultImpact || ''}</textarea>
+              <div class="voice-script-field is-nested">
+                <label class="form-label" for="voice-script-impact">Voice tác động</label>
+                <div class="form-hint">Kịch bản đọc cho đoạn kết quả và tác động.</div>
+                <textarea id="voice-script-impact" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết quả...">${sceneScripts.impact || ''}</textarea>
+                <span class="char-counter"><span id="voice-count-impact">0</span>/10s</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-endingNote">Lời kết thúc video</label>
+              <div class="form-hint">Câu kết, lời cảm ơn hoặc lời kêu gọi hành động cuối video.</div>
+              <textarea id="field-endingNote" class="form-control" rows="2" placeholder="Lời cảm ơn hoặc lời kêu gọi hành động...">${data.endingNote || ''}</textarea>
+              <div class="voice-script-field is-nested">
+                <label class="form-label" for="voice-script-outro">Voice kết thúc</label>
+                <div class="form-hint">Kịch bản giọng đọc cho cảnh kết thúc.</div>
+                <textarea id="voice-script-outro" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết thúc...">${sceneScripts.outro || ''}</textarea>
+                <span class="char-counter"><span id="voice-count-outro">0</span>/6s</span>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="form-group">
-          <label class="form-label" for="field-endingNote">Lời kết thúc video</label>
-          <div class="form-hint">Câu kết, lời cảm ơn hoặc lời kêu gọi hành động cuối video.</div>
-          <textarea id="field-endingNote" class="form-control" rows="2" placeholder="Lời cảm ơn hoặc lời kêu gọi hành động...">${data.endingNote || ''}</textarea>
-          <div class="voice-script-field is-nested">
-            <label class="form-label" for="voice-script-outro">Voice kết thúc</label>
-            <div class="form-hint">Kịch bản giọng đọc cho cảnh kết thúc.</div>
-            <textarea id="voice-script-outro" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết thúc...">${sceneScripts.outro || ''}</textarea>
-            <span class="char-counter"><span id="voice-count-outro">0</span>/6s</span>
+        <section class="content-form-block">
+          <div class="content-form-block-header">
+            <h3>Ngữ cảnh sử dụng</h3>
+            <p>Thông tin cho cảnh vấn đề: ai dùng sản phẩm và dùng trong tình huống nào.</p>
           </div>
-        </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="field-targetUsers">Người dùng mục tiêu</label>
+              <div class="form-hint">Nhóm người hoặc team sẽ trực tiếp dùng project.</div>
+              <textarea id="field-targetUsers" class="form-control" rows="2" placeholder="ví dụ: Quản lý dự án, End-users">${data.targetUsers || ''}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-useCase">Bối cảnh sử dụng</label>
+              <div class="form-hint">Tình huống thực tế mà project được dùng trong công việc.</div>
+              <textarea id="field-useCase" class="form-control" rows="2" placeholder="ví dụ: Họp hàng tuần, Training nhân viên">${data.useCase || ''}</textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="content-form-block">
+          <div class="content-form-block-header">
+            <h3>Tính năng trong video</h3>
+            <p>Danh sách tính năng chỉnh ở trang Tính năng; phần này chỉ giữ kịch bản đọc cho cảnh tính năng.</p>
+          </div>
+          <div class="form-group voice-script-field">
+            <label class="form-label" for="voice-script-features">Voice tính năng</label>
+            <div class="form-hint">Kịch bản đọc cho đoạn tính năng nổi bật.</div>
+            <textarea id="voice-script-features" class="form-control" rows="2" placeholder="Kịch bản đọc cho cảnh tính năng nổi bật...">${sceneScripts.features || ''}</textarea>
+            <span class="char-counter"><span id="voice-count-features">0</span>/18s</span>
+          </div>
+        </section>
       </form>
     `;
 
@@ -579,7 +592,7 @@ const AppUI = (() => {
       }
     };
 
-    ["projectName", "projectSlug", "ownerTeam", "presenterRole", "targetUsers", "useCase", "keyHighlight", "resultImpact", "endingNote"].forEach(id => {
+    ["projectName", "projectSlug", "ownerTeam", "targetUsers", "useCase", "resultImpact", "endingNote"].forEach(id => {
       bindSimpleInput(id);
     });
 
