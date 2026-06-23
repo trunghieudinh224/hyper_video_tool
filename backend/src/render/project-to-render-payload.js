@@ -20,6 +20,27 @@ const SCENE_DURATIONS = {
   outro: 6
 };
 
+const DEFAULT_AUDIO = {
+  voiceover: {
+    enabled: false,
+    provider: "edge-tts",
+    language: "vi-VN",
+    voiceId: "vi-VN-HoaiMyNeural",
+    script: "",
+    outputPath: ""
+  },
+  backgroundMusic: {
+    enabled: false,
+    source: "",
+    volume: 0.12,
+    ducking: true
+  },
+  soundEffects: {
+    enabled: false,
+    items: []
+  }
+};
+
 function text(value, fallback = "") {
   if (typeof value !== "string") {
     return fallback;
@@ -72,6 +93,55 @@ function createScene(type, title, content) {
     title,
     duration: SCENE_DURATIONS[type],
     content
+  };
+}
+
+function getVoiceoverDefaults(language) {
+  const voiceByLanguage = {
+    "vi-VN": "vi-VN-HoaiMyNeural",
+    "en-US": "en-US-JennyNeural",
+    "ja-JP": "ja-JP-NanamiNeural"
+  };
+
+  const normalizedLanguage = text(language, DEFAULT_AUDIO.voiceover.language);
+
+  return {
+    provider: DEFAULT_AUDIO.voiceover.provider,
+    language: voiceByLanguage[normalizedLanguage] ? normalizedLanguage : DEFAULT_AUDIO.voiceover.language,
+    voiceId: voiceByLanguage[normalizedLanguage] || DEFAULT_AUDIO.voiceover.voiceId
+  };
+}
+
+function mapAudioConfig(project = {}) {
+  const source = project.audio && typeof project.audio === "object" ? project.audio : {};
+  const sourceVoiceover = source.voiceover && typeof source.voiceover === "object" ? source.voiceover : {};
+  const voiceDefaults = getVoiceoverDefaults(sourceVoiceover.language);
+  const sourceBackgroundMusic = source.backgroundMusic && typeof source.backgroundMusic === "object"
+    ? source.backgroundMusic
+    : {};
+  const sourceSoundEffects = source.soundEffects && typeof source.soundEffects === "object" ? source.soundEffects : {};
+
+  return {
+    voiceover: {
+      enabled: Boolean(sourceVoiceover.enabled),
+      provider: text(sourceVoiceover.provider, voiceDefaults.provider),
+      language: voiceDefaults.language,
+      voiceId: text(sourceVoiceover.voiceId, voiceDefaults.voiceId),
+      script: text(sourceVoiceover.script, ""),
+      outputPath: text(sourceVoiceover.outputPath, "")
+    },
+    backgroundMusic: {
+      enabled: Boolean(sourceBackgroundMusic.enabled),
+      source: text(sourceBackgroundMusic.source, ""),
+      volume: Number.isFinite(sourceBackgroundMusic.volume) ? sourceBackgroundMusic.volume : DEFAULT_AUDIO.backgroundMusic.volume,
+      ducking: sourceBackgroundMusic.ducking !== undefined
+        ? Boolean(sourceBackgroundMusic.ducking)
+        : DEFAULT_AUDIO.backgroundMusic.ducking
+    },
+    soundEffects: {
+      enabled: Boolean(sourceSoundEffects.enabled),
+      items: Array.isArray(sourceSoundEffects.items) ? sourceSoundEffects.items : []
+    }
   };
 }
 
@@ -140,6 +210,7 @@ function projectToRenderPayload(project = {}, options = {}) {
       videos,
       all: assets
     },
+    audio: mapAudioConfig(project),
     scenes: [
       createScene("intro", "Giới thiệu dự án", {
         projectName: text(project.projectName, "Dự án chưa đặt tên"),
@@ -183,8 +254,10 @@ function projectToRenderPayload(project = {}, options = {}) {
 }
 
 module.exports = {
+  DEFAULT_AUDIO,
   DEFAULT_VIDEO,
   SCENE_DURATIONS,
   getVideoPreset,
+  mapAudioConfig,
   projectToRenderPayload
 };

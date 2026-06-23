@@ -50,6 +50,26 @@ const AppRender = (() => {
         videos,
         all: selectedAssets
       },
+      audio: {
+        voiceover: {
+          enabled: false,
+          provider: "edge-tts",
+          language: "vi-VN",
+          voiceId: "vi-VN-HoaiMyNeural",
+          script: "",
+          outputPath: ""
+        },
+        backgroundMusic: {
+          enabled: false,
+          source: "",
+          volume: 0.12,
+          ducking: true
+        },
+        soundEffects: {
+          enabled: false,
+          items: []
+        }
+      },
       scenes: [
         {
           id: "scene-intro",

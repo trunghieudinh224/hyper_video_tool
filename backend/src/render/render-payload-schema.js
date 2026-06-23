@@ -19,6 +19,8 @@ const VIDEO_PRESETS = {
 };
 const SUPPORTED_TEMPLATE_IDS = new Set(Object.values(VIDEO_PRESETS).map((preset) => preset.templateId));
 const SUPPORTED_ASPECT_RATIOS = new Set(Object.keys(VIDEO_PRESETS));
+const SUPPORTED_VOICEOVER_PROVIDERS = new Set(["edge-tts", "openai", "elevenlabs", "piper"]);
+const SUPPORTED_VOICEOVER_LANGUAGES = new Set(["vi-VN", "en-US", "ja-JP"]);
 const SCENE_TYPES = new Set([
   "intro",
   "problem",
@@ -85,6 +87,90 @@ function validateScene(errors, scene, index) {
 
   if (!isPlainObject(scene.content)) {
     pushError(errors, `${basePath}.content`, "Scene content object is required.");
+  }
+}
+
+function validateBooleanField(errors, target, fieldPath, required = true) {
+  const value = fieldPath.split(".").reduce((current, key) => {
+    if (!isPlainObject(current)) {
+      return undefined;
+    }
+    return current[key];
+  }, target);
+
+  if (required && typeof value !== "boolean") {
+    pushError(errors, fieldPath, "Expected boolean.");
+    return;
+  }
+
+  if (!required && value !== undefined && typeof value !== "boolean") {
+    pushError(errors, fieldPath, "Expected boolean.");
+  }
+}
+
+function validateAudio(errors, audio) {
+  if (!isPlainObject(audio)) {
+    pushError(errors, "audio", "Audio settings object is required.");
+    return;
+  }
+
+  const voiceover = audio.voiceover;
+  if (!isPlainObject(voiceover)) {
+    pushError(errors, "audio.voiceover", "Voiceover settings object is required.");
+  } else {
+    validateBooleanField(errors, audio, "voiceover.enabled");
+    validateStringField(errors, audio, "voiceover.provider");
+    validateStringField(errors, audio, "voiceover.language");
+    validateStringField(errors, audio, "voiceover.voiceId");
+    validateStringField(errors, audio, "voiceover.script", false);
+    validateStringField(errors, audio, "voiceover.outputPath", false);
+
+    if (isNonEmptyString(voiceover.provider) && !SUPPORTED_VOICEOVER_PROVIDERS.has(voiceover.provider)) {
+      pushError(
+        errors,
+        "audio.voiceover.provider",
+        `Voiceover provider must be one of: ${Array.from(SUPPORTED_VOICEOVER_PROVIDERS).join(", ")}.`
+      );
+    }
+
+    if (isNonEmptyString(voiceover.language) && !SUPPORTED_VOICEOVER_LANGUAGES.has(voiceover.language)) {
+      pushError(
+        errors,
+        "audio.voiceover.language",
+        `Voiceover language must be one of: ${Array.from(SUPPORTED_VOICEOVER_LANGUAGES).join(", ")}.`
+      );
+    }
+
+    if (voiceover.enabled && !isNonEmptyString(voiceover.script)) {
+      pushError(errors, "audio.voiceover.script", "Enabled voiceover requires a script.");
+    }
+  }
+
+  const backgroundMusic = audio.backgroundMusic;
+  if (!isPlainObject(backgroundMusic)) {
+    pushError(errors, "audio.backgroundMusic", "Background music settings object is required.");
+  } else {
+    validateBooleanField(errors, audio, "backgroundMusic.enabled");
+    validateStringField(errors, audio, "backgroundMusic.source", false);
+    validateBooleanField(errors, audio, "backgroundMusic.ducking");
+
+    if (!Number.isFinite(backgroundMusic.volume) || backgroundMusic.volume < 0 || backgroundMusic.volume > 1) {
+      pushError(errors, "audio.backgroundMusic.volume", "Background music volume must be between 0 and 1.");
+    }
+
+    if (backgroundMusic.enabled && !isNonEmptyString(backgroundMusic.source)) {
+      pushError(errors, "audio.backgroundMusic.source", "Enabled background music requires a source.");
+    }
+  }
+
+  const soundEffects = audio.soundEffects;
+  if (!isPlainObject(soundEffects)) {
+    pushError(errors, "audio.soundEffects", "Sound effects settings object is required.");
+  } else {
+    validateBooleanField(errors, audio, "soundEffects.enabled");
+    if (!Array.isArray(soundEffects.items)) {
+      pushError(errors, "audio.soundEffects.items", "Sound effects items must be an array.");
+    }
   }
 }
 
@@ -157,6 +243,8 @@ function validateRenderPayload(payload) {
     pushError(errors, "assets", "Assets object is required.");
   }
 
+  validateAudio(errors, payload.audio);
+
   return {
     valid: errors.length === 0,
     errors
@@ -167,6 +255,8 @@ module.exports = {
   RENDER_PAYLOAD_VERSION,
   VIDEO_PRESETS,
   SUPPORTED_TEMPLATE_IDS,
+  SUPPORTED_VOICEOVER_LANGUAGES,
+  SUPPORTED_VOICEOVER_PROVIDERS,
   SCENE_TYPES,
   validateRenderPayload
 };
