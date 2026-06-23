@@ -238,6 +238,39 @@ const AppUI = (() => {
   // 2. Content Form View
   const renderContentScreen = (container, data) => {
     const sceneScripts = (data.voiceover && data.voiceover.sceneScripts) || {};
+    const voiceoverLanguages = Array.isArray(VOICEOVER_LANGUAGES) ? VOICEOVER_LANGUAGES : [];
+    const voiceoverVoices = VOICEOVER_VOICES || {};
+    const savedAudio = data.audio || {};
+    const savedVoiceover = savedAudio.voiceover || {};
+    const selectedVoiceLanguage = voiceoverVoices[savedVoiceover.language] ? savedVoiceover.language : "vi-VN";
+    const selectedVoiceList = voiceoverVoices[selectedVoiceLanguage] || [];
+    const selectedVoiceId = selectedVoiceList.some((voice) => voice.id === savedVoiceover.voiceId)
+      ? savedVoiceover.voiceId
+      : (selectedVoiceList[0] && selectedVoiceList[0].id) || "vi-VN-HoaiMyNeural";
+    const parsePercentValue = (value, fallback = 0) => {
+      const match = String(value || "").match(/^([+-]?\d+)%$/);
+      return match ? Number.parseInt(match[1], 10) : fallback;
+    };
+    const selectedVoiceRate = Math.min(50, Math.max(-30, parsePercentValue(savedVoiceover.rate, 0)));
+    const selectedVoiceVolume = Math.min(50, Math.max(-50, parsePercentValue(savedVoiceover.volume, 0)));
+    const formatPercentValue = (value) => {
+      const numericValue = Number.parseInt(value, 10) || 0;
+      return `${numericValue >= 0 ? "+" : ""}${numericValue}%`;
+    };
+    const escapeTextarea = (value) => String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+    const previewPayload = AppRender.buildRenderPayload(data, { formatId: "landscape-16x9" });
+    const voiceoverScript = previewPayload.audio.voiceover.script;
+    const voiceoverSceneReports = previewPayload.scenes.map((scene) => ({
+      id: scene.id,
+      title: scene.title,
+      duration: scene.duration,
+      estimatedDuration: scene.voiceover ? scene.voiceover.estimatedDuration : 0,
+      script: scene.voiceover ? scene.voiceover.script : "",
+      fits: scene.voiceover ? scene.voiceover.fits : true
+    }));
 
     container.innerHTML = `
       <div class="workspace-header">
@@ -250,6 +283,65 @@ const AppUI = (() => {
       </div>
 
       <form id="content-form" class="page-form-stack">
+        <div class="render-voiceover-panel">
+          <div class="render-voiceover-header">
+            <div>
+              <div class="render-voiceover-title">Voiceover toàn video</div>
+              <div class="render-voiceover-desc">Thiết lập giọng đọc chung và kiểm tra thời lượng script theo từng cảnh.</div>
+            </div>
+            <label class="render-voiceover-toggle">
+              <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""}>
+              <span class="render-voiceover-switch" aria-hidden="true"></span>
+              <span class="render-voiceover-toggle-text">Bật voice</span>
+            </label>
+          </div>
+
+          <div class="render-voiceover-controls">
+            <div class="form-group">
+              <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
+              <div class="form-hint">Ngôn ngữ dùng để chọn bộ giọng đọc phù hợp.</div>
+              <select id="render-voiceover-language" class="form-control">
+                ${voiceoverLanguages.map((language) => `
+                  <option value="${language.id}" ${language.id === selectedVoiceLanguage ? "selected" : ""}>${language.label}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="form-group render-voiceover-voice-field">
+              <label class="form-label" for="render-voiceover-voice">Giọng đọc</label>
+              <div class="form-hint">Giọng sẽ đọc toàn bộ voiceover của video.</div>
+              <select id="render-voiceover-voice" class="form-control">
+                ${selectedVoiceList.map((voice) => `
+                  <option value="${voice.id}" ${voice.id === selectedVoiceId ? "selected" : ""}>${voice.label}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
+              <div class="form-hint">Điều chỉnh tốc độ đọc áp dụng cho toàn bộ video.</div>
+              <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="render-voiceover-volume">Âm lượng <span id="render-voiceover-volume-value">${formatPercentValue(selectedVoiceVolume)}</span></label>
+              <div class="form-hint">Điều chỉnh âm lượng voiceover trước khi ghép vào video.</div>
+              <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}">
+            </div>
+          </div>
+
+          <div class="render-voiceover-scenes" aria-label="Thời lượng voiceover theo cảnh">
+            ${voiceoverSceneReports.map((scene) => `
+              <div class="render-voiceover-scene ${scene.script && !scene.fits ? "is-warning" : ""}" data-voiceover-scene-id="${scene.id}">
+                <span>${scene.title}</span>
+                <strong>${scene.estimatedDuration}s / ${scene.duration}s</strong>
+              </div>
+            `).join("")}
+          </div>
+
+          <details class="render-voiceover-script-details">
+            <summary>Kịch bản đọc tổng hợp</summary>
+            <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="5" readonly>${escapeTextarea(voiceoverScript)}</textarea>
+          </details>
+        </div>
+
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label" for="field-projectName">Tên dự án *</label>
@@ -403,6 +495,80 @@ const AppUI = (() => {
     bindCounter("problemContext", 300);
     bindCounter("solutionWhat", 300);
 
+    const voiceoverEnabledInput = document.getElementById("render-voiceover-enabled");
+    const voiceoverLanguageInput = document.getElementById("render-voiceover-language");
+    const voiceoverVoiceInput = document.getElementById("render-voiceover-voice");
+    const voiceoverRateInput = document.getElementById("render-voiceover-rate");
+    const voiceoverRateValue = document.getElementById("render-voiceover-rate-value");
+    const voiceoverVolumeInput = document.getElementById("render-voiceover-volume");
+    const voiceoverVolumeValue = document.getElementById("render-voiceover-volume-value");
+    const voiceoverScriptInput = document.getElementById("render-voiceover-script");
+
+    const getVoiceOptionsHTML = (language) => {
+      return (voiceoverVoices[language] || voiceoverVoices["vi-VN"] || []).map((voice) => {
+        return `<option value="${voice.id}">${voice.label}</option>`;
+      }).join("");
+    };
+
+    const saveVoiceoverSettings = () => {
+      const audio = {
+        ...(AppState.getProjectData().audio || {}),
+        voiceover: {
+          enabled: Boolean(voiceoverEnabledInput && voiceoverEnabledInput.checked),
+          provider: "edge-tts",
+          language: voiceoverLanguageInput ? voiceoverLanguageInput.value : "vi-VN",
+          voiceId: voiceoverVoiceInput ? voiceoverVoiceInput.value : "vi-VN-HoaiMyNeural",
+          rate: voiceoverRateInput ? formatPercentValue(voiceoverRateInput.value) : "+0%",
+          volume: voiceoverVolumeInput ? formatPercentValue(voiceoverVolumeInput.value) : "+0%",
+          script: voiceoverScriptInput ? voiceoverScriptInput.value.trim() : "",
+          outputPath: ""
+        }
+      };
+      AppState.updateProjectField("audio", audio);
+    };
+
+    const syncVoiceoverRangeLabels = () => {
+      if (voiceoverRateInput && voiceoverRateValue) {
+        voiceoverRateValue.textContent = formatPercentValue(voiceoverRateInput.value);
+      }
+      if (voiceoverVolumeInput && voiceoverVolumeValue) {
+        voiceoverVolumeValue.textContent = formatPercentValue(voiceoverVolumeInput.value);
+      }
+    };
+
+    const syncVoiceoverPreview = () => {
+      const latestPayload = AppRender.buildRenderPayload(AppState.getProjectData(), { formatId: "landscape-16x9" });
+      latestPayload.scenes.forEach((scene) => {
+        const chip = document.querySelector(`[data-voiceover-scene-id="${scene.id}"]`);
+        if (!chip) return;
+        const report = scene.voiceover || { estimatedDuration: 0, script: "", fits: true };
+        const durationLabel = chip.querySelector("strong");
+        if (durationLabel) {
+          durationLabel.textContent = `${report.estimatedDuration}s / ${scene.duration}s`;
+        }
+        chip.classList.toggle("is-warning", Boolean(report.script && !report.fits));
+      });
+      if (voiceoverScriptInput) {
+        voiceoverScriptInput.value = latestPayload.audio.voiceover.script;
+      }
+    };
+
+    if (voiceoverLanguageInput && voiceoverVoiceInput) {
+      voiceoverLanguageInput.addEventListener("change", () => {
+        voiceoverVoiceInput.innerHTML = getVoiceOptionsHTML(voiceoverLanguageInput.value);
+        saveVoiceoverSettings();
+      });
+    }
+
+    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverRateInput, voiceoverVolumeInput, voiceoverScriptInput].forEach((input) => {
+      if (!input) return;
+      input.addEventListener(input.type === "range" || input.tagName === "TEXTAREA" ? "input" : "change", () => {
+        syncVoiceoverRangeLabels();
+        saveVoiceoverSettings();
+        syncVoiceoverPreview();
+      });
+    });
+
     // Other inputs binding
     const bindSimpleInput = (id) => {
       const el = document.getElementById(`field-${id}`);
@@ -445,6 +611,7 @@ const AppUI = (() => {
           }
         });
         update();
+        syncVoiceoverPreview();
       });
       update();
     };
@@ -1478,39 +1645,6 @@ const AppUI = (() => {
     const val = AppState.getValidation();
     const errorCount = val.errors.length;
     const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
-    const voiceoverLanguages = Array.isArray(VOICEOVER_LANGUAGES) ? VOICEOVER_LANGUAGES : [];
-    const voiceoverVoices = VOICEOVER_VOICES || {};
-    const savedAudio = data.audio || {};
-    const savedVoiceover = savedAudio.voiceover || {};
-    const selectedVoiceLanguage = voiceoverVoices[savedVoiceover.language] ? savedVoiceover.language : "vi-VN";
-    const selectedVoiceList = voiceoverVoices[selectedVoiceLanguage] || [];
-    const selectedVoiceId = selectedVoiceList.some((voice) => voice.id === savedVoiceover.voiceId)
-      ? savedVoiceover.voiceId
-      : (selectedVoiceList[0] && selectedVoiceList[0].id) || "vi-VN-HoaiMyNeural";
-    const parsePercentValue = (value, fallback = 0) => {
-      const match = String(value || "").match(/^([+-]?\d+)%$/);
-      return match ? Number.parseInt(match[1], 10) : fallback;
-    };
-    const selectedVoiceRate = Math.min(50, Math.max(-30, parsePercentValue(savedVoiceover.rate, 0)));
-    const selectedVoiceVolume = Math.min(50, Math.max(-50, parsePercentValue(savedVoiceover.volume, 0)));
-    const formatPercentValue = (value) => {
-      const numericValue = Number.parseInt(value, 10) || 0;
-      return `${numericValue >= 0 ? "+" : ""}${numericValue}%`;
-    };
-    const escapeTextarea = (value) => String(value || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
-    const previewPayload = AppRender.buildRenderPayload(data, { formatId: (renderFormats[0] && renderFormats[0].id) || "landscape-16x9" });
-    const voiceoverScript = previewPayload.audio.voiceover.script;
-    const voiceoverSceneReports = previewPayload.scenes.map((scene) => ({
-      id: scene.id,
-      title: scene.title,
-      duration: scene.duration,
-      estimatedDuration: scene.voiceover ? scene.voiceover.estimatedDuration : 0,
-      script: scene.voiceover ? scene.voiceover.script : "",
-      fits: scene.voiceover ? scene.voiceover.fits : true
-    }));
 
     let buttonStateHTML = "";
     if (AppRender.isRendering()) {
@@ -1572,65 +1706,6 @@ const AppUI = (() => {
                 </div>
               </div>
 
-              <div class="render-voiceover-panel">
-                <div class="render-voiceover-header">
-                  <div>
-                    <div class="render-voiceover-title">Voiceover</div>
-                    <div class="render-voiceover-desc">edge-tts · Việt / Anh / Nhật · áp dụng cho toàn bộ video</div>
-                  </div>
-                  <label class="render-voiceover-toggle">
-                    <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""} ${AppRender.isRendering() ? "disabled" : ""}>
-                    <span class="render-voiceover-switch" aria-hidden="true"></span>
-                    <span class="render-voiceover-toggle-text">Bật voice</span>
-                  </label>
-                </div>
-
-                <div class="render-voiceover-controls">
-                  <div class="form-group">
-                    <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
-                    <div class="form-hint">Ngôn ngữ dùng để chọn bộ giọng đọc phù hợp.</div>
-                    <select id="render-voiceover-language" class="form-control" ${AppRender.isRendering() ? "disabled" : ""}>
-                      ${voiceoverLanguages.map((language) => `
-                        <option value="${language.id}" ${language.id === selectedVoiceLanguage ? "selected" : ""}>${language.label}</option>
-                      `).join("")}
-                    </select>
-                  </div>
-                  <div class="form-group render-voiceover-voice-field">
-                    <label class="form-label" for="render-voiceover-voice">Giọng đọc</label>
-                    <div class="form-hint">Giọng sẽ đọc toàn bộ voiceover của video.</div>
-                    <select id="render-voiceover-voice" class="form-control" ${AppRender.isRendering() ? "disabled" : ""}>
-                      ${selectedVoiceList.map((voice) => `
-                        <option value="${voice.id}" ${voice.id === selectedVoiceId ? "selected" : ""}>${voice.label}</option>
-                      `).join("")}
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
-                    <div class="form-hint">Điều chỉnh tốc độ đọc áp dụng cho toàn bộ video.</div>
-                    <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}" ${AppRender.isRendering() ? "disabled" : ""}>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="render-voiceover-volume">Âm lượng <span id="render-voiceover-volume-value">${formatPercentValue(selectedVoiceVolume)}</span></label>
-                    <div class="form-hint">Điều chỉnh âm lượng voiceover trước khi ghép vào video.</div>
-                    <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}" ${AppRender.isRendering() ? "disabled" : ""}>
-                  </div>
-                </div>
-
-                <div class="render-voiceover-scenes" aria-label="Thời lượng voiceover theo cảnh">
-                  ${voiceoverSceneReports.map((scene) => `
-                    <div class="render-voiceover-scene ${scene.script && !scene.fits ? "is-warning" : ""}">
-                      <span>${scene.title}</span>
-                      <strong>${scene.estimatedDuration}s / ${scene.duration}s</strong>
-                    </div>
-                  `).join("")}
-                </div>
-
-                <details class="render-voiceover-script-details">
-                  <summary>Kịch bản đọc tổng hợp</summary>
-                  <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="5" readonly>${escapeTextarea(voiceoverScript)}</textarea>
-                </details>
-              </div>
-
               <div class="render-config-status">
                 <span>Trạng thái:</span>
                 <span id="render-status-pill" class="status-pill status-info">Chờ bắt đầu</span>
@@ -1674,65 +1749,6 @@ const AppUI = (() => {
     const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
     const renderLogDetails = document.getElementById("render-log-details");
     const renderInlineResult = document.getElementById("render-inline-result");
-    const voiceoverEnabledInput = document.getElementById("render-voiceover-enabled");
-    const voiceoverLanguageInput = document.getElementById("render-voiceover-language");
-    const voiceoverVoiceInput = document.getElementById("render-voiceover-voice");
-    const voiceoverRateInput = document.getElementById("render-voiceover-rate");
-    const voiceoverRateValue = document.getElementById("render-voiceover-rate-value");
-    const voiceoverVolumeInput = document.getElementById("render-voiceover-volume");
-    const voiceoverVolumeValue = document.getElementById("render-voiceover-volume-value");
-    const voiceoverScriptInput = document.getElementById("render-voiceover-script");
-
-    const getVoiceOptionsHTML = (language) => {
-      return (voiceoverVoices[language] || voiceoverVoices["vi-VN"] || []).map((voice) => {
-        return `<option value="${voice.id}">${voice.label}</option>`;
-      }).join("");
-    };
-
-    const saveVoiceoverSettings = () => {
-      const audio = {
-        ...(AppState.getProjectData().audio || {}),
-        voiceover: {
-          enabled: Boolean(voiceoverEnabledInput && voiceoverEnabledInput.checked),
-          provider: "edge-tts",
-          language: voiceoverLanguageInput ? voiceoverLanguageInput.value : "vi-VN",
-          voiceId: voiceoverVoiceInput ? voiceoverVoiceInput.value : "vi-VN-HoaiMyNeural",
-          rate: voiceoverRateInput ? formatPercentValue(voiceoverRateInput.value) : "+0%",
-          volume: voiceoverVolumeInput ? formatPercentValue(voiceoverVolumeInput.value) : "+0%",
-          script: voiceoverScriptInput ? voiceoverScriptInput.value.trim() : "",
-          outputPath: ""
-        }
-      };
-      AppState.updateProjectField("audio", audio);
-    };
-
-    if (voiceoverLanguageInput && voiceoverVoiceInput) {
-      voiceoverLanguageInput.addEventListener("change", () => {
-        voiceoverVoiceInput.innerHTML = getVoiceOptionsHTML(voiceoverLanguageInput.value);
-        saveVoiceoverSettings();
-      });
-    }
-
-    const syncVoiceoverRangeLabels = () => {
-      if (voiceoverRateInput && voiceoverRateValue) {
-        voiceoverRateValue.textContent = formatPercentValue(voiceoverRateInput.value);
-      }
-      if (voiceoverVolumeInput && voiceoverVolumeValue) {
-        voiceoverVolumeValue.textContent = formatPercentValue(voiceoverVolumeInput.value);
-      }
-    };
-
-    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverRateInput, voiceoverVolumeInput, voiceoverScriptInput].forEach((input) => {
-      if (!input) {
-        return;
-      }
-      input.addEventListener(input.type === "range" || input.tagName === "TEXTAREA" ? "input" : "change", () => {
-        syncVoiceoverRangeLabels();
-        saveVoiceoverSettings();
-      });
-    });
-    syncVoiceoverRangeLabels();
-
     const getOutputAspectRatio = (output) => {
       if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
         return "9/16";
@@ -1912,15 +1928,16 @@ const AppUI = (() => {
 
     if (startBtn) {
       startBtn.addEventListener("click", () => {
-        saveVoiceoverSettings();
-        if (voiceoverEnabledInput && voiceoverEnabledInput.checked && voiceoverScriptInput && !voiceoverScriptInput.value.trim()) {
-          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc.", "error");
-          return;
-        }
-
         const formatId = document.getElementById("render-format").value;
         const fps = parseInt(document.getElementById("render-fps").value);
         const filename = document.getElementById("render-filename").value.trim() || "output.mp4";
+        const currentData = AppState.getProjectData();
+        const currentVoiceover = (currentData.audio && currentData.audio.voiceover) || {};
+        const currentPayload = AppRender.buildRenderPayload(currentData, { formatId });
+        if (currentVoiceover.enabled && !(currentPayload.audio.voiceover.script || "").trim()) {
+          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc ở trang Nội dung dự án.", "error");
+          return;
+        }
 
         renderConsole.innerHTML = "";
         renderLogDetails.open = false;
