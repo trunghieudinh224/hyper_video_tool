@@ -104,3 +104,49 @@ Status: passed
 Remaining risks:
 
 - Backend runner vẫn chưa render template dọc cho tới Phase 3.
+
+## Phase Vertical Video 2 - Template Dọc MVP
+
+### Objective
+
+Tạo template HyperFrames dọc `project-showcase-vertical-60s` có thể render MP4 `1080x1920` bằng payload mẫu.
+
+### Scope
+
+Đã làm:
+
+- Tạo `templates/project-showcase-vertical-60s/`.
+- Thêm `index.html`, `style.css`, `script.js`.
+- Copy GSAP local vào `vendor/gsap.min.js`.
+- Composition metadata:
+  - `data-composition-id="project-showcase-vertical-60s"`
+  - `data-width="1080"`
+  - `data-height="1920"`
+- Scene flow đủ: intro, problem, solution, features, timeline, impact, outro.
+- Layout dọc một cột, feature cards và timeline dọc, text clamp chặt hơn template ngang.
+
+Không làm trong phase này:
+
+- Chưa nối backend runner whitelist.
+- Chưa thêm UI chọn dọc/ngang.
+- Chưa thêm audio/voiceover/subtitle.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/project-showcase-vertical-60s/script.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-vertical-60s lint` pass `0 errors, 0 warnings`.
+- Chrome headless dump DOM pass qua `http://127.0.0.1:8017/templates/project-showcase-vertical-60s/index.html`; JS fill đủ dữ liệu sample vào scene DOM.
+- Render trực tiếp trong sandbox fail ở browser probe cả template ngang và dọc; rerun ngoài sandbox pass.
+- Render dọc bằng payload dọc tạm pass:
+  - Output: `/private/tmp/hyper-video-tool-vertical-template-payload.mp4`.
+  - `width=1080`.
+  - `height=1920`.
+  - `duration=74.000000`.
+  - `size=2950067`.
+- File payload tạm `templates/project-showcase-vertical-60s/render-payload.json` đã xóa sau test.
+
+Remaining risks:
+
+- Backend API chưa render dọc cho tới Phase 3.

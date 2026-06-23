@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Showcase Vertical 60s - Template</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div
+    class="video-container"
+    id="video-container"
+    data-composition-id="project-showcase-vertical-60s"
+    data-start="0"
+    data-width="1080"
+    data-height="1920"
+  >
+    <div class="scene active clip" id="scene-intro" data-start="0" data-duration="6" data-track-index="0">
+      <div class="logo-box" id="intro-logo"></div>
+      <div class="scene-label">Project showcase</div>
+      <h1 id="intro-title">Tên dự án</h1>
+      <p id="intro-tagline">Tagline giới thiệu dự án nội bộ</p>
+      <p class="intro-summary" id="intro-summary">Tóm tắt dự án...</p>
+      <div class="meta-box" id="intro-team">Platform Team</div>
+    </div>
+
+    <div class="scene clip" id="scene-problem" data-start="6" data-duration="10" data-track-index="1">
+      <div class="scene-label">Thực trạng</div>
+      <h2 class="scene-header">Vấn đề cần giải quyết</h2>
+      <div class="content-card warning-card" id="problem-content">Nội dung vấn đề...</div>
+      <div class="stack-list">
+        <div>
+          <span>Người dùng</span>
+          <strong id="problem-users">Team nội bộ</strong>
+        </div>
+        <div>
+          <span>Use case</span>
+          <strong id="problem-use-case">Báo cáo dự án</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene clip" id="scene-solution" data-start="16" data-duration="10" data-track-index="2">
+      <div class="scene-label">Giải pháp</div>
+      <h2 class="scene-header">Cách sản phẩm tạo giá trị</h2>
+      <div class="content-card" id="solution-content">Nội dung giải pháp...</div>
+      <div class="highlight-box" id="solution-highlight">Điểm nhấn chính...</div>
+    </div>
+
+    <div class="scene clip" id="scene-features" data-start="26" data-duration="18" data-track-index="3">
+      <div class="scene-label">Tính năng nổi bật</div>
+      <h2 class="scene-header">Các chức năng cốt lõi</h2>
+      <div class="features-list" id="features-list-target"></div>
+    </div>
+
+    <div class="scene clip" id="scene-timeline" data-start="44" data-duration="14" data-track-index="4">
+      <div class="scene-label">Hành trình</div>
+      <h2 class="scene-header">Các cột mốc quan trọng</h2>
+      <div class="timeline-list" id="timeline-target"></div>
+    </div>
+
+    <div class="scene clip" id="scene-impact" data-start="58" data-duration="10" data-track-index="5">
+      <div class="scene-label">Tác động</div>
+      <h2 class="scene-header">Kết quả đạt được</h2>
+      <div class="impact-val" id="impact-value">Giảm 70% thời gian</div>
+      <div class="impact-desc" id="impact-description">Báo cáo tổng kết tiến độ</div>
+      <div class="highlight-box" id="impact-highlight">Điểm nhấn chính...</div>
+    </div>
+
+    <div class="scene clip" id="scene-outro" data-start="68" data-duration="6" data-track-index="6">
+      <div class="logo-box" id="outro-logo"></div>
+      <h2 class="outro-header">Cảm ơn đã theo dõi</h2>
+      <p class="outro-desc" id="outro-note">Chúc dự án thành công!</p>
+      <div class="meta-box" id="outro-team">Platform Team</div>
+    </div>
+  </div>
+
+  <script src="vendor/gsap.min.js"></script>
+  <script>
+    const verticalShowcaseTl = gsap.timeline({ paused: true });
+    const verticalShowcaseScenes = [
+      { id: "scene-intro", start: 0, duration: 6 },
+      { id: "scene-problem", start: 6, duration: 10 },
+      { id: "scene-solution", start: 16, duration: 10 },
+      { id: "scene-features", start: 26, duration: 18 },
+      { id: "scene-timeline", start: 44, duration: 14 },
+      { id: "scene-impact", start: 58, duration: 10 },
+      { id: "scene-outro", start: 68, duration: 6 }
+    ];
+    const verticalShowcaseSelectors = verticalShowcaseScenes.map((scene) => `#${scene.id}`).join(", ");
+
+    verticalShowcaseTl.set(verticalShowcaseSelectors, { opacity: 0, pointerEvents: "none" }, 0);
+    verticalShowcaseScenes.forEach((scene) => {
+      verticalShowcaseTl.set(`#${scene.id}`, { opacity: 1, pointerEvents: "auto" }, scene.start);
+      verticalShowcaseTl.fromTo(
+        `#${scene.id} .scene-label, #${scene.id} .scene-header, #${scene.id} .logo-box, #${scene.id} h1, #${scene.id} p, #${scene.id} .content-card, #${scene.id} .feature-item, #${scene.id} .timeline-node, #${scene.id} .impact-val, #${scene.id} .impact-desc, #${scene.id} .highlight-box, #${scene.id} .meta-box, #${scene.id} .stack-list > div`,
+        { opacity: 0, y: 28 },
+        { opacity: 1, y: 0, duration: 0.45, stagger: 0.045 },
+        scene.start + 0.1
+      );
+      verticalShowcaseTl.set(`#${scene.id}`, { opacity: 0, pointerEvents: "none" }, scene.start + scene.duration);
+    });
+    window.__timelines = window.__timelines || {};
+    window.__timelines["project-showcase-vertical-60s"] = verticalShowcaseTl;
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
