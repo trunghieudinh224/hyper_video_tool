@@ -2,13 +2,15 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawnSync } = require("node:child_process");
+const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
 const { upsertOutputRecord } = require("./output-manifest");
 const { validateRenderPayload } = require("./render-payload-schema");
 
 const jobs = new Map();
+const jobQueue = [];
+let activeJobId = null;
 const SUPPORTED_TEMPLATE_ID = "project-showcase-90s";
 
 function stableJson(value) {
@@ -56,6 +58,7 @@ function createJobRecord(payload) {
     completedAt: null,
     durationMs: null,
     exitCode: null,
+    progress: 5,
     logs: []
   };
 }
@@ -94,54 +97,80 @@ function prepareWorkDir(jobId, payload) {
   return compositionDir;
 }
 
-function runHyperFramesRender(compositionDir, outputPath) {
-  return spawnSync(
-    process.execPath,
-    [
-      getRunnerScriptPath(),
-      "--cwd",
-      compositionDir,
-      "render",
-      "--output",
-      outputPath
-    ],
-    {
-      cwd: config.projectRoot,
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 20
-    }
-  );
+function appendLog(job, type, message) {
+  job.logs.push({
+    type,
+    message: sanitizeLog(message),
+    timestamp: new Date().toISOString()
+  });
+
+  if (job.logs.length > 80) {
+    job.logs = job.logs.slice(-80);
+  }
 }
 
-function renderPayloadToVideo(payload) {
-  const validation = validateJobPayload(payload);
-  if (!validation.valid) {
-    const error = new Error("Render payload validation failed.");
-    error.code = "VALIDATION_FAILED";
-    error.validationErrors = validation.errors;
-    throw error;
-  }
+function runHyperFramesRender(compositionDir, outputPath, job) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [
+        getRunnerScriptPath(),
+        "--cwd",
+        compositionDir,
+        "render",
+        "--output",
+        outputPath
+      ],
+      {
+        cwd: config.projectRoot,
+        stdio: ["ignore", "pipe", "pipe"]
+      }
+    );
 
-  const job = createJobRecord(payload);
-  jobs.set(job.id, job);
+    child.stdout.on("data", (chunk) => {
+      appendLog(job, "INFO", chunk.toString());
+    });
 
+    child.stderr.on("data", (chunk) => {
+      appendLog(job, "INFO", chunk.toString());
+    });
+
+    child.on("error", reject);
+    child.on("close", (exitCode) => resolve({ status: exitCode }));
+  });
+}
+
+async function executeRenderJob(job, payload) {
   const outputPath = getOutputPath(job.id);
   const startedAt = Date.now();
   job.status = "running";
+  job.progress = 15;
   job.startedAt = new Date(startedAt).toISOString();
   job.updatedAt = job.startedAt;
+  appendLog(job, "INITIALIZING", "Render worker started.");
 
   try {
     ensureDirectory(path.dirname(outputPath));
     const compositionDir = prepareWorkDir(job.id, payload);
-    const result = runHyperFramesRender(compositionDir, outputPath);
+    appendLog(job, "INFO", `Prepared composition workdir: ${relativePath(compositionDir)}.`);
+    const progressTimer = setInterval(() => {
+      if (job.status !== "running") {
+        clearInterval(progressTimer);
+        return;
+      }
 
-    job.exitCode = result.status;
-    job.logs = [result.stdout, result.stderr].filter(Boolean).map(sanitizeLog);
+      const elapsedMs = Date.now() - startedAt;
+      job.progress = Math.min(92, 15 + Math.floor(elapsedMs / 1000));
+      job.updatedAt = new Date().toISOString();
+    }, 1000);
 
-    if (result.error) {
-      throw result.error;
+    let result;
+    try {
+      result = await runHyperFramesRender(compositionDir, outputPath, job);
+    } finally {
+      clearInterval(progressTimer);
     }
+    job.exitCode = result.status;
 
     if (result.status !== 0) {
       const error = new Error(`HyperFrames render failed with exit code ${result.status}.`);
@@ -151,20 +180,58 @@ function renderPayloadToVideo(payload) {
 
     const stats = fs.statSync(outputPath);
     job.status = "succeeded";
+    job.progress = 100;
     job.outputSize = stats.size;
     job.completedAt = new Date().toISOString();
     job.updatedAt = job.completedAt;
     job.durationMs = Date.now() - startedAt;
     job.outputRecord = upsertOutputRecord(job);
+    appendLog(job, "SUCCESS", `Render completed: ${job.outputPath}.`);
     return job;
   } catch (error) {
     job.status = "failed";
+    job.progress = 0;
     job.error = error.message;
     job.completedAt = new Date().toISOString();
     job.updatedAt = job.completedAt;
     job.durationMs = Date.now() - startedAt;
+    appendLog(job, "ERROR", error.message);
     return job;
   }
+}
+
+async function processNextJob() {
+  if (activeJobId || jobQueue.length === 0) {
+    return;
+  }
+
+  const next = jobQueue.shift();
+  activeJobId = next.job.id;
+
+  try {
+    await executeRenderJob(next.job, next.payload);
+  } finally {
+    activeJobId = null;
+    setImmediate(processNextJob);
+  }
+}
+
+function queueRenderJob(payload) {
+  const validation = validateJobPayload(payload);
+  if (!validation.valid) {
+    const error = new Error("Render payload validation failed.");
+    error.code = "VALIDATION_FAILED";
+    error.validationErrors = validation.errors;
+    throw error;
+  }
+
+  const job = createJobRecord(payload);
+  appendLog(job, "INFO", "Render job queued.");
+  jobs.set(job.id, job);
+  jobQueue.push({ job, payload });
+  setImmediate(processNextJob);
+
+  return job;
 }
 
 function getRenderJob(jobId) {
@@ -174,5 +241,5 @@ function getRenderJob(jobId) {
 module.exports = {
   SUPPORTED_TEMPLATE_ID,
   getRenderJob,
-  renderPayloadToVideo
+  queueRenderJob
 };

@@ -154,6 +154,32 @@ const AppRender = (() => {
     return responseBody.data.job;
   };
 
+  const getRenderJob = async (jobId) => {
+    const response = await fetch(`/api/render-jobs/${encodeURIComponent(jobId)}`, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    let responseBody;
+    try {
+      responseBody = await response.json();
+    } catch (_error) {
+      throw new Error("Không đọc được trạng thái render job từ backend.");
+    }
+
+    if (!response.ok || !responseBody.success) {
+      throw new Error(responseBody.message || "Không tải được trạng thái render job.");
+    }
+
+    return responseBody.data.job;
+  };
+
+  const wait = (ms) => new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
   const getPreflight = async () => {
     const response = await fetch("/api/render-preflight", {
       method: "GET",
@@ -266,11 +292,51 @@ const AppRender = (() => {
     onProgress(12);
     onLog("INITIALIZING", "Đang tạo render payload từ dữ liệu UI hiện tại.");
     onLog("INFO", `Template: ${payload.template.id} | ${payload.video.width}x${payload.video.height} | ${payload.video.fps}fps.`);
-    onLog("INFO", "Gửi job sang backend HyperFrames local. Request sẽ chờ cho đến khi MP4 render xong.");
+    onLog("INFO", "Gửi job sang backend HyperFrames local. UI sẽ poll trạng thái cho tới khi MP4 render xong.");
 
     try {
-      onProgress(35);
-      const job = await createRenderJob(payload);
+      const queuedBackendJob = await createRenderJob(payload);
+      const seenLogs = new Set();
+      let job = queuedBackendJob;
+
+      queuedJob.id = job.id;
+      queuedJob.status = job.status;
+      queuedJob.progress = job.progress || 8;
+      AppState.setRenderQueue([queuedJob]);
+      onProgress(queuedJob.progress);
+      onLog("INFO", `Backend đã nhận job: ${job.id}.`);
+
+      while (job.status === "queued" || job.status === "running") {
+        await wait(2000);
+        job = await getRenderJob(job.id);
+        queuedJob.status = job.status;
+        queuedJob.progress = job.progress || queuedJob.progress;
+        AppState.setRenderQueue([queuedJob]);
+        onProgress(queuedJob.progress);
+
+        const logs = Array.isArray(job.logs) ? job.logs : [];
+        logs.forEach((entry, index) => {
+          const logKey = typeof entry === "string"
+            ? `${index}:${entry}`
+            : `${entry.timestamp || index}:${entry.type || "INFO"}:${entry.message || ""}`;
+          if (seenLogs.has(logKey)) {
+            return;
+          }
+
+          seenLogs.add(logKey);
+          if (typeof entry === "string") {
+            onLog("INFO", entry);
+            return;
+          }
+
+          onLog(entry.type || "INFO", entry.message || "");
+        });
+      }
+
+      if (job.status !== "succeeded") {
+        throw new Error(job.error || "Render job thất bại.");
+      }
+
       onProgress(100);
       onLog("SUCCESS", `Backend render thành công: ${job.outputPath}`);
       onLog("SUCCESS", `Thời gian render: ${Math.round((job.durationMs || 0) / 1000)} giây.`);
@@ -302,6 +368,7 @@ const AppRender = (() => {
   return {
     buildRenderPayload,
     getPreflight,
+    getRenderJob,
     listBackendOutputs,
     startRender,
     cancelRender,

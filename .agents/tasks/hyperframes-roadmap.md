@@ -396,6 +396,50 @@ Completed, ngày 23/06/2026.
 - Manifest runtime và MP4 nằm trong `outputs/`, không commit vào git.
 - Browser smoke test pass sau khi clear `localStorage`.
 
+## Phase 8 - Async Render Queue MVP
+
+### Objective
+
+Chuyển render job từ request đồng bộ dài sang queue async tối thiểu để UI không bị giữ một request HTTP 40-60 giây khi bắt đầu render.
+
+### Scope
+
+Sẽ làm:
+
+- `POST /api/render-jobs` tạo job và trả `202` ngay.
+- Backend chạy render bằng queue 1 worker local.
+- `GET /api/render-jobs/:id` trả status/progress/logs/output metadata.
+- UI Render page poll job cho tới khi `succeeded` hoặc `failed`.
+
+Không làm:
+
+- Chưa websocket.
+- Chưa nhiều worker.
+- Chưa cancel job thật.
+- Chưa persist full queue qua restart backend.
+
+Files impact dự kiến:
+
+- `backend/src/render/render-runner.js`
+- `backend/src/routes/render-jobs.js`
+- `frontend/scripts/common/render-preview.js`
+- `.agents/tasks/current-task.md`
+
+Verification:
+
+- `POST /api/render-jobs` trả `202` nhanh, không chờ render xong.
+- Poll job thấy trạng thái `running` rồi `succeeded`.
+- MP4 vẫn được ghi vào `outputs/` và manifest.
+- UI Render page hoàn tất qua polling, không console error.
+
+### Status
+
+Completed, ngày 23/06/2026.
+
+- `POST /api/render-jobs` trả `202` trong test `28ms`.
+- Poll job qua `GET /api/render-jobs/:id` pass, output render thành công.
+- Browser smoke test Render page pass: UI nhận job, poll tới `Hoàn tất`, progress `100%`, output lưu local history.
+
 ## Future Scope
 
 - Voiceover tự động.

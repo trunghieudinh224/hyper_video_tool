@@ -1,6 +1,6 @@
 "use strict";
 
-const { getRenderJob, renderPayloadToVideo } = require("../render/render-runner");
+const { getRenderJob, queueRenderJob } = require("../render/render-runner");
 
 const MAX_BODY_BYTES = 1024 * 1024 * 2;
 
@@ -48,6 +48,7 @@ function serializeJob(job) {
     projectName: job.projectName,
     outputPath: job.outputPath,
     outputSize: job.outputSize || null,
+    progress: job.progress || 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     startedAt: job.startedAt,
@@ -63,11 +64,10 @@ async function handleRenderJobs(request, response, requestUrl, sendJson) {
   if (request.method === "POST" && requestUrl.pathname === "/api/render-jobs") {
     try {
       const payload = await readJsonBody(request);
-      const job = renderPayloadToVideo(payload);
-      const statusCode = job.status === "succeeded" ? 201 : 500;
-      sendJson(response, statusCode, {
-        success: job.status === "succeeded",
-        message: job.status === "succeeded" ? "Render job completed." : "Render job failed.",
+      const job = queueRenderJob(payload);
+      sendJson(response, 202, {
+        success: true,
+        message: "Render job queued.",
         data: {
           job: serializeJob(job)
         }

@@ -15,62 +15,65 @@ Project hiện đã có:
 - Template HyperFrames `templates/project-showcase-90s/`.
 - Render payload contract trong `data/render-payload.sample.json`.
 - Render thật qua `POST /api/render-jobs`.
+- Poll trạng thái render qua `GET /api/render-jobs/:id`.
 - Preview/download MP4 qua `GET /api/outputs/:filename`.
+- Danh sách output persist bằng runtime manifest `outputs/manifest.json`.
 - Preflight render qua `GET /api/render-preflight`.
 
-## Phase Hoàn Tất - Output Manifest MVP
+## Phase Hoàn Tất - Async Render Queue MVP
 
 ### Objective
 
-Backend lưu metadata video đã render vào manifest runtime để trang Outputs không phụ thuộc hoàn toàn vào `localStorage` của trình duyệt.
+Chuyển render job từ request đồng bộ dài sang queue async tối thiểu để UI không bị treo khi bắt đầu render.
 
 ### Scope
 
-Sẽ làm:
+Đã làm:
 
-- Ghi manifest runtime sau khi render MP4 thành công.
-- Thêm `GET /api/outputs` để trả danh sách video đã xuất.
-- UI Outputs tự đồng bộ danh sách từ backend khi mở trang.
-- Không commit MP4 hoặc manifest runtime.
+- `POST /api/render-jobs` validate payload, tạo job, đưa vào queue và trả `202` ngay.
+- Backend xử lý queue 1 worker local bằng child process HyperFrames.
+- `GET /api/render-jobs/:id` trả `queued/running/succeeded/failed`, `progress`, logs và metadata output.
+- UI Render page gửi job rồi poll trạng thái tới khi hoàn tất.
+- Output thành công vẫn ghi MP4 trong `outputs/` và manifest runtime.
 
 Không làm trong phase này:
 
-- Chưa xóa file MP4 thật từ UI.
-- Chưa làm async render queue/poll.
-- Chưa persist toàn bộ render job logs qua restart backend.
+- Chưa có cancel job thật.
+- Chưa có nhiều worker song song.
+- Chưa persist full job queue/logs qua restart backend.
+- Chưa có websocket/realtime push.
 
 ### Files impact
 
-- `.gitignore`
-- `backend/package.json`
-- `backend/src/server.js`
-- `backend/src/routes/outputs.js`
 - `backend/src/render/render-runner.js`
-- `backend/src/render/output-manifest.js`
+- `backend/src/routes/render-jobs.js`
 - `frontend/scripts/common/render-preview.js`
-- `frontend/scripts/common/ui-components.js`
 - `.agents/tasks/current-task.md`
 - `.agents/tasks/hyperframes-roadmap.md`
 
-### Verification plan
+### Test Report
 
 Status: passed
 
 - `node --check frontend/scripts/common/render-preview.js` pass.
-- `node --check frontend/scripts/common/ui-components.js` pass.
 - `npm --prefix backend run check` pass.
-- `npm --prefix backend run payload:check` pass.
-- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint` pass `0 errors, 0 warnings`.
-- Render job thật qua `POST /api/render-jobs` pass.
-- Output test: `outputs/a2f309b3-ef58-4e76-bafd-ee7fa1668774.mp4`, `duration=74.000000`, `size=1652781`.
-- `GET /api/outputs` trả output vừa render.
-- `HEAD /api/outputs/a2f309b3-ef58-4e76-bafd-ee7fa1668774.mp4` trả `200 OK`.
-- Path traversal encoded vào `/api/outputs/%2e%2e%2fdata%2fsample-project.json` trả `400`.
-- Browser smoke test pass: clear `localStorage`, mở `pages/outputs.html`, UI tự sync backend manifest và hiển thị video, không có console error.
+- `POST /api/render-jobs` trả `202` trong `28ms`, job ban đầu `queued`, progress `5`.
+- Poll `GET /api/render-jobs/:id` quan sát job `running` nhiều vòng và kết thúc `succeeded`.
+- Output API test: `outputs/46370514-be43-4921-aca6-b2b405c944c7.mp4`, `duration=74.000000`, `size=1652781`.
+- `GET /api/outputs` thấy output vừa render trong manifest.
+- `HEAD /api/outputs/46370514-be43-4921-aca6-b2b405c944c7.mp4` trả `200 OK`.
+- Browser smoke test pass:
+  - UI Render page nhận job backend.
+  - Progress lên `100%`.
+  - Status pill hiển thị `Hoàn tất`.
+  - Console log có `Backend đã nhận job` và `Backend render thành công`.
+  - `localStorage.hyper_video_outputs` có output backend `succeeded`.
+  - Không có console error.
 
 ## Remaining roadmap sau phase này
 
-- Async queue/poll render để UI không bị request dài.
 - Hardening text overflow cho dữ liệu dài/ngắn.
 - Local/vendor strategy cho thư viện template đang dùng CDN.
+- Cancel queued/running job nếu cần UX tốt hơn.
+- Persist render jobs/logs qua backend restart nếu cần audit nội bộ.
 - Explore-project workflow nối sang quy trình tạo brief/script cho video.
