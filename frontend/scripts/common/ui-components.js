@@ -1518,34 +1518,34 @@ const AppUI = (() => {
         </div>
       </div>
 
-      <div class="preview-layout" style="grid-template-columns: minmax(360px, 1fr) minmax(0, 1.25fr);">
-        <!-- Left: Render configuration settings -->
-        <div style="display:flex; flex-direction:column; gap: var(--space-4);">
-          <div class="card">
+      <div class="render-workflow-stack">
+        <div class="card render-config-card">
             <div class="card-header">
               <h3>Cấu hình render</h3>
             </div>
-            <div class="card-body" style="display:flex; flex-direction:column; gap: var(--space-3);">
-              <div class="form-group">
-                <label class="form-label" for="render-format">Tỷ lệ video</label>
-                <select id="render-format" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
-                  ${renderFormats.map((format, index) => `
-                    <option value="${format.id}" ${index === 0 ? 'selected' : ''}>${format.label}</option>
-                  `).join("")}
-                </select>
-              </div>
+            <div class="card-body render-config-body">
+              <div class="render-basic-grid">
+                <div class="form-group">
+                  <label class="form-label" for="render-format">Tỷ lệ video</label>
+                  <select id="render-format" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
+                    ${renderFormats.map((format, index) => `
+                      <option value="${format.id}" ${index === 0 ? 'selected' : ''}>${format.label}</option>
+                    `).join("")}
+                  </select>
+                </div>
 
-              <div class="form-group">
-                <label class="form-label" for="render-fps">Số khung hình (FPS)</label>
-                <select id="render-fps" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
-                  <option value="30">30 FPS (Mượt mà, tốn ít tài nguyên)</option>
-                  <option value="60">60 FPS (Chuyển động siêu mượt, render lâu hơn)</option>
-                </select>
-              </div>
+                <div class="form-group">
+                  <label class="form-label" for="render-fps">Số khung hình (FPS)</label>
+                  <select id="render-fps" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
+                    <option value="30">30 FPS (Mượt mà, tốn ít tài nguyên)</option>
+                    <option value="60">60 FPS (Chuyển động siêu mượt, render lâu hơn)</option>
+                  </select>
+                </div>
 
-              <div class="form-group">
-                <label class="form-label" for="render-filename">Tên tệp tin đầu ra</label>
-                <input type="text" id="render-filename" class="form-control" value="${data.projectSlug || 'project'}_video.mp4" ${AppRender.isRendering() ? 'disabled' : ''}>
+                <div class="form-group render-filename-field">
+                  <label class="form-label" for="render-filename">Tên tệp tin đầu ra</label>
+                  <input type="text" id="render-filename" class="form-control" value="${data.projectSlug || 'project'}_video.mp4" ${AppRender.isRendering() ? 'disabled' : ''}>
+                </div>
               </div>
 
               <div class="render-voiceover-panel">
@@ -1603,7 +1603,7 @@ const AppUI = (() => {
                 </details>
               </div>
 
-              <div style="border-top:1px solid var(--color-border); padding-top: var(--space-4); margin-top: var(--space-2); display:flex; justify-content:space-between; align-items:center;">
+              <div class="render-config-status">
                 <span>Trạng thái:</span>
                 <span id="render-status-pill" class="status-pill status-info">Chờ bắt đầu</span>
               </div>
@@ -1611,17 +1611,14 @@ const AppUI = (() => {
             <div class="card-footer">
               ${buttonStateHTML}
             </div>
-          </div>
         </div>
 
-        <!-- Right: Progress bar & Live terminal logs emulator -->
-        <div style="display:flex; flex-direction:column; gap: var(--space-4);">
-          <div class="card" style="flex:1; display:flex; flex-direction:column;">
+        <div class="card render-progress-card">
             <div class="card-header">
               <h3>Báo cáo tiến trình render</h3>
               <span id="render-progress-text" style="font-weight:700;">0%</span>
             </div>
-            <div class="card-body" style="flex:1; display:flex; flex-direction:column; gap: var(--space-4);">
+            <div class="card-body render-progress-body">
               <div class="render-progress-bar-wrapper">
                 <div id="render-progress-bar" class="render-progress-bar"></div>
               </div>
@@ -1636,7 +1633,6 @@ const AppUI = (() => {
                 <span class="render-inline-status">Chưa render</span>
               </div>
             </div>
-          </div>
         </div>
       </div>
     `;

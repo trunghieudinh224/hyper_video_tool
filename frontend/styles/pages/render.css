@@ -1,5 +1,45 @@
 /* Page-specific styles for Render. */
 
+.render-workflow-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.render-config-card,
+.render-progress-card {
+  min-width: 0;
+}
+
+.render-config-body,
+.render-progress-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.render-basic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.render-basic-grid .form-group {
+  min-width: 0;
+}
+
+.render-filename-field {
+  grid-column: 1 / -1;
+}
+
+.render-config-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
 .render-log-details {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -278,6 +318,12 @@
   justify-content: center;
   color: #fff;
   font-size: var(--font-sm);
+}
+
+@media (max-width: 1100px) {
+  .render-basic-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .render-result-details {
