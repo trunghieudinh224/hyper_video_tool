@@ -54,7 +54,8 @@ const AppRender = (() => {
     const videos = selectedAssets.filter((asset) => asset.type === "video" && asset.useInVideo);
     const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
     const milestones = (projectData.milestones || []).slice(0, 5);
-    const derivedHighlight = normalizeText(projectData.keyHighlight)
+    const derivedHighlight = normalizeText(projectData.mainMessage)
+      || normalizeText(projectData.keyHighlight)
       || normalizeText(activeFeatures[0] && (activeFeatures[0].benefit || activeFeatures[0].description || activeFeatures[0].name || activeFeatures[0].title));
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
@@ -64,11 +65,15 @@ const AppRender = (() => {
       .map((milestone) => milestone.voiceoverScript || "")
       .filter(Boolean)
       .join("\n");
+    const featureSegmentScript = activeFeatures
+      .map((feature) => feature.voiceoverScript || "")
+      .filter(Boolean)
+      .join("\n");
     const scenes = [
       {
         id: "scene-intro",
         type: "intro",
-        title: "Giới thiệu dự án",
+        title: "Giới thiệu nội dung",
         duration: 6,
         content: {
           projectName: projectData.projectName || "Untitled Project",
@@ -86,7 +91,7 @@ const AppRender = (() => {
         content: {
           problem: projectData.problemContext || "Chưa có mô tả vấn đề.",
           targetUsers: projectData.targetUsers || "Người dùng nội bộ.",
-          useCase: projectData.useCase || "Use case chính của dự án."
+          useCase: projectData.useCase || projectData.videoGoal || "Use case chính của video."
         },
         voiceover: createSceneVoiceover("problem", 10, sceneScripts.problem)
       },
@@ -104,22 +109,22 @@ const AppRender = (() => {
       {
         id: "scene-features",
         type: "features",
-        title: "Tính năng nổi bật",
+        title: "Kịch bản chính",
         duration: 18,
         content: {
           items: activeFeatures.map((feature, index) => ({
             id: feature.id || `feature_${index + 1}`,
-            title: feature.name || feature.title || "Tính năng chưa đặt tên",
+            title: feature.name || feature.title || "Đoạn chưa đặt tên",
             description: feature.description || "",
             benefit: feature.benefit || ""
           }))
         },
-        voiceover: createSceneVoiceover("features", 18, sceneScripts.features)
+        voiceover: createSceneVoiceover("features", 18, sceneScripts.features || featureSegmentScript)
       },
       {
         id: "scene-timeline",
         type: "timeline",
-        title: "Timeline phát triển",
+        title: "Cột mốc tùy chọn",
         duration: 14,
         content: {
           milestones: milestones.map((milestone, index) => ({

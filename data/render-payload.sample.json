@@ -105,7 +105,7 @@
     {
       "id": "scene-intro",
       "type": "intro",
-      "title": "Giới thiệu dự án",
+      "title": "Giới thiệu nội dung",
       "duration": 6,
       "content": {
         "projectName": "Internal Analytics Dashboard",
@@ -142,7 +142,7 @@
       "duration": 10,
       "content": {
         "solution": "Gom dữ liệu vào dashboard nội bộ có biểu đồ trực quan, hệ thống cảnh báo tự động và báo cáo nhanh.",
-        "keyHighlight": "Tự động gửi cảnh báo qua Slack/Email khi có task trễ hạn quá 2 ngày."
+        "keyHighlight": "Dashboard gom dữ liệu phân tán thành một nơi dễ đọc để team ra quyết định nhanh hơn."
       },
       "voiceover": {
         "script": "",
@@ -161,32 +161,36 @@
             "id": "feat_1",
             "title": "Tổng quan tiến độ theo dự án",
             "description": "Hiển thị tỷ lệ phần trăm hoàn thành, trạng thái các milestone và timeline của từng dự án.",
-            "benefit": "Giúp quản lý nắm bắt nhanh trạng thái sức khỏe của toàn bộ dự án trong 10 giây."
+            "benefit": "Giúp quản lý nắm bắt nhanh trạng thái sức khỏe của toàn bộ dự án trong 10 giây.",
+            "voiceoverScript": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy."
           },
           {
             "id": "feat_2",
             "title": "Biểu đồ hiệu suất theo tuần",
             "description": "Biểu diễn trực quan số lượng task hoàn thành, task mới phát sinh và task tồn đọng.",
-            "benefit": "Phát hiện ngay các điểm nghẽn trong quy trình làm việc của team."
+            "benefit": "Phát hiện ngay các điểm nghẽn trong quy trình làm việc của team.",
+            "voiceoverScript": "Biểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên."
           },
           {
             "id": "feat_3",
             "title": "Cảnh báo task trễ hạn tự động",
             "description": "Tự động quét và phát hiện các task đã quá deadline mà chưa được cập nhật.",
-            "benefit": "Hỗ trợ team lead xử lý rủi ro chậm tiến độ một cách chủ động."
+            "benefit": "Hỗ trợ team lead xử lý rủi ro chậm tiến độ một cách chủ động.",
+            "voiceoverScript": "Khi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng."
           },
           {
             "id": "feat_4",
             "title": "Xuất báo cáo nhanh cho buổi họp",
             "description": "Chỉ với 1 click, hệ thống tự động xuất báo cáo PDF/Slides tóm tắt các chỉ số quan trọng.",
-            "benefit": "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần."
+            "benefit": "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần.",
+            "voiceoverScript": "Cuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần."
           }
         ]
       },
       "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
+        "script": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy.\nBiểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên.\nKhi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng.\nCuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần.",
+        "estimatedDuration": 31,
+        "fits": false
       }
     },
     {
@@ -251,7 +255,7 @@
       "duration": 10,
       "content": {
         "resultImpact": "Giảm 70% thời gian tổng hợp báo cáo thủ công và tăng 25% hiệu suất xử lý công việc quá hạn.",
-        "highlight": "Tự động gửi cảnh báo qua Slack/Email khi có task trễ hạn quá 2 ngày."
+        "highlight": "Dashboard gom dữ liệu phân tán thành một nơi dễ đọc để team ra quyết định nhanh hơn."
       },
       "voiceover": {
         "script": "",

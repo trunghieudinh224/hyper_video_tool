@@ -3,10 +3,16 @@
 const INITIAL_PROJECT_DATA = {
   projectName: "",
   projectSlug: "",
+  contentType: "feature",
   tagline: "",
   ownerTeam: "",
   presenterRole: "",
   shortSummary: "",
+  videoGoal: "",
+  mainMessage: "",
+  contentTone: "technical",
+  contentLanguage: "vi-VN",
+  primaryAssetId: "",
   problemContext: "",
   solutionWhat: "",
   targetUsers: "",
@@ -49,20 +55,54 @@ const INITIAL_PROJECT_DATA = {
   }
 };
 
+const VIDEO_CONTENT_TYPES = [
+  { id: "feature", label: "Tính năng" },
+  { id: "product", label: "Sản phẩm" },
+  { id: "workflow", label: "Workflow" },
+  { id: "technical-module", label: "Module kỹ thuật" },
+  { id: "ui-demo", label: "Demo UI" },
+  { id: "bug-fix", label: "Bug fix" },
+  { id: "report", label: "Báo cáo" },
+  { id: "handoff", label: "Handoff" },
+  { id: "other", label: "Khác" }
+];
+
+const VIDEO_TONES = [
+  { id: "technical", label: "Kỹ thuật" },
+  { id: "internal", label: "Nội bộ" },
+  { id: "presentation", label: "Thuyết trình" },
+  { id: "concise", label: "Ngắn gọn" },
+  { id: "soft-sales", label: "Bán hàng nhẹ" },
+  { id: "training", label: "Training" }
+];
+
+const VIDEO_SEGMENT_TYPES = [
+  { id: "intro", label: "Mở đầu" },
+  { id: "problem", label: "Bối cảnh" },
+  { id: "solution", label: "Cách xử lý" },
+  { id: "feature", label: "Tính năng" },
+  { id: "workflow", label: "Workflow step" },
+  { id: "demo", label: "Demo" },
+  { id: "milestone", label: "Cột mốc" },
+  { id: "result", label: "Kết quả" },
+  { id: "outro", label: "Kết thúc" },
+  { id: "custom", label: "Custom" }
+];
+
 const TEMPLATES_LIST = [
   {
     id: "project-showcase-90s",
-    name: "Giới thiệu dự án 90 giây",
+    name: "Video brief 90 giây",
     ratio: "16:9",
     duration: "60-90 giây",
     desc: "Phù hợp để giới thiệu nhanh tiến độ, ý tưởng và kết quả của các dự án nội bộ trong công ty.",
-    bestFor: "Dự án nội bộ, MVP giới thiệu nhanh",
+    bestFor: "Demo nội bộ, handoff, giới thiệu nhanh",
     scenes: [
       { id: "intro", title: "Mở đầu", duration: "10s", desc: "Tên dự án, logo, tagline và team phát triển." },
       { id: "problem", title: "Vấn đề", duration: "15s", desc: "Nêu bối cảnh và nỗi đau cần giải quyết." },
       { id: "solution", title: "Giải pháp", duration: "15s", desc: "Dashboard hoặc hệ thống giải quyết vấn đề thế nào." },
-      { id: "features", title: "Tính năng chính", duration: "20s", desc: "Showcase các tính năng tiêu biểu có hình minh họa." },
-      { id: "timeline", title: "Cột mốc Timeline", duration: "12s", desc: "Lịch sử phát triển và các cột mốc quan trọng." },
+      { id: "features", title: "Kịch bản chính", duration: "20s", desc: "Showcase các đoạn nội dung tiêu biểu có hình minh họa." },
+      { id: "timeline", title: "Cột mốc tùy chọn", duration: "12s", desc: "Các mốc quan trọng nếu video cần kể tiến trình." },
       { id: "impact", title: "Kết quả & Tác động", duration: "10s", desc: "Chỉ số thực tế hoặc giá trị mang lại." },
       { id: "outro", title: "Kết thúc (CTA)", duration: "8s", desc: "Thông điệp kết thúc, URL và lời kêu gọi đóng góp." }
     ]

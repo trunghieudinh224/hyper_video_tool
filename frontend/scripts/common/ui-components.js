@@ -155,28 +155,28 @@ const AppUI = (() => {
   const renderOverviewScreen = (container, data) => {
     const val = AppState.getValidation();
     const errorCount = val.errors.length;
-    
+
     // Quick checks
-    const checkBasic = (data.projectName && data.shortSummary && data.problemContext && data.solutionWhat) ? "success" : "danger";
+    const checkBasic = (data.projectName && data.shortSummary) ? "success" : "danger";
     const checkFeatures = (data.features || []).filter(f => f.useInVideo).length >= 3 ? "success" : "warning";
-    const checkAssets = (data.assets || []).some(a => a.type === "screenshot" && a.useInVideo) ? "success" : "danger";
+    const checkAssets = (data.assets || []).some(a => ["logo", "screenshot", "video"].includes(a.type) && a.useInVideo) ? "success" : "warning";
     const checkTemplate = data.templateId ? "success" : "danger";
     const checkReady = errorCount === 0 ? "success" : "danger";
 
     container.innerHTML = `
       <div class="workspace-header">
-        <h1>Tổng quan dự án</h1>
+        <h1>Tổng quan video</h1>
       </div>
       <div class="grid-2 mb-6">
         <div class="card">
           <div class="card-header">
             <h3>Thông tin chung</h3>
-            <button id="overview-edit-btn" class="btn btn-secondary btn-sm">Sửa nội dung</button>
+            <button id="overview-edit-btn" class="btn btn-secondary btn-sm">Sửa brief</button>
           </div>
           <div class="card-body">
-            <p class="mb-2"><strong>Tên dự án:</strong> ${data.projectName || '<span class="text-danger">Chưa nhập</span>'}</p>
+            <p class="mb-2"><strong>Chủ đề video:</strong> ${data.projectName || '<span class="text-danger">Chưa nhập</span>'}</p>
             <p class="mb-2"><strong>Mô tả ngắn:</strong> ${data.shortSummary || '<span class="text-danger">Chưa nhập</span>'}</p>
-            <p class="mb-2"><strong>Team phụ trách:</strong> ${data.ownerTeam || '<span class="text-subtle">Không có</span>'}</p>
+            <p class="mb-2"><strong>Ngữ cảnh/team:</strong> ${data.ownerTeam || '<span class="text-subtle">Không có</span>'}</p>
             <p class="mb-2"><strong>Template đang chọn:</strong> ${TEMPLATES_LIST.find(t => t.id === data.templateId)?.name || 'Chưa chọn'}</p>
             <p class="mb-2"><strong>Trạng thái dự án:</strong> <span class="status-pill status-info">Cục bộ</span></p>
           </div>
@@ -188,16 +188,16 @@ const AppUI = (() => {
           </div>
           <div class="card-body" style="display:flex; flex-direction:column; gap: var(--space-3);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Nội dung cốt lõi (Vấn đề & Giải pháp)</span>
+              <span>Brief cốt lõi</span>
               <span class="status-pill status-${checkBasic}">${checkBasic === 'success' ? 'Đủ' : 'Thiếu'}</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Số lượng tính năng nổi bật (3-6)</span>
+              <span>Số đoạn kịch bản đang dùng (3-6)</span>
               <span class="status-pill status-${checkFeatures}">${checkFeatures === 'success' ? 'Đủ' : 'Cần thêm'}</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span>Tài nguyên hình ảnh bắt buộc</span>
-              <span class="status-pill status-${checkAssets}">${checkAssets === 'success' ? 'Đã upload' : 'Thiếu ảnh'}</span>
+              <span>Asset hình ảnh/video</span>
+              <span class="status-pill status-${checkAssets}">${checkAssets === 'success' ? 'Đã chọn' : 'Nên thêm'}</span>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span>Chọn Template Video</span>
@@ -217,7 +217,7 @@ const AppUI = (() => {
         </div>
         <div class="card-body" style="display:flex; gap: var(--space-3); flex-wrap: wrap;">
           <button id="quick-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu thử nghiệm</button>
-          <button id="quick-preview-btn" class="btn btn-secondary">Xem trước scenes (16:9)</button>
+          <button id="quick-preview-btn" class="btn btn-secondary">Xem trước scene (16:9)</button>
           <button id="quick-render-btn" class="btn btn-primary" ${errorCount > 0 ? 'disabled' : ''}>Đi tới Render Video</button>
         </div>
       </div>
@@ -237,7 +237,6 @@ const AppUI = (() => {
 
   // 2. Content Form View
   const renderContentScreen = (container, data) => {
-    const sceneScripts = (data.voiceover && data.voiceover.sceneScripts) || {};
     const voiceoverLanguages = Array.isArray(VOICEOVER_LANGUAGES) ? VOICEOVER_LANGUAGES : [];
     const voiceoverVoices = VOICEOVER_VOICES || {};
     const savedAudio = data.audio || {};
@@ -257,24 +256,17 @@ const AppUI = (() => {
       const numericValue = Number.parseInt(value, 10) || 0;
       return `${numericValue >= 0 ? "+" : ""}${numericValue}%`;
     };
-    const escapeTextarea = (value) => String(value || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
-    const previewPayload = AppRender.buildRenderPayload(data, { formatId: "landscape-16x9" });
-    const voiceoverScript = previewPayload.audio.voiceover.script;
-    const voiceoverSceneReports = previewPayload.scenes.map((scene) => ({
-      id: scene.id,
-      title: scene.title,
-      duration: scene.duration,
-      estimatedDuration: scene.voiceover ? scene.voiceover.estimatedDuration : 0,
-      script: scene.voiceover ? scene.voiceover.script : "",
-      fits: scene.voiceover ? scene.voiceover.fits : true
-    }));
+    const contentTypes = Array.isArray(VIDEO_CONTENT_TYPES) ? VIDEO_CONTENT_TYPES : [];
+    const videoTones = Array.isArray(VIDEO_TONES) ? VIDEO_TONES : [];
+    const projectAssets = Array.isArray(data.assets) ? data.assets : [];
+    const selectedContentType = data.contentType || "feature";
+    const selectedTone = data.contentTone || "technical";
+    const selectedLanguage = data.contentLanguage || (savedVoiceover.language || "vi-VN");
+    const selectedPrimaryAssetId = data.primaryAssetId || "";
 
     container.innerHTML = `
       <div class="workspace-header">
-        <h1>Nội dung cốt lõi của video</h1>
+        <h1>Nội dung video</h1>
         <div style="display:flex; gap: var(--space-2);">
           <button id="content-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu</button>
           <button id="content-clear-btn" class="btn btn-secondary">Xóa form</button>
@@ -287,7 +279,7 @@ const AppUI = (() => {
           <div class="render-voiceover-header">
             <div>
               <div class="render-voiceover-title">Voiceover toàn video</div>
-              <div class="render-voiceover-desc">Thiết lập giọng đọc chung và kiểm tra thời lượng script theo từng cảnh.</div>
+              <div class="render-voiceover-desc">Thiết lập giọng đọc mặc định. Nội dung đọc chi tiết sẽ nằm trong từng đoạn ở trang Kịch bản.</div>
             </div>
             <label class="render-voiceover-toggle">
               <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""}>
@@ -327,154 +319,81 @@ const AppUI = (() => {
             </div>
           </div>
 
-          <div class="render-voiceover-scenes" aria-label="Thời lượng voiceover theo cảnh">
-            ${voiceoverSceneReports.map((scene) => `
-              <div class="render-voiceover-scene ${scene.script && !scene.fits ? "is-warning" : ""}" data-voiceover-scene-id="${scene.id}">
-                <span>${scene.title}</span>
-                <strong>${scene.estimatedDuration}s / ${scene.duration}s</strong>
-              </div>
-            `).join("")}
-          </div>
-
-          <details class="render-voiceover-script-details">
-            <summary>Kịch bản đọc tổng hợp</summary>
-            <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="5" readonly>${escapeTextarea(voiceoverScript)}</textarea>
-          </details>
         </div>
 
         <section class="content-form-block">
           <div class="content-form-block-header">
-            <h3>Thông tin video</h3>
-            <p>Tên, định danh và câu giới thiệu chung dùng cho phần mở đầu.</p>
+            <h3>Brief video</h3>
+            <p>Thông tin chung để template hiểu video đang nói về nội dung gì.</p>
           </div>
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label" for="field-projectName">Tên dự án *</label>
-              <div class="form-hint">Tên hiển thị trong video, dashboard và phần mở đầu.</div>
-              <input type="text" id="field-projectName" class="form-control" value="${data.projectName || ''}">
+              <label class="form-label" for="field-contentType">Loại nội dung</label>
+              <div class="form-hint">Dùng để định hướng template và kịch bản ở các phase sau.</div>
+              <select id="field-contentType" class="form-control">
+                ${contentTypes.map((type) => `
+                  <option value="${type.id}" ${type.id === selectedContentType ? "selected" : ""}>${type.label}</option>
+                `).join("")}
+              </select>
             </div>
             <div class="form-group">
-              <label class="form-label" for="field-projectSlug">Đường dẫn slug *</label>
-              <div class="form-hint">Mã ngắn dùng để đặt tên file và định danh project.</div>
+              <label class="form-label" for="field-projectName">Chủ đề video *</label>
+              <div class="form-hint">Tên nội dung đang được giới thiệu: tính năng, module, workflow, dashboard hoặc báo cáo.</div>
+              <input type="text" id="field-projectName" class="form-control" value="${data.projectName || ''}">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="field-projectSlug">Mã video *</label>
+              <div class="form-hint">Mã ngắn dùng để đặt tên file và định danh nội dung video.</div>
               <input type="text" id="field-projectSlug" class="form-control" value="${data.projectSlug || ''}" placeholder="ví dụ: internal-analytics-dashboard">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-contentLanguage">Ngôn ngữ nội dung</label>
+              <div class="form-hint">Ngôn ngữ chính của text và voice script.</div>
+              <select id="field-contentLanguage" class="form-control">
+                ${voiceoverLanguages.map((language) => `
+                  <option value="${language.id}" ${language.id === selectedLanguage ? "selected" : ""}>${language.label}</option>
+                `).join("")}
+              </select>
             </div>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label" for="field-tagline">Tagline</label>
-              <div class="form-hint">Một câu ngắn tóm tắt giá trị chính của project.</div>
+              <div class="form-hint">Một câu ngắn tóm tắt giá trị chính của nội dung video.</div>
               <input type="text" id="field-tagline" class="form-control" value="${data.tagline || ''}" placeholder="Câu tóm tắt ngắn dưới 80 chữ...">
               <span class="char-counter"><span id="count-tagline">0</span>/80 ký tự</span>
             </div>
             <div class="form-group">
-              <label class="form-label" for="field-ownerTeam">Team phụ trách</label>
-              <div class="form-hint">Team hoặc nhóm chịu trách nhiệm phát triển project.</div>
-              <input type="text" id="field-ownerTeam" class="form-control" value="${data.ownerTeam || ''}" placeholder="ví dụ: Platform Team">
+              <label class="form-label" for="field-contentTone">Tone trình bày</label>
+              <div class="form-hint">Phong cách trình bày dùng cho script và template sau này.</div>
+              <select id="field-contentTone" class="form-control">
+                ${videoTones.map((tone) => `
+                  <option value="${tone.id}" ${tone.id === selectedTone ? "selected" : ""}>${tone.label}</option>
+                `).join("")}
+              </select>
             </div>
           </div>
-        </section>
 
-        <section class="content-form-block">
-          <div class="content-form-block-header">
-            <h3>Câu chuyện chính</h3>
-            <p>Nội dung cốt lõi tạo nên flow: giới thiệu, vấn đề, giải pháp, tác động và kết thúc.</p>
-          </div>
           <div class="form-group">
-            <label class="form-label" for="field-shortSummary">Mô tả ngắn dự án *</label>
-            <div class="form-hint">Đoạn giới thiệu tổng quan để video mở đầu dễ hiểu.</div>
+            <label class="form-label" for="field-shortSummary">Mô tả ngắn *</label>
+            <div class="form-hint">Mô tả ngắn về video. Chi tiết từng ý sẽ nhập ở trang Kịch bản.</div>
             <textarea id="field-shortSummary" class="form-control" rows="3" placeholder="Tóm tắt bối cảnh tổng quát...">${data.shortSummary || ''}</textarea>
             <span class="char-counter"><span id="count-shortSummary">0</span>/200 ký tự</span>
           </div>
-          <div class="form-group voice-script-field">
-            <label class="form-label" for="voice-script-intro">Voice intro</label>
-            <div class="form-hint">Kịch bản giọng đọc riêng cho cảnh mở đầu.</div>
-            <textarea id="voice-script-intro" class="form-control" rows="2" placeholder="Kịch bản giọng đọc cho cảnh mở đầu...">${sceneScripts.intro || ''}</textarea>
-            <span class="char-counter"><span id="voice-count-intro">0</span>/6s</span>
-          </div>
 
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="field-problemContext">Vấn đề / Nỗi đau khách hàng *</label>
-              <div class="form-hint">Bối cảnh hoặc khó khăn khiến project này cần được xây dựng.</div>
-              <textarea id="field-problemContext" class="form-control" rows="4" placeholder="Khách hàng đang gặp khó khăn gì?">${data.problemContext || ''}</textarea>
-              <span class="char-counter"><span id="count-problemContext">0</span>/300 ký tự</span>
-              <div class="voice-script-field is-nested">
-                <label class="form-label" for="voice-script-problem">Voice vấn đề</label>
-                <div class="form-hint">Kịch bản đọc cho đoạn mô tả vấn đề.</div>
-                <textarea id="voice-script-problem" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh vấn đề...">${sceneScripts.problem || ''}</textarea>
-                <span class="char-counter"><span id="voice-count-problem">0</span>/10s</span>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="field-solutionWhat">Giải pháp đã xây dựng *</label>
-              <div class="form-hint">Cách sản phẩm hoặc hệ thống giải quyết vấn đề ở trên.</div>
-              <textarea id="field-solutionWhat" class="form-control" rows="4" placeholder="Sản phẩm giải quyết nỗi đau đó như thế nào?">${data.solutionWhat || ''}</textarea>
-              <span class="char-counter"><span id="count-solutionWhat">0</span>/300 ký tự</span>
-              <div class="voice-script-field is-nested">
-                <label class="form-label" for="voice-script-solution">Voice giải pháp</label>
-                <div class="form-hint">Kịch bản đọc cho đoạn trình bày giải pháp.</div>
-                <textarea id="voice-script-solution" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh giải pháp...">${sceneScripts.solution || ''}</textarea>
-                <span class="char-counter"><span id="voice-count-solution">0</span>/10s</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="field-resultImpact">Kết quả / Tác động đạt được</label>
-              <div class="form-hint">Kết quả, lợi ích hoặc tác động sau khi project được áp dụng.</div>
-              <textarea id="field-resultImpact" class="form-control" rows="2" placeholder="ví dụ: Tiết kiệm 70% thời gian báo cáo">${data.resultImpact || ''}</textarea>
-              <div class="voice-script-field is-nested">
-                <label class="form-label" for="voice-script-impact">Voice tác động</label>
-                <div class="form-hint">Kịch bản đọc cho đoạn kết quả và tác động.</div>
-                <textarea id="voice-script-impact" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết quả...">${sceneScripts.impact || ''}</textarea>
-                <span class="char-counter"><span id="voice-count-impact">0</span>/10s</span>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="field-endingNote">Lời kết thúc video</label>
-              <div class="form-hint">Câu kết, lời cảm ơn hoặc lời kêu gọi hành động cuối video.</div>
-              <textarea id="field-endingNote" class="form-control" rows="2" placeholder="Lời cảm ơn hoặc lời kêu gọi hành động...">${data.endingNote || ''}</textarea>
-              <div class="voice-script-field is-nested">
-                <label class="form-label" for="voice-script-outro">Voice kết thúc</label>
-                <div class="form-hint">Kịch bản giọng đọc cho cảnh kết thúc.</div>
-                <textarea id="voice-script-outro" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết thúc...">${sceneScripts.outro || ''}</textarea>
-                <span class="char-counter"><span id="voice-count-outro">0</span>/6s</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="content-form-block">
-          <div class="content-form-block-header">
-            <h3>Ngữ cảnh sử dụng</h3>
-            <p>Thông tin cho cảnh vấn đề: ai dùng sản phẩm và dùng trong tình huống nào.</p>
-          </div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label" for="field-targetUsers">Người dùng mục tiêu</label>
-              <div class="form-hint">Nhóm người hoặc team sẽ trực tiếp dùng project.</div>
-              <textarea id="field-targetUsers" class="form-control" rows="2" placeholder="ví dụ: Quản lý dự án, End-users">${data.targetUsers || ''}</textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="field-useCase">Bối cảnh sử dụng</label>
-              <div class="form-hint">Tình huống thực tế mà project được dùng trong công việc.</div>
-              <textarea id="field-useCase" class="form-control" rows="2" placeholder="ví dụ: Họp hàng tuần, Training nhân viên">${data.useCase || ''}</textarea>
-            </div>
-          </div>
-        </section>
-
-        <section class="content-form-block">
-          <div class="content-form-block-header">
-            <h3>Tính năng trong video</h3>
-            <p>Danh sách tính năng chỉnh ở trang Tính năng; phần này chỉ giữ kịch bản đọc cho cảnh tính năng.</p>
-          </div>
-          <div class="form-group voice-script-field">
-            <label class="form-label" for="voice-script-features">Voice tính năng</label>
-            <div class="form-hint">Kịch bản đọc cho đoạn tính năng nổi bật.</div>
-            <textarea id="voice-script-features" class="form-control" rows="2" placeholder="Kịch bản đọc cho cảnh tính năng nổi bật...">${sceneScripts.features || ''}</textarea>
-            <span class="char-counter"><span id="voice-count-features">0</span>/18s</span>
+          <div class="form-group">
+            <label class="form-label" for="field-primaryAssetId">Asset chính</label>
+            <div class="form-hint">Ảnh/logo/video mặc định để template ưu tiên dùng trước.</div>
+            <select id="field-primaryAssetId" class="form-control">
+              <option value="">Chưa chọn asset chính</option>
+              ${projectAssets.map((asset) => `
+                <option value="${asset.id}" ${asset.id === selectedPrimaryAssetId ? "selected" : ""}>${asset.name || asset.id}</option>
+              `).join("")}
+            </select>
           </div>
         </section>
       </form>
@@ -485,7 +404,7 @@ const AppUI = (() => {
       const el = document.getElementById(`field-${id}`);
       const counter = document.getElementById(`count-${id}`);
       if (!el || !counter) return;
-      
+
       const update = () => {
         counter.textContent = el.value.length;
         if (el.value.length > max) {
@@ -494,19 +413,17 @@ const AppUI = (() => {
           counter.style.color = 'var(--color-text-subtle)';
         }
       };
-      
+
       el.addEventListener("input", () => {
         AppState.updateProjectField(id, el.value);
         update();
       });
-      
+
       update();
     };
 
     bindCounter("tagline", 80);
     bindCounter("shortSummary", 200);
-    bindCounter("problemContext", 300);
-    bindCounter("solutionWhat", 300);
 
     const voiceoverEnabledInput = document.getElementById("render-voiceover-enabled");
     const voiceoverLanguageInput = document.getElementById("render-voiceover-language");
@@ -515,7 +432,6 @@ const AppUI = (() => {
     const voiceoverRateValue = document.getElementById("render-voiceover-rate-value");
     const voiceoverVolumeInput = document.getElementById("render-voiceover-volume");
     const voiceoverVolumeValue = document.getElementById("render-voiceover-volume-value");
-    const voiceoverScriptInput = document.getElementById("render-voiceover-script");
 
     const getVoiceOptionsHTML = (language) => {
       return (voiceoverVoices[language] || voiceoverVoices["vi-VN"] || []).map((voice) => {
@@ -533,7 +449,7 @@ const AppUI = (() => {
           voiceId: voiceoverVoiceInput ? voiceoverVoiceInput.value : "vi-VN-HoaiMyNeural",
           rate: voiceoverRateInput ? formatPercentValue(voiceoverRateInput.value) : "+0%",
           volume: voiceoverVolumeInput ? formatPercentValue(voiceoverVolumeInput.value) : "+0%",
-          script: voiceoverScriptInput ? voiceoverScriptInput.value.trim() : "",
+          script: "",
           outputPath: ""
         }
       };
@@ -549,23 +465,6 @@ const AppUI = (() => {
       }
     };
 
-    const syncVoiceoverPreview = () => {
-      const latestPayload = AppRender.buildRenderPayload(AppState.getProjectData(), { formatId: "landscape-16x9" });
-      latestPayload.scenes.forEach((scene) => {
-        const chip = document.querySelector(`[data-voiceover-scene-id="${scene.id}"]`);
-        if (!chip) return;
-        const report = scene.voiceover || { estimatedDuration: 0, script: "", fits: true };
-        const durationLabel = chip.querySelector("strong");
-        if (durationLabel) {
-          durationLabel.textContent = `${report.estimatedDuration}s / ${scene.duration}s`;
-        }
-        chip.classList.toggle("is-warning", Boolean(report.script && !report.fits));
-      });
-      if (voiceoverScriptInput) {
-        voiceoverScriptInput.value = latestPayload.audio.voiceover.script;
-      }
-    };
-
     if (voiceoverLanguageInput && voiceoverVoiceInput) {
       voiceoverLanguageInput.addEventListener("change", () => {
         voiceoverVoiceInput.innerHTML = getVoiceOptionsHTML(voiceoverLanguageInput.value);
@@ -573,12 +472,11 @@ const AppUI = (() => {
       });
     }
 
-    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverRateInput, voiceoverVolumeInput, voiceoverScriptInput].forEach((input) => {
+    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverRateInput, voiceoverVolumeInput].forEach((input) => {
       if (!input) return;
       input.addEventListener(input.type === "range" || input.tagName === "TEXTAREA" ? "input" : "change", () => {
         syncVoiceoverRangeLabels();
         saveVoiceoverSettings();
-        syncVoiceoverPreview();
       });
     });
 
@@ -592,51 +490,22 @@ const AppUI = (() => {
       }
     };
 
-    ["projectName", "projectSlug", "ownerTeam", "targetUsers", "useCase", "resultImpact", "endingNote"].forEach(id => {
+    ["projectName", "projectSlug"].forEach(id => {
       bindSimpleInput(id);
     });
 
-    const estimateVoiceSeconds = (value) => {
-      const text = String(value || "").replace(/\s+/g, " ").trim();
-      if (!text) return 0;
-      return Math.max(1, Math.ceil((text.split(/\s+/).filter(Boolean).length / 145) * 60));
-    };
-
-    const bindVoiceScript = (type, duration) => {
-      const input = document.getElementById(`voice-script-${type}`);
-      const counter = document.getElementById(`voice-count-${type}`);
-      if (!input || !counter) return;
-
-      const update = () => {
-        const estimated = estimateVoiceSeconds(input.value);
-        counter.textContent = `${estimated}s`;
-        counter.style.color = estimated > duration ? "var(--color-warning)" : "var(--color-text-subtle)";
-      };
-
-      input.addEventListener("input", () => {
-        const projectData = AppState.getProjectData();
-        const voiceover = projectData.voiceover || {};
-        AppState.updateProjectField("voiceover", {
-          ...voiceover,
-          sceneScripts: {
-            ...(voiceover.sceneScripts || {}),
-            [type]: input.value
-          }
+    const bindSimpleSelect = (id) => {
+      const el = document.getElementById(`field-${id}`);
+      if (el) {
+        el.addEventListener("change", () => {
+          AppState.updateProjectField(id, el.value);
         });
-        update();
-        syncVoiceoverPreview();
-      });
-      update();
+      }
     };
 
-    [
-      ["intro", 6],
-      ["problem", 10],
-      ["solution", 10],
-      ["features", 18],
-      ["impact", 10],
-      ["outro", 6]
-    ].forEach(([type, duration]) => bindVoiceScript(type, duration));
+    ["contentType", "contentLanguage", "contentTone", "primaryAssetId"].forEach(id => {
+      bindSimpleSelect(id);
+    });
 
     // Action buttons click handler
     document.getElementById("content-fill-btn").addEventListener("click", async () => {
@@ -652,15 +521,15 @@ const AppUI = (() => {
         "Bạn có chắc muốn xóa sạch toàn bộ nội dung của form? Thao tác này không thể khôi phục.",
         [
           { text: "Hủy", class: "btn-secondary", onClick: closeModal },
-          { 
-            text: "Xóa sạch", 
-            class: "btn-danger", 
+          {
+            text: "Xóa sạch",
+            class: "btn-danger",
             onClick: () => {
               AppStorage.clearLocalData();
               renderContentScreen(container, AppState.getProjectData());
               closeModal();
               showToast("Đã xóa sạch form nhập liệu", "info");
-            } 
+            }
           }
         ]
       );
@@ -668,62 +537,165 @@ const AppUI = (() => {
 
     document.getElementById("content-save-btn").addEventListener("click", () => {
       AppStorage.saveLocalData(data);
-      showToast("Đã lưu nháp dự án thành công!");
+              showToast("Đã lưu nháp video thành công!");
     });
   };
 
-  // 3. Features Manager View
+  // 3. Script Manager View
   const renderFeaturesScreen = (container, data) => {
     const list = data.features || [];
+    const segmentTypes = Array.isArray(VIDEO_SEGMENT_TYPES) ? VIDEO_SEGMENT_TYPES : [];
+    const getSegmentType = (typeId) => segmentTypes.find((type) => type.id === typeId) || segmentTypes.find((type) => type.id === "feature") || { id: "feature", label: "Tính năng" };
+    const enabledCount = list.filter((item) => item.useInVideo).length;
+    const voiceCount = list.filter((item) => String(item.voiceoverScript || "").trim()).length;
+    const estimatedDuration = list
+      .filter((item) => item.useInVideo)
+      .reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
+    const escapeText = (value) => String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
 
     let rowsHTML = "";
     if (list.length === 0) {
       rowsHTML = `
-        <div class="empty-state">
-          <svg class="empty-state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <div class="empty-state-title">Chưa có tính năng nào</div>
-          <div class="empty-state-desc">Hãy thêm các tính năng nổi bật của dự án (khuyến nghị 3-6 tính năng) để đưa vào video.</div>
-          <button id="features-empty-add-btn" class="btn btn-primary">Thêm tính năng đầu tiên</button>
+        <div class="empty-state script-empty-state">
+          <div class="empty-state-title">Chưa có đoạn nào trong video</div>
+          <div class="empty-state-desc">Mỗi đoạn là một ý sẽ xuất hiện trong video: mở đầu, demo, workflow, kết quả hoặc kết thúc.</div>
+          <button id="features-empty-add-btn" class="btn btn-primary">Thêm đoạn đầu tiên</button>
         </div>
       `;
     } else {
       rowsHTML = `
-        <div class="list-rows">
-          ${list.map((item, index) => `
-            <div class="list-row-item" data-id="${item.id}">
-              <div class="row-drag-handle" title="Di chuyển">
-                <button class="btn btn-icon btn-sm btn-reorder-up" data-index="${index}" ${index === 0 ? 'disabled' : ''}>▲</button>
-                <button class="btn btn-icon btn-sm btn-reorder-down" data-index="${index}" ${index === list.length - 1 ? 'disabled' : ''}>▼</button>
+        <div class="script-list" id="script-sortable-list">
+          ${list.map((item, index) => {
+            const segmentType = getSegmentType(item.type);
+            const durationSec = Number.parseInt(item.durationSec, 10) || 8;
+            const voiceScript = String(item.voiceoverScript || "").trim();
+            return `
+            <article class="script-segment ${item.useInVideo ? "" : "is-disabled"}" data-id="${item.id}" data-type="${escapeText(item.type || "feature")}">
+              <div class="script-order">
+                <span class="script-order-number">${index + 1}</span>
+                <button class="script-drag-handle" type="button" aria-label="Kéo để đổi thứ tự" title="Kéo để đổi thứ tự">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="8" cy="6" r="1.5"></circle>
+                    <circle cx="16" cy="6" r="1.5"></circle>
+                    <circle cx="8" cy="12" r="1.5"></circle>
+                    <circle cx="16" cy="12" r="1.5"></circle>
+                    <circle cx="8" cy="18" r="1.5"></circle>
+                    <circle cx="16" cy="18" r="1.5"></circle>
+                  </svg>
+                </button>
               </div>
-              <div class="row-content-fields" style="display:flex; flex-direction:column; gap: 4px; flex:1;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <h4 style="margin:0;">${item.name}</h4>
-                  <div style="display:flex; align-items:center; gap: 8px;">
-                    <label style="font-size: var(--font-xs); display:flex; align-items:center; gap: 4px; cursor:pointer;">
-                      <input type="checkbox" class="feature-use-toggle" data-id="${item.id}" ${item.useInVideo ? 'checked' : ''}>
-                      Đưa vào video
-                    </label>
+              <div class="script-segment-main">
+                <h3 class="script-title-wrapper">
+                  <span class="script-title">${escapeText(item.name || "Đoạn chưa đặt tên")}</span>
+                  <span class="script-duration">${durationSec}s</span>
+                </h3>
+                <p class="script-body">${escapeText(item.description || "Chưa có nội dung chính.")}</p>
+                ${(item.benefit || voiceScript) ? `
+                  <div class="script-meta-group">
+                    ${item.benefit ? `
+                      <div class="script-meta-item is-highlight">
+                        <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <strong>Điểm nhấn:</strong>
+                        <span>${escapeText(item.benefit)}</span>
+                      </div>
+                    ` : ""}
+                    ${voiceScript ? `
+                      <div class="script-meta-item is-voice">
+                        <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+                        <strong>Giọng đọc:</strong>
+                        <span>${escapeText(voiceScript)}</span>
+                      </div>
+                    ` : ""}
                   </div>
+                ` : ""}
+              </div>
+              <div class="script-segment-side">
+                <label class="script-switch">
+                  <input type="checkbox" class="feature-use-toggle" data-id="${item.id}" ${item.useInVideo ? 'checked' : ''}>
+                  <span class="script-switch-track" aria-hidden="true"></span>
+                  <span class="script-switch-text">${item.useInVideo ? "Đang bật" : "Đang tắt"}</span>
+                </label>
+                <div class="script-actions">
+                  <button class="btn-action btn-edit-feature" data-id="${item.id}" type="button" aria-label="Sửa đoạn" title="Sửa đoạn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75 1.84-1.83c-.39-.39-.39-1.02 0-1.41z"/>
+                    </svg>
+                  </button>
+                  <button class="btn-action btn-delete-feature" data-id="${item.id}" type="button" aria-label="Xóa đoạn" title="Xóa đoạn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                  </button>
                 </div>
-                <div class="text-muted" style="font-size: var(--font-sm);">${item.description}</div>
-                <div class="text-subtle" style="font-size: var(--font-xs);"><strong>Giá trị:</strong> ${item.benefit}</div>
               </div>
-              <div class="row-actions">
-                <button class="btn btn-secondary btn-sm btn-edit-feature" data-id="${item.id}">Sửa</button>
-                <button class="btn btn-danger btn-sm btn-delete-feature" data-id="${item.id}">Xóa</button>
-              </div>
-            </div>
-          `).join("")}
+            </article>
+          `;
+          }).join("")}
         </div>
       `;
     }
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Tính năng nổi bật (${list.length})</h1>
-        ${list.length > 0 ? `<button id="features-add-btn" class="btn btn-primary">Thêm tính năng</button>` : ''}
+      <div class="workspace-header script-workspace-header">
+        <div>
+          <h1>Kịch bản</h1>
+          <p class="workspace-subtitle">Sắp xếp các đoạn sẽ xuất hiện trong video. Nội dung chi tiết và voice từng đoạn nằm ở đây.</p>
+        </div>
+        ${list.length > 0 ? `<button id="features-add-btn" class="btn btn-primary">Thêm đoạn</button>` : ''}
       </div>
       <div class="page-section-stack">
+        <section class="script-summary">
+          <div class="script-stat-card stat-total">
+            <span class="script-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M7 6.5h13M7 12h13M7 17.5h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                <path d="M4 6.5h.01M4 12h.01M4 17.5h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <div class="script-stat-copy">
+              <span>Tổng đoạn</span>
+              <strong>${list.length}</strong>
+            </div>
+          </div>
+          <div class="script-stat-card stat-active">
+            <span class="script-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M8 5.75v12.5L18 12 8 5.75Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <div class="script-stat-copy">
+              <span>Đang bật</span>
+              <strong>${enabledCount}</strong>
+            </div>
+          </div>
+          <div class="script-stat-card stat-duration">
+            <span class="script-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="2"></path>
+                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <div class="script-stat-copy">
+              <span>Ước tính</span>
+              <strong>${estimatedDuration}s</strong>
+            </div>
+          </div>
+          <div class="script-stat-card stat-voice">
+            <span class="script-stat-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M4 12v2M8 8v8M12 5v14M16 9v6M20 11v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <div class="script-stat-copy">
+              <span>Có voice</span>
+              <strong>${voiceCount}</strong>
+            </div>
+          </div>
+        </section>
         ${rowsHTML}
       </div>
     `;
@@ -733,26 +705,47 @@ const AppUI = (() => {
       const isEdit = feature !== null;
       const modalBody = document.createElement("div");
       modalBody.innerHTML = `
-        <div class="form-group">
-          <label class="form-label" for="modal-feat-name">Tên tính năng *</label>
-          <input type="text" id="modal-feat-name" class="form-control" value="${isEdit ? feature.name : ''}">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="modal-feat-type">Loại đoạn</label>
+            <select id="modal-feat-type" class="form-control">
+              ${segmentTypes.map((type) => `
+                <option value="${type.id}" ${type.id === (feature && feature.type ? feature.type : "feature") ? "selected" : ""}>${type.label}</option>
+              `).join("")}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modal-feat-duration">Thời lượng dự kiến</label>
+            <input type="number" id="modal-feat-duration" class="form-control" min="3" max="30" step="1" value="${isEdit ? (feature.durationSec || 8) : 8}">
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="modal-feat-desc">Mô tả ngắn *</label>
-          <textarea id="modal-feat-desc" class="form-control" rows="3" placeholder="Cách hoạt động của tính năng...">${isEdit ? feature.description : ''}</textarea>
+          <label class="form-label" for="modal-feat-name">Tiêu đề đoạn *</label>
+          <input type="text" id="modal-feat-name" class="form-control" value="${isEdit ? escapeText(feature.name) : ''}" placeholder="Ví dụ: Demo dashboard cảnh báo trễ hạn">
         </div>
         <div class="form-group">
-          <label class="form-label" for="modal-feat-benefit">Giá trị mang lại *</label>
-          <input type="text" id="modal-feat-benefit" class="form-control" value="${isEdit ? feature.benefit : ''}" placeholder="Giúp người dùng đạt được gì...">
+          <label class="form-label" for="modal-feat-desc">Nội dung chính *</label>
+          <textarea id="modal-feat-desc" class="form-control" rows="4" placeholder="Đoạn này cần nói gì...">${isEdit ? escapeText(feature.description) : ''}</textarea>
         </div>
-        <div class="form-group" style="flex-direction:row; align-items:center; gap: 8px;">
+        <div class="form-group">
+          <label class="form-label" for="modal-feat-benefit">Điểm nhấn</label>
+          <input type="text" id="modal-feat-benefit" class="form-control" value="${isEdit ? escapeText(feature.benefit) : ''}" placeholder="Ý quan trọng nhất của đoạn này...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="modal-feat-voice">Voice script</label>
+          <textarea id="modal-feat-voice" class="form-control" rows="3" placeholder="Câu đọc riêng cho đoạn này...">${isEdit ? escapeText(feature.voiceoverScript) : ''}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="script-switch script-switch-modal" for="modal-feat-use">
           <input type="checkbox" id="modal-feat-use" ${!isEdit || feature.useInVideo ? 'checked' : ''}>
-          <label class="form-label" for="modal-feat-use" style="margin:0;">Đưa vào video giới thiệu</label>
+            <span class="script-switch-track" aria-hidden="true"></span>
+            <span class="script-switch-text">Bật đoạn này trong video</span>
+          </label>
         </div>
       `;
 
       showModal(
-        isEdit ? "Sửa tính năng" : "Thêm tính năng mới",
+        isEdit ? "Sửa đoạn kịch bản" : "Thêm đoạn kịch bản",
         modalBody,
         [
           { text: "Hủy", class: "btn-secondary", onClick: closeModal },
@@ -760,13 +753,16 @@ const AppUI = (() => {
             text: isEdit ? "Cập nhật" : "Thêm mới",
             class: "btn-primary",
             onClick: () => {
+              const type = document.getElementById("modal-feat-type").value;
               const name = document.getElementById("modal-feat-name").value.trim();
               const description = document.getElementById("modal-feat-desc").value.trim();
               const benefit = document.getElementById("modal-feat-benefit").value.trim();
+              const voiceoverScript = document.getElementById("modal-feat-voice").value.trim();
+              const durationSec = Math.min(30, Math.max(3, Number.parseInt(document.getElementById("modal-feat-duration").value, 10) || 8));
               const useInVideo = document.getElementById("modal-feat-use").checked;
 
-              if (!name || !description || !benefit) {
-                alert("Vui lòng nhập đầy đủ các trường thông tin bắt buộc.");
+              if (!name || !description) {
+                showToast("Cần nhập tiêu đề và nội dung chính của đoạn.", "error");
                 return;
               }
 
@@ -774,14 +770,17 @@ const AppUI = (() => {
               if (isEdit) {
                 const idx = features.findIndex(f => f.id === feature.id);
                 if (idx !== -1) {
-                  features[idx] = { ...feature, name, description, benefit, useInVideo };
+                  features[idx] = { ...feature, type, name, description, benefit, voiceoverScript, durationSec, useInVideo };
                 }
               } else {
                 features.push({
                   id: "feat_" + Date.now(),
+                  type,
                   name,
                   description,
                   benefit,
+                  voiceoverScript,
+                  durationSec,
                   useInVideo
                 });
               }
@@ -789,7 +788,7 @@ const AppUI = (() => {
               AppState.updateProjectField("features", features);
               renderFeaturesScreen(container, AppState.getProjectData());
               closeModal();
-              showToast(isEdit ? "Cập nhật tính năng thành công!" : "Đã thêm tính năng mới!");
+              showToast(isEdit ? "Cập nhật đoạn thành công!" : "Đã thêm đoạn mới!");
             }
           }
         ]
@@ -802,33 +801,26 @@ const AppUI = (() => {
     } else {
       document.getElementById("features-add-btn").addEventListener("click", () => showFeatureFormModal());
 
-      // Reorder Up
-      container.querySelectorAll(".btn-reorder-up").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const idx = parseInt(btn.getAttribute("data-index"));
-          const features = [...data.features];
-          // Swap idx and idx - 1
-          const temp = features[idx];
-          features[idx] = features[idx - 1];
-          features[idx - 1] = temp;
-          AppState.updateProjectField("features", features);
-          renderFeaturesScreen(container, AppState.getProjectData());
+      const sortableList = document.getElementById("script-sortable-list");
+      if (sortableList && typeof Sortable !== "undefined") {
+        Sortable.create(sortableList, {
+          handle: ".script-drag-handle",
+          animation: 150,
+          ghostClass: "script-segment-ghost",
+          chosenClass: "script-segment-chosen",
+          dragClass: "script-segment-drag",
+          onEnd: () => {
+            const orderedIds = Array.from(sortableList.querySelectorAll(".script-segment"))
+              .map((item) => item.getAttribute("data-id"));
+            const currentFeatures = AppState.getProjectData().features || [];
+            const reordered = orderedIds
+              .map((id) => currentFeatures.find((feature) => feature.id === id))
+              .filter(Boolean);
+            AppState.updateProjectField("features", reordered);
+            renderFeaturesScreen(container, AppState.getProjectData());
+          }
         });
-      });
-
-      // Reorder Down
-      container.querySelectorAll(".btn-reorder-down").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const idx = parseInt(btn.getAttribute("data-index"));
-          const features = [...data.features];
-          // Swap idx and idx + 1
-          const temp = features[idx];
-          features[idx] = features[idx + 1];
-          features[idx + 1] = temp;
-          AppState.updateProjectField("features", features);
-          renderFeaturesScreen(container, AppState.getProjectData());
-        });
-      });
+      }
 
       // Edit feature
       container.querySelectorAll(".btn-edit-feature").forEach(btn => {
@@ -844,8 +836,8 @@ const AppUI = (() => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-id");
           showModal(
-            "Xác nhận xóa tính năng",
-            "Bạn có chắc chắn muốn xóa tính năng này khỏi danh sách?",
+            "Xác nhận xóa đoạn",
+            "Bạn có chắc chắn muốn xóa đoạn này khỏi kịch bản?",
             [
               { text: "Hủy", class: "btn-secondary", onClick: closeModal },
               {
@@ -856,7 +848,7 @@ const AppUI = (() => {
                   AppState.updateProjectField("features", features);
                   renderFeaturesScreen(container, AppState.getProjectData());
                   closeModal();
-                  showToast("Đã xóa tính năng.", "info");
+                  showToast("Đã xóa đoạn.", "info");
                 }
               }
             ]
@@ -875,214 +867,28 @@ const AppUI = (() => {
             return f;
           });
           AppState.updateProjectField("features", features);
+          renderFeaturesScreen(container, AppState.getProjectData());
         });
       });
     }
   };
 
-  // 4. Timeline Manager View
+  // 4. Legacy Timeline Handoff View
   const renderTimelineScreen = (container, data) => {
-    const list = data.milestones || [];
-
-    let rowsHTML = "";
-    if (list.length === 0) {
-      rowsHTML = `
-        <div class="empty-state">
-          <svg class="empty-state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <div class="empty-state-title">Chưa có cột mốc phát triển</div>
-          <div class="empty-state-desc">Thêm các cột mốc quan trọng để kể câu chuyện quá trình hình thành sản phẩm của bạn.</div>
-          <button id="timeline-empty-add-btn" class="btn btn-primary">Thêm cột mốc đầu tiên</button>
-        </div>
-      `;
-    } else {
-      rowsHTML = `
-        <div class="list-rows">
-          ${list.map((item, index) => {
-            let statusPill = "";
-            if (item.status === 'completed') statusPill = '<span class="status-pill status-success">Đã xong</span>';
-            else if (item.status === 'active') statusPill = '<span class="status-pill status-warning">Đang làm</span>';
-            else statusPill = '<span class="status-pill status-info">Sắp tới</span>';
-
-            return `
-              <div class="list-row-item" data-id="${item.id}">
-                <div class="row-drag-handle">
-                  <button class="btn btn-icon btn-sm btn-reorder-up" data-index="${index}" ${index === 0 ? 'disabled' : ''}>▲</button>
-                  <button class="btn btn-icon btn-sm btn-reorder-down" data-index="${index}" ${index === list.length - 1 ? 'disabled' : ''}>▼</button>
-                </div>
-                <div class="row-content-fields" style="display:grid; grid-template-columns: 80px 2fr 1fr; align-items:center; flex:1;">
-                  <span style="font-weight:600; font-size: var(--font-sm);">${item.date}</span>
-                  <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight:600;">${item.name}</span>
-                    <span class="text-muted" style="font-size: var(--font-xs);">${item.description || ''}</span>
-                    ${item.voiceoverScript ? `<span class="text-subtle" style="font-size: var(--font-xs);">Voice: ${item.voiceoverScript}</span>` : ''}
-                  </div>
-                  <div>${statusPill}</div>
-                </div>
-                <div class="row-actions">
-                  <button class="btn btn-secondary btn-sm btn-edit-ms" data-id="${item.id}">Sửa</button>
-                  <button class="btn btn-danger btn-sm btn-delete-ms" data-id="${item.id}">Xóa</button>
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      `;
-    }
-
     container.innerHTML = `
       <div class="workspace-header">
-        <h1>Các cột mốc Timeline (${list.length})</h1>
-        ${list.length > 0 ? `<button id="timeline-add-btn" class="btn btn-primary">Thêm cột mốc</button>` : ''}
+        <h1>Timeline đã chuyển sang Kịch bản</h1>
+        <button id="timeline-to-script-btn" class="btn btn-primary">Mở Kịch bản</button>
       </div>
       <div class="page-section-stack">
-        ${rowsHTML}
+        <div class="empty-state">
+          <svg class="empty-state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="empty-state-title">Trang Timeline cũ không còn nằm trong flow chính</div>
+          <div class="empty-state-desc">Các cột mốc sẽ được gộp vào Kịch bản ở phase sau. File này vẫn được giữ để link cũ không vỡ.</div>
+        </div>
       </div>
     `;
-
-    // Modal Form for Add/Edit
-    const showMilestoneFormModal = (ms = null) => {
-      const isEdit = ms !== null;
-      const modalBody = document.createElement("div");
-      modalBody.innerHTML = `
-        <div class="form-group">
-          <label class="form-label" for="modal-ms-date">Thời gian *</label>
-          <input type="text" id="modal-ms-date" class="form-control" value="${isEdit ? ms.date : ''}" placeholder="ví dụ: Tháng 01/2026, Q2 2026">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-ms-name">Tên cột mốc *</label>
-          <input type="text" id="modal-ms-name" class="form-control" value="${isEdit ? ms.name : ''}" placeholder="ví dụ: Khởi tạo ý tưởng, Bản MVP">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-ms-desc">Mô tả chi tiết</label>
-          <input type="text" id="modal-ms-desc" class="form-control" value="${isEdit ? (ms.description || '') : ''}">
-        </div>
-        <div class="form-group voice-script-field">
-          <label class="form-label" for="modal-ms-voice">Voice cho cột mốc này</label>
-          <textarea id="modal-ms-voice" class="form-control" rows="3" placeholder="Kịch bản đọc khi tới mốc timeline này...">${isEdit ? (ms.voiceoverScript || '') : ''}</textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-ms-status">Trạng thái</label>
-          <select id="modal-ms-status" class="form-control">
-            <option value="completed" ${isEdit && ms.status === 'completed' ? 'selected' : ''}>Đã hoàn thành</option>
-            <option value="active" ${isEdit && ms.status === 'active' ? 'selected' : ''}>Đang triển khai</option>
-            <option value="upcoming" ${isEdit && ms.status === 'upcoming' ? 'selected' : ''}>Kế hoạch sắp tới</option>
-          </select>
-        </div>
-      `;
-
-      showModal(
-        isEdit ? "Sửa cột mốc" : "Thêm cột mốc mới",
-        modalBody,
-        [
-          { text: "Hủy", class: "btn-secondary", onClick: closeModal },
-          {
-            text: isEdit ? "Cập nhật" : "Thêm mới",
-            class: "btn-primary",
-            onClick: () => {
-              const date = document.getElementById("modal-ms-date").value.trim();
-              const name = document.getElementById("modal-ms-name").value.trim();
-              const description = document.getElementById("modal-ms-desc").value.trim();
-              const voiceoverScript = document.getElementById("modal-ms-voice").value.trim();
-              const status = document.getElementById("modal-ms-status").value;
-
-              if (!date || !name) {
-                alert("Vui lòng nhập đầy đủ thời gian và tên cột mốc.");
-                return;
-              }
-
-              const milestones = [...(data.milestones || [])];
-              if (isEdit) {
-                const idx = milestones.findIndex(m => m.id === ms.id);
-                if (idx !== -1) {
-                  milestones[idx] = { ...ms, date, name, description, voiceoverScript, status };
-                }
-              } else {
-                milestones.push({
-                  id: "ms_" + Date.now(),
-                  date,
-                  name,
-                  description,
-                  voiceoverScript,
-                  status
-                });
-              }
-
-              AppState.updateProjectField("milestones", milestones);
-              renderTimelineScreen(container, AppState.getProjectData());
-              closeModal();
-              showToast(isEdit ? "Cập nhật mốc thành công!" : "Đã thêm mốc timeline mới!");
-            }
-          }
-        ]
-      );
-    };
-
-    // Attach Event Listeners
-    if (list.length === 0) {
-      document.getElementById("timeline-empty-add-btn").addEventListener("click", () => showMilestoneFormModal());
-    } else {
-      document.getElementById("timeline-add-btn").addEventListener("click", () => showMilestoneFormModal());
-
-      // Reorder Up
-      container.querySelectorAll(".btn-reorder-up").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const idx = parseInt(btn.getAttribute("data-index"));
-          const milestones = [...data.milestones];
-          const temp = milestones[idx];
-          milestones[idx] = milestones[idx - 1];
-          milestones[idx - 1] = temp;
-          AppState.updateProjectField("milestones", milestones);
-          renderTimelineScreen(container, AppState.getProjectData());
-        });
-      });
-
-      // Reorder Down
-      container.querySelectorAll(".btn-reorder-down").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const idx = parseInt(btn.getAttribute("data-index"));
-          const milestones = [...data.milestones];
-          const temp = milestones[idx];
-          milestones[idx] = milestones[idx + 1];
-          milestones[idx + 1] = temp;
-          AppState.updateProjectField("milestones", milestones);
-          renderTimelineScreen(container, AppState.getProjectData());
-        });
-      });
-
-      // Edit ms
-      container.querySelectorAll(".btn-edit-ms").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          const ms = data.milestones.find(m => m.id === id);
-          if (ms) showMilestoneFormModal(ms);
-        });
-      });
-
-      // Delete ms
-      container.querySelectorAll(".btn-delete-ms").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          showModal(
-            "Xác nhận xóa cột mốc",
-            "Bạn có chắc muốn xóa cột mốc này?",
-            [
-              { text: "Hủy", class: "btn-secondary", onClick: closeModal },
-              {
-                text: "Xóa",
-                class: "btn-danger",
-                onClick: () => {
-                  const milestones = data.milestones.filter(m => m.id !== id);
-                  AppState.updateProjectField("milestones", milestones);
-                  renderTimelineScreen(container, AppState.getProjectData());
-                  closeModal();
-                  showToast("Đã xóa cột mốc.", "info");
-                }
-              }
-            ]
-          );
-        });
-      });
-    }
+    document.getElementById("timeline-to-script-btn").addEventListener("click", () => AppState.setTab("features"));
   };
 
   // 5. Asset Manager View
@@ -1112,10 +918,6 @@ const AppUI = (() => {
       }
 
       grid.innerHTML = filtered.map(item => {
-        let typeLabel = "Screenshot";
-        if (item.type === 'logo') typeLabel = "Logo";
-        else if (item.type === 'video') typeLabel = "Demo Clip";
-        
         let thumbContent = "";
         if (item.url) {
           thumbContent = `<img src="${item.url}" alt="${item.name}">`;
@@ -1128,6 +930,8 @@ const AppUI = (() => {
           `;
         }
 
+        const isVideo = item.type === "video";
+
         return `
           <div class="asset-card" data-id="${item.id}">
             <div class="asset-thumb">
@@ -1137,8 +941,15 @@ const AppUI = (() => {
             <div class="asset-info">
               <div class="asset-name" title="${item.name}">${item.name}</div>
               <div class="asset-meta">
-                <span>${typeLabel}</span>
-                <span>${item.size}</span>
+                ${isVideo ? `
+                  <span class="asset-type-badge">Video demo</span>
+                ` : `
+                  <select class="asset-type-select" data-id="${item.id}" title="Xác nhận phân loại tài nguyên">
+                    <option value="screenshot" ${item.type === "screenshot" ? "selected" : ""}>Screenshot</option>
+                    <option value="logo" ${item.type === "logo" ? "selected" : ""}>Logo</option>
+                  </select>
+                `}
+                <span class="asset-size-badge">${item.size}</span>
               </div>
             </div>
             <div class="asset-actions">
@@ -1152,6 +963,22 @@ const AppUI = (() => {
       }).join("");
 
       // Bind Grid Action Events
+      grid.querySelectorAll(".asset-type-select").forEach(select => {
+        select.addEventListener("change", (e) => {
+          const id = select.getAttribute("data-id");
+          const newType = e.target.value;
+          const assets = data.assets.map(a => {
+            if (a.id === id) {
+              return { ...a, type: newType };
+            }
+            return a;
+          });
+          AppState.updateProjectField("assets", assets);
+          renderAssetsScreen(container, AppState.getProjectData());
+          showToast("Đã cập nhật loại tài nguyên!");
+        });
+      });
+
       grid.querySelectorAll(".btn-toggle-use").forEach(btn => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-id");
@@ -1196,13 +1023,7 @@ const AppUI = (() => {
         <h1>Tài nguyên dự án (${list.length})</h1>
       </div>
 
-      <!-- Drag / Drop Mock Zone -->
-      <div class="upload-zone" id="mock-upload-zone">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-        <p style="font-weight:600; margin-bottom: 2px;">Kéo thả file hình ảnh / video demo vào đây</p>
-        <p class="text-muted" style="font-size: var(--font-xs);">Hoặc click để chọn file từ máy (Giả lập upload)</p>
-        <input type="file" id="real-file-input" style="display:none;" accept="image/*,video/*">
-      </div>
+      <input type="file" id="real-file-input" style="display:none;" accept="image/*,video/*" multiple>
 
       <div class="assets-filter-row">
         <div class="filter-group">
@@ -1211,7 +1032,14 @@ const AppUI = (() => {
           <button class="filter-btn" data-filter="screenshot">Ảnh chụp màn hình</button>
           <button class="filter-btn" data-filter="video">Video demo</button>
         </div>
-        <div class="text-subtle" style="font-size: var(--font-xs);">* Chỉ ảnh và logo dùng trong video mới được render.</div>
+        <button id="assets-upload-btn" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: var(--space-2);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Tải tệp lên
+        </button>
+      </div>
+
+      <div class="assets-hint-row">
+        <span class="text-subtle">* Chỉ ảnh và logo dùng trong video mới được render. Kéo thả file vào đây để tải lên nhanh.</span>
       </div>
 
       <div class="assets-grid"></div>
@@ -1229,56 +1057,85 @@ const AppUI = (() => {
       });
     });
 
-    // Mock Upload Click Events
-    const dropzone = document.getElementById("mock-upload-zone");
     const realInput = document.getElementById("real-file-input");
+    const uploadBtn = document.getElementById("assets-upload-btn");
 
-    dropzone.addEventListener("click", () => {
-      realInput.click();
-    });
+    const handleFilesUpload = (files) => {
+      if (files.length === 0) return;
 
-    realInput.addEventListener("change", (e) => {
-      if (e.target.files.length === 0) return;
-      const file = e.target.files[0];
-      
-      // Simulate file upload loading
-      dropzone.innerHTML = `
-        <div class="spinner" style="margin-bottom: var(--space-2);">⏳</div>
-        <p style="font-weight:600;">Đang xử lý tệp: ${file.name}...</p>
-        <p class="text-muted" style="font-size: var(--font-xs);">Dung lượng: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
-      `;
+      const originalHTML = uploadBtn ? uploadBtn.innerHTML : "Tải tệp lên";
+      if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `⏳ Đang xử lý...`;
+      }
+
+      showToast(`Đang tải lên ${files.length} tệp tin...`, "info");
 
       setTimeout(() => {
-        // Create Mock Asset
-        const isImage = file.type.startsWith("image/");
-        const isLogo = file.name.toLowerCase().includes("logo");
-        
-        let type = "screenshot";
-        if (isLogo) type = "logo";
-        else if (file.type.startsWith("video/")) type = "video";
-
-        let url = "";
-        if (isImage) {
-          url = URL.createObjectURL(file); // Show real uploaded image preview
-        }
-
-        const newAsset = {
-          id: "asset_" + Date.now(),
-          name: file.name,
-          type: type,
-          size: (file.size / 1024 / 1024).toFixed(1) + " MB",
-          dateAdded: new Date().toISOString().split('T')[0],
-          url: url,
-          useInVideo: true
-        };
-
         const assets = [...(data.assets || [])];
-        assets.push(newAsset);
-        AppState.updateProjectField("assets", assets);
 
-        showToast(`Đã upload thành công tệp: ${file.name}`);
+        files.forEach((file, index) => {
+          const isImage = file.type.startsWith("image/");
+          const isLogo = file.name.toLowerCase().includes("logo");
+
+          let type = "screenshot";
+          if (isLogo) type = "logo";
+          else if (file.type.startsWith("video/")) type = "video";
+
+          let url = "";
+          if (isImage) {
+            url = URL.createObjectURL(file); // Show real uploaded image preview
+          }
+
+          const newAsset = {
+            id: "asset_" + (Date.now() + index),
+            name: file.name,
+            type: type,
+            size: (file.size / 1024 / 1024).toFixed(1) + " MB",
+            dateAdded: new Date().toISOString().split('T')[0],
+            url: url,
+            useInVideo: true
+          };
+          assets.push(newAsset);
+        });
+
+        AppState.updateProjectField("assets", assets);
+        showToast(`Đã tải lên thành công ${files.length} tệp tài nguyên!`);
         renderAssetsScreen(container, AppState.getProjectData());
-      }, 1200);
+      }, 1000);
+    };
+
+    if (uploadBtn) {
+      uploadBtn.addEventListener("click", () => {
+        realInput.click();
+      });
+    }
+
+    if (realInput) {
+      realInput.addEventListener("change", (e) => {
+        handleFilesUpload(Array.from(e.target.files));
+      });
+    }
+
+    // HTML5 Drag and Drop Handlers on the page container
+    container.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      container.classList.add("dragover-active");
+    });
+
+    container.addEventListener("dragleave", () => {
+      container.classList.remove("dragover-active");
+    });
+
+    container.addEventListener("drop", (e) => {
+      e.preventDefault();
+      container.classList.remove("dragover-active");
+
+      const files = Array.from(e.dataTransfer.files).filter(file =>
+        file.type.startsWith("image/") || file.type.startsWith("video/")
+      );
+
+      handleFilesUpload(files);
     });
   };
 
@@ -1332,8 +1189,8 @@ const AppUI = (() => {
               <label class="form-label">Màu nhấn chủ đạo (Accent Color)</label>
               <div style="display:flex; gap: var(--space-2); margin-top: 4px;">
                 ${THEME_ACCENT_COLORS.map(color => `
-                  <button class="btn btn-secondary btn-color-choice ${data.templateConfig.accentColor === color.id ? 'active' : ''}" 
-                    data-color="${color.id}" 
+                  <button class="btn btn-secondary btn-color-choice ${data.templateConfig.accentColor === color.id ? 'active' : ''}"
+                    data-color="${color.id}"
                     style="border-bottom: 3px solid ${color.value}; flex:1; height:40px;">
                     ${color.name}
                   </button>
@@ -1493,7 +1350,7 @@ const AppUI = (() => {
       } else {
         playBtn.textContent = "Dừng ❚❚";
         showToast("Bắt đầu chạy trình chiếu các cảnh quay...");
-        
+
         let localIdx = selectedIdx;
         autoplayTimer = setInterval(() => {
           localIdx = (localIdx + 1) % scenes.length;
@@ -1572,7 +1429,7 @@ const AppUI = (() => {
       case "features":
         const activeFeats = data.features.filter(f => f.useInVideo).slice(0, 3);
         let featsHTML = "";
-        
+
         if (activeFeats.length === 0) {
           featsHTML = `<p class="text-subtle">Chưa có tính năng nào được chọn đưa vào video.</p>`;
         } else {
@@ -1587,9 +1444,9 @@ const AppUI = (() => {
             </div>
           `;
         }
-        
+
         innerHTML += `
-          <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 4px; letter-spacing: 1px;">Tính năng nổi bật</div>
+          <div style="font-size: var(--font-xs); text-transform: uppercase; color:${accentColor}; font-weight:700; margin-bottom: 4px; letter-spacing: 1px;">Kịch bản chính</div>
           <h2 style="font-size: 18px; font-weight:700; margin-bottom:8px; color:${canvasTextColor};">Các chức năng cốt lõi hoạt động</h2>
           ${featsHTML}
         `;
@@ -1597,7 +1454,7 @@ const AppUI = (() => {
       case "timeline":
         const activeMs = data.milestones.slice(0, 3);
         let msHTML = "";
-        
+
         if (activeMs.length === 0) {
           msHTML = `<p class="text-subtle">Chưa có cột mốc timeline nào.</p>`;
         } else {
@@ -1948,7 +1805,7 @@ const AppUI = (() => {
         const currentVoiceover = (currentData.audio && currentData.audio.voiceover) || {};
         const currentPayload = AppRender.buildRenderPayload(currentData, { formatId });
         if (currentVoiceover.enabled && !(currentPayload.audio.voiceover.script || "").trim()) {
-          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc ở trang Nội dung dự án.", "error");
+          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc ở trang Nội dung video.", "error");
           return;
         }
 
@@ -2303,7 +2160,11 @@ const AppUI = (() => {
     }
 
     // Sidebar Badges updates
-    Object.values(DOM.badges).forEach(badge => badge.classList.add("d-none"));
+    Object.values(DOM.badges).forEach((badge) => {
+      if (badge) {
+        badge.classList.add("d-none");
+      }
+    });
 
     const addBadgeToTab = (tab, isError) => {
       const badge = DOM.badges[tab];
@@ -2379,7 +2240,7 @@ const AppUI = (() => {
 
   const focusValidationError = (tab, fieldId) => {
     AppState.setTab(tab);
-    
+
     // Allow tab DOM rendering to finish
     setTimeout(() => {
       // Find element inside workspace
@@ -2387,7 +2248,7 @@ const AppUI = (() => {
       if (el) {
         el.focus();
         el.classList.add("field-error");
-        
+
         // Remove highlighting border after a short duration
         setTimeout(() => {
           el.classList.remove("field-error");
@@ -2410,7 +2271,7 @@ const AppUI = (() => {
   const setAppTheme = (theme) => {
     AppState.setTheme(theme);
     DOM.html.setAttribute("data-theme", theme);
-    
+
     const sun = DOM.themeToggle.querySelector(".sun-icon");
     const moon = DOM.themeToggle.querySelector(".moon-icon");
 
@@ -2501,7 +2362,7 @@ const AppUI = (() => {
 
     // Subscribe to state change events
     AppState.subscribe("tabChanged", (tab) => switchTab(tab));
-    
+
     AppState.subscribe("projectDataChanged", (data) => {
       // Re-trigger validation check
       const valResults = AppValidation.validate(data);
@@ -2511,7 +2372,7 @@ const AppUI = (() => {
       AppStorage.saveLocalData(data);
       DOM.saveStatus.textContent = "Đã lưu nháp";
       DOM.saveStatus.className = "status-pill status-success ml-2";
-      DOM.topbarProjectName.textContent = data.projectName || "Dự án chưa đặt tên";
+      DOM.topbarProjectName.textContent = data.projectName || "Video chưa đặt tên";
     });
 
     AppState.subscribe("dirtyStateChanged", (isDirty) => {

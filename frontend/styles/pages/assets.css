@@ -1,1 +1,47 @@
 /* Page-specific styles for Tài nguyên. */
+
+.assets-filter-row {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+.assets-hint-row {
+  margin-top: 0;
+  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+}
+
+.assets-hint-row .text-subtle {
+  color: var(--color-text-subtle);
+  font-size: var(--font-xs);
+}
+
+.dragover-active .assets-grid {
+  outline: 2px dashed color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  outline-offset: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+/* Nút Tải tệp lên */
+#assets-upload-btn {
+  height: 38px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  transition: all var(--transition-fast) ease;
+}
+
+#assets-upload-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+#assets-upload-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}

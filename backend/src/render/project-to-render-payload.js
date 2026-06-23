@@ -69,7 +69,8 @@ function mapFeature(feature, index) {
     id: text(feature.id, `feature-${index + 1}`),
     title: text(feature.name, `Tính năng ${index + 1}`),
     description: text(feature.description, "Chưa có mô tả tính năng."),
-    benefit: text(feature.benefit, "Chưa có mô tả giá trị.")
+    benefit: text(feature.benefit, "Chưa có mô tả giá trị."),
+    voiceoverScript: text(feature.voiceoverScript, "")
   };
 }
 
@@ -201,8 +202,11 @@ function projectToRenderPayload(project = {}, options = {}) {
     .slice(0, 4)
     .map(mapFeature);
   const derivedHighlight = text(
-    project.keyHighlight,
+    project.mainMessage,
+    text(
+      project.keyHighlight,
     (features[0] && (features[0].benefit || features[0].description || features[0].title)) || ""
+    )
   );
 
   const milestones = list(project.milestones)
@@ -218,6 +222,10 @@ function projectToRenderPayload(project = {}, options = {}) {
   const sceneScripts = voiceover.sceneScripts && typeof voiceover.sceneScripts === "object" ? voiceover.sceneScripts : {};
   const timelineScript = milestones
     .map((milestone) => milestone.voiceoverScript)
+    .filter(Boolean)
+    .join("\n");
+  const featureSegmentScript = features
+    .map((feature) => text(feature.voiceoverScript, ""))
     .filter(Boolean)
     .join("\n");
 
@@ -254,7 +262,7 @@ function projectToRenderPayload(project = {}, options = {}) {
     },
     audio: mapAudioConfig(project),
     scenes: [
-      createScene("intro", "Giới thiệu dự án", {
+      createScene("intro", "Giới thiệu nội dung", {
         projectName: text(project.projectName, "Dự án chưa đặt tên"),
         tagline: text(project.tagline, "Giới thiệu ngắn về dự án."),
         ownerTeam: text(project.ownerTeam, "Team phụ trách"),
@@ -263,7 +271,7 @@ function projectToRenderPayload(project = {}, options = {}) {
       createScene("problem", "Bối cảnh và vấn đề", {
         problem: text(project.problemContext, "Chưa có mô tả vấn đề."),
         targetUsers: text(project.targetUsers, "Chưa xác định người dùng mục tiêu."),
-        useCase: text(project.useCase, "Chưa có use case.")
+        useCase: text(project.useCase, text(project.videoGoal, "Chưa có use case."))
       }, sceneScripts.problem),
       createScene("solution", "Giải pháp", {
         solution: text(project.solutionWhat, "Chưa có mô tả giải pháp."),
@@ -271,7 +279,7 @@ function projectToRenderPayload(project = {}, options = {}) {
       }, sceneScripts.solution),
       createScene("features", "Tính năng nổi bật", {
         items: features
-      }, sceneScripts.features),
+      }, sceneScripts.features || featureSegmentScript),
       createScene("timeline", "Timeline phát triển", {
         milestones
       }, sceneScripts.timeline || timelineScript),

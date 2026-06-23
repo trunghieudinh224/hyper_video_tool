@@ -9,10 +9,16 @@ const AppStorage = (() => {
   const STATIC_SAMPLE_DATA = {
     projectName: "Internal Analytics Dashboard",
     projectSlug: "internal-analytics-dashboard",
+    contentType: "ui-demo",
     tagline: "Bảng điều khiển giúp team theo dõi hiệu suất dự án theo thời gian thực.",
     ownerTeam: "Platform Team",
     presenterRole: "Product Owner",
     shortSummary: "Hệ thống tổng hợp và trực quan hóa dữ liệu hiệu suất của các dự án đang chạy trong công ty.",
+    videoGoal: "Giúp team lead hiểu nhanh dashboard mới theo dõi tiến độ, cảnh báo rủi ro và chuẩn bị báo cáo tuần.",
+    mainMessage: "Dashboard gom dữ liệu phân tán thành một nơi dễ đọc để team ra quyết định nhanh hơn.",
+    contentTone: "internal",
+    contentLanguage: "vi-VN",
+    primaryAssetId: "asset_2",
     problemContext: "Dữ liệu tiến độ nằm rải rác nhiều nguồn, khó nhìn tổng quan khiến việc đưa ra quyết định chậm trễ.",
     solutionWhat: "Gom dữ liệu vào dashboard nội bộ có biểu đồ trực quan, hệ thống cảnh báo tự động và báo cáo nhanh.",
     targetUsers: "Quản lý dự án, team lead và các thành viên vận hành nội bộ.",
@@ -23,30 +29,42 @@ const AppStorage = (() => {
     features: [
       {
         id: "feat_1",
+        type: "intro",
         name: "Tổng quan tiến độ theo dự án",
         description: "Hiển thị tỷ lệ phần trăm hoàn thành, trạng thái các milestone và timeline của từng dự án.",
         benefit: "Giúp quản lý nắm bắt nhanh trạng thái sức khỏe của toàn bộ dự án trong 10 giây.",
+        voiceoverScript: "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy.",
+        durationSec: 8,
         useInVideo: true
       },
       {
         id: "feat_2",
+        type: "demo",
         name: "Biểu đồ hiệu suất theo tuần",
         description: "Biểu diễn trực quan số lượng task hoàn thành, task mới phát sinh và task tồn đọng.",
         benefit: "Phát hiện ngay các điểm nghẽn trong quy trình làm việc của team.",
+        voiceoverScript: "Biểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên.",
+        durationSec: 10,
         useInVideo: true
       },
       {
         id: "feat_3",
+        type: "workflow",
         name: "Cảnh báo task trễ hạn tự động",
         description: "Tự động quét và phát hiện các task đã quá deadline mà chưa được cập nhật.",
         benefit: "Hỗ trợ team lead xử lý rủi ro chậm tiến độ một cách chủ động.",
+        voiceoverScript: "Khi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng.",
+        durationSec: 9,
         useInVideo: true
       },
       {
         id: "feat_4",
+        type: "result",
         name: "Xuất báo cáo nhanh cho buổi họp",
         description: "Chỉ với 1 click, hệ thống tự động xuất báo cáo PDF/Slides tóm tắt các chỉ số quan trọng.",
         benefit: "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần.",
+        voiceoverScript: "Cuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần.",
+        durationSec: 8,
         useInVideo: true
       }
     ],

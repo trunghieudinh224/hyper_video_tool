@@ -52,12 +52,11 @@ Dark mode:
 - Border rõ nhưng không gắt.
 - Màu nhấn xanh nhạt hoặc xanh xám.
 
-## Màn Hình Quan Trọng
+## Navigation Hiện Tại
 
 - Tổng quan.
-- Nội dung dự án.
-- Tính năng.
-- Timeline.
+- Nội dung video.
+- Kịch bản.
 - Tài nguyên.
 - Template.
 - Xem trước.
@@ -65,4 +64,14 @@ Dark mode:
 - Video đã xuất.
 - Cài đặt.
 
-Chi tiết item từng màn hình nằm ở `.agents/tasks/ui-items.md`.
+`Timeline` không còn là page chính trong navigation. Nếu route/file cũ còn tồn tại, nó chỉ dùng làm handoff tương thích sang `Kịch bản`.
+
+## Trách Nhiệm Màn Hình
+
+- `Tổng quan`: trạng thái brief, số segment, template, asset, voiceover và mức sẵn sàng render.
+- `Nội dung video`: brief cấp video, gồm loại nội dung, chủ đề, mô tả, mục tiêu, thông điệp, đối tượng/ngữ cảnh, tone, ngôn ngữ và voiceover toàn video.
+- `Kịch bản`: danh sách các đoạn sẽ lên video; gộp vai trò cũ của `Tính năng` và `Timeline`.
+- `Tài nguyên`: thư viện media riêng, không nhét toàn bộ asset vào brief.
+- `Xem trước`: kiểm tra visual theo template sau khi dữ liệu đã được áp dụng, không biến thành form editor chính.
+
+Chi tiết roadmap chỉnh flow nằm ở `.agents/tasks/video-workflow-ia-roadmap.md`.

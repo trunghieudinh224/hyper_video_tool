@@ -1,4 +1,4 @@
-/* Page-specific styles for Nội dung dự án. */
+/* Page-specific styles for Nội dung video. */
 
 .content-form-block {
   display: grid;
@@ -25,29 +25,4 @@
   color: var(--color-text-muted);
   font-size: var(--font-xs);
   line-height: 1.4;
-}
-
-.voice-script-field {
-  display: grid;
-  gap: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  background: var(--color-surface-alt);
-}
-
-.voice-script-field.is-nested {
-  margin-top: var(--space-3);
-}
-
-.voice-script-field .form-label {
-  color: var(--color-primary);
-  font-size: var(--font-xs);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.voice-script-field textarea {
-  min-height: 76px;
-  resize: vertical;
 }
