@@ -1552,15 +1552,16 @@ const AppUI = (() => {
                 <div class="render-voiceover-header">
                   <div>
                     <div class="render-voiceover-title">Voiceover</div>
-                    <div class="render-voiceover-desc">Tạo giọng đọc bằng edge-tts, hỗ trợ Việt / Anh / Nhật.</div>
+                    <div class="render-voiceover-desc">edge-tts · Việt / Anh / Nhật · áp dụng cho toàn bộ video</div>
                   </div>
                   <label class="render-voiceover-toggle">
                     <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""} ${AppRender.isRendering() ? "disabled" : ""}>
-                    <span>Bật</span>
+                    <span class="render-voiceover-switch" aria-hidden="true"></span>
+                    <span class="render-voiceover-toggle-text">Bật voice</span>
                   </label>
                 </div>
 
-                <div class="render-voiceover-grid">
+                <div class="render-voiceover-controls">
                   <div class="form-group">
                     <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
                     <select id="render-voiceover-language" class="form-control" ${AppRender.isRendering() ? "disabled" : ""}>
@@ -1569,7 +1570,7 @@ const AppUI = (() => {
                       `).join("")}
                     </select>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group render-voiceover-voice-field">
                     <label class="form-label" for="render-voiceover-voice">Giọng đọc</label>
                     <select id="render-voiceover-voice" class="form-control" ${AppRender.isRendering() ? "disabled" : ""}>
                       ${selectedVoiceList.map((voice) => `
@@ -1577,9 +1578,6 @@ const AppUI = (() => {
                       `).join("")}
                     </select>
                   </div>
-                </div>
-
-                <div class="render-voiceover-grid">
                   <div class="form-group">
                     <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
                     <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}" ${AppRender.isRendering() ? "disabled" : ""}>
@@ -1590,18 +1588,19 @@ const AppUI = (() => {
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label class="form-label" for="render-voiceover-script">Kịch bản đọc tổng hợp</label>
-                  <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="6" readonly>${escapeTextarea(voiceoverScript)}</textarea>
-                  <div class="render-voiceover-scenes">
-                    ${voiceoverSceneReports.map((scene) => `
-                      <div class="render-voiceover-scene ${scene.script && !scene.fits ? "is-warning" : ""}">
-                        <span>${scene.title}</span>
-                        <strong>${scene.estimatedDuration}s / ${scene.duration}s</strong>
-                      </div>
-                    `).join("")}
-                  </div>
+                <div class="render-voiceover-scenes" aria-label="Thời lượng voiceover theo cảnh">
+                  ${voiceoverSceneReports.map((scene) => `
+                    <div class="render-voiceover-scene ${scene.script && !scene.fits ? "is-warning" : ""}">
+                      <span>${scene.title}</span>
+                      <strong>${scene.estimatedDuration}s / ${scene.duration}s</strong>
+                    </div>
+                  `).join("")}
                 </div>
+
+                <details class="render-voiceover-script-details">
+                  <summary>Kịch bản đọc tổng hợp</summary>
+                  <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="5" readonly>${escapeTextarea(voiceoverScript)}</textarea>
+                </details>
               </div>
 
               <div style="border-top:1px solid var(--color-border); padding-top: var(--space-4); margin-top: var(--space-2); display:flex; justify-content:space-between; align-items:center;">
