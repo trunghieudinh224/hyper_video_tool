@@ -6,6 +6,7 @@ const AppUI = (() => {
 
   // Internal view states
   let templateRatioFilter = "all";
+  let selectedScriptSegmentId = null;
 
   const initDOM = () => {
     DOM.themeToggle = document.getElementById("theme-toggle");
@@ -545,6 +546,12 @@ const AppUI = (() => {
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
+    const selectedItem = list.find((item) => item.id === selectedScriptSegmentId) || list[0] || null;
+    if (selectedItem) {
+      selectedScriptSegmentId = selectedItem.id;
+    } else {
+      selectedScriptSegmentId = null;
+    }
 
     let rowsHTML = "";
     if (list.length === 0) {
@@ -563,7 +570,7 @@ const AppUI = (() => {
             const durationSec = Number.parseInt(item.durationSec, 10) || 8;
             const voiceScript = String(item.voiceoverScript || "").trim();
             return `
-            <article class="script-segment ${item.useInVideo ? "" : "is-disabled"}" data-id="${item.id}" data-type="${escapeText(item.type || "feature")}">
+            <article class="script-segment ${item.useInVideo ? "" : "is-disabled"} ${selectedItem && selectedItem.id === item.id ? "is-selected" : ""}" data-id="${item.id}" data-type="${escapeText(item.type || "feature")}">
               <div class="script-order">
                 <span class="script-order-number">${index + 1}</span>
                 <button class="script-drag-handle" type="button" aria-label="Kéo để đổi thứ tự" title="Kéo để đổi thứ tự">
@@ -609,6 +616,11 @@ const AppUI = (() => {
                   <span class="script-switch-text">${item.useInVideo ? "Đang bật" : "Đang tắt"}</span>
                 </label>
                 <div class="script-actions">
+                  <button class="btn-action btn-view-feature" data-id="${item.id}" type="button" aria-label="Xem chi tiết đoạn" title="Xem chi tiết">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+                    </svg>
+                  </button>
                   <button class="btn-action btn-edit-feature" data-id="${item.id}" type="button" aria-label="Sửa đoạn" title="Sửa đoạn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75 1.84-1.83c-.39-.39-.39-1.02 0-1.41z"/>
@@ -627,6 +639,62 @@ const AppUI = (() => {
         </div>
       `;
     }
+
+    const selectedType = selectedItem ? getSegmentType(selectedItem.type) : null;
+    const selectedIndex = selectedItem ? list.findIndex((item) => item.id === selectedItem.id) : -1;
+    const selectedDuration = selectedItem ? (Number.parseInt(selectedItem.durationSec, 10) || 8) : 0;
+    const selectedVoice = selectedItem ? String(selectedItem.voiceoverScript || "").trim() : "";
+    const detailHTML = selectedItem ? `
+      <aside class="script-detail-panel" aria-label="Chi tiết đoạn kịch bản">
+        <div class="script-detail-header">
+          <div>
+            <span class="script-detail-eyebrow">Đoạn ${selectedIndex + 1}</span>
+            <h2>${escapeText(selectedItem.name || "Đoạn chưa đặt tên")}</h2>
+          </div>
+          <span class="status-pill ${selectedItem.useInVideo ? "status-success" : "status-warning"}">${selectedItem.useInVideo ? "Đang bật" : "Đang tắt"}</span>
+        </div>
+
+        <div class="script-detail-metrics">
+          <div>
+            <span>Loại</span>
+            <strong>${escapeText(selectedType ? selectedType.label : "Tính năng")}</strong>
+          </div>
+          <div>
+            <span>Thời lượng</span>
+            <strong>${selectedDuration}s</strong>
+          </div>
+          <div>
+            <span>Voice</span>
+            <strong>${selectedVoice ? "Có" : "Chưa có"}</strong>
+          </div>
+        </div>
+
+        <div class="script-detail-section">
+          <h3>Nội dung chính</h3>
+          <p>${escapeText(selectedItem.description || "Chưa có nội dung chính.")}</p>
+        </div>
+
+        <div class="script-detail-section">
+          <h3>Điểm nhấn</h3>
+          <p>${escapeText(selectedItem.benefit || "Chưa nhập điểm nhấn cho đoạn này.")}</p>
+        </div>
+
+        <div class="script-detail-section">
+          <h3>Voice script</h3>
+          <p>${escapeText(selectedVoice || "Chưa có kịch bản giọng đọc riêng cho đoạn này.")}</p>
+        </div>
+
+        <div class="script-detail-actions">
+          <button class="btn btn-secondary btn-sm" id="script-detail-edit-btn" type="button">Sửa đoạn này</button>
+          <button class="btn btn-primary btn-sm" id="script-detail-preview-btn" type="button">Xem trước</button>
+        </div>
+      </aside>
+    ` : `
+      <aside class="script-detail-panel is-empty" aria-label="Chi tiết đoạn kịch bản">
+        <div class="empty-state-title">Chưa có đoạn để xem chi tiết</div>
+        <div class="empty-state-desc">Thêm đoạn đầu tiên để kiểm tra nội dung, voice và thời lượng.</div>
+      </aside>
+    `;
 
     container.innerHTML = `
       <div class="workspace-header script-workspace-header">
@@ -685,7 +753,10 @@ const AppUI = (() => {
             </div>
           </div>
         </section>
-        ${rowsHTML}
+        <section class="script-board">
+          ${rowsHTML}
+          ${detailHTML}
+        </section>
       </div>
     `;
 
@@ -790,6 +861,23 @@ const AppUI = (() => {
     } else {
       document.getElementById("features-add-btn").addEventListener("click", () => showFeatureFormModal());
 
+      container.querySelectorAll(".script-segment").forEach((segment) => {
+        segment.addEventListener("click", (event) => {
+          if (event.target.closest("button, label, input, select, textarea")) {
+            return;
+          }
+          selectedScriptSegmentId = segment.getAttribute("data-id");
+          renderFeaturesScreen(container, AppState.getProjectData());
+        });
+      });
+
+      container.querySelectorAll(".btn-view-feature").forEach(btn => {
+        btn.addEventListener("click", () => {
+          selectedScriptSegmentId = btn.getAttribute("data-id");
+          renderFeaturesScreen(container, AppState.getProjectData());
+        });
+      });
+
       const sortableList = document.getElementById("script-sortable-list");
       if (sortableList && typeof Sortable !== "undefined") {
         Sortable.create(sortableList, {
@@ -834,6 +922,9 @@ const AppUI = (() => {
                 class: "btn-danger",
                 onClick: () => {
                   const features = data.features.filter(f => f.id !== id);
+                  if (selectedScriptSegmentId === id) {
+                    selectedScriptSegmentId = features[0] ? features[0].id : null;
+                  }
                   AppState.updateProjectField("features", features);
                   renderFeaturesScreen(container, AppState.getProjectData());
                   closeModal();
@@ -859,6 +950,16 @@ const AppUI = (() => {
           renderFeaturesScreen(container, AppState.getProjectData());
         });
       });
+
+      const detailEditBtn = document.getElementById("script-detail-edit-btn");
+      if (detailEditBtn && selectedItem) {
+        detailEditBtn.addEventListener("click", () => showFeatureFormModal(selectedItem));
+      }
+
+      const detailPreviewBtn = document.getElementById("script-detail-preview-btn");
+      if (detailPreviewBtn) {
+        detailPreviewBtn.addEventListener("click", () => AppState.setTab("preview"));
+      }
     }
   };
 
@@ -1356,58 +1457,126 @@ const AppUI = (() => {
 
   // 7. Scene Preview View
   let autoplayTimer = null;
+  const getPreviewPlayButtonHTML = (isPlaying) => isPlaying ? `
+    <svg class="preview-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/></svg>
+    <span>Dừng</span>
+  ` : `
+    <svg class="preview-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7Z"/></svg>
+    <span>Chạy thử</span>
+  `;
+  const stopPreviewAutoplay = (showMessage = false) => {
+    if (!autoplayTimer) {
+      return;
+    }
+
+    clearInterval(autoplayTimer);
+    autoplayTimer = null;
+    const playButton = document.getElementById("btn-play-preview");
+    if (playButton) {
+      playButton.innerHTML = getPreviewPlayButtonHTML(false);
+    }
+    if (showMessage) {
+      showToast("Đã dừng trình chiếu thử.", "info");
+    }
+  };
+
   const renderPreviewScreen = (container, data) => {
     const activeTemplate = TEMPLATES_LIST.find(t => t.id === data.templateId) || TEMPLATES_LIST[0];
     const scenes = activeTemplate.scenes;
-    const selectedIdx = AppState.getSelectedSceneIndex();
+    const selectedIdx = Math.min(AppState.getSelectedSceneIndex(), Math.max(scenes.length - 1, 0));
     const currentScene = scenes[selectedIdx] || scenes[0];
+    const activeSegments = (data.features || []).filter((item) => item.useInVideo);
+    const ratioClass = activeTemplate.ratio === "9:16" ? "is-vertical" : "is-landscape";
+    const estimatedDuration = activeSegments.reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
+    const sceneDuration = currentScene ? currentScene.duration : "0s";
+    const escapeText = (value) => String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Xem trước Template Video</h1>
-        <div style="font-size: var(--font-sm); color: var(--color-text-muted);">Tỉ lệ màn hình 16:9</div>
+      <div class="workspace-header preview-workspace-header">
+        <div>
+          <h1>Xem trước</h1>
+          <p class="workspace-subtitle">Kiểm tra nhanh template, scene và nội dung kịch bản trước khi render.</p>
+        </div>
+        <div class="preview-header-meta">
+          <span>${activeTemplate.ratio}</span>
+          <strong>${escapeText(activeTemplate.name)}</strong>
+        </div>
       </div>
 
       <div class="preview-layout">
-        <!-- Preview Panel -->
-        <div class="preview-pane">
-          <div class="preview-canvas-wrapper">
+        <section class="preview-pane" aria-label="Khung xem trước scene">
+          <div class="preview-canvas-shell ${ratioClass}">
             <div id="preview-canvas" class="preview-canvas">
-              <!-- Rendered Dynamically by drawPreviewCanvas() -->
             </div>
           </div>
-          <div class="preview-controls">
-            <button id="btn-prev-scene" class="btn btn-secondary" ${selectedIdx === 0 ? 'disabled' : ''}>◀ Cảnh trước</button>
-            <button id="btn-play-preview" class="btn btn-secondary">Chạy thử ▶</button>
-            <button id="btn-next-scene" class="btn btn-secondary" ${selectedIdx === scenes.length - 1 ? 'disabled' : ''}>Cảnh sau ▶</button>
-          </div>
-        </div>
 
-        <!-- Scene Navigation List -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Danh sách Scene (${scenes.length})</h3>
+          <div class="preview-controls">
+            <button id="btn-prev-scene" class="btn btn-secondary" ${selectedIdx === 0 ? 'disabled' : ''}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+              Cảnh trước
+            </button>
+            <button id="btn-play-preview" class="btn btn-secondary">
+              ${getPreviewPlayButtonHTML(Boolean(autoplayTimer))}
+            </button>
+            <button id="btn-next-scene" class="btn btn-secondary" ${selectedIdx === scenes.length - 1 ? 'disabled' : ''}>
+              Cảnh sau
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
           </div>
-          <div class="card-body scene-sidebar">
+        </section>
+
+        <aside class="preview-side-panel" aria-label="Thông tin scene xem trước">
+          <section class="preview-info-card">
+            <div class="preview-info-header">
+              <span>Scene đang xem</span>
+              <strong>${selectedIdx + 1}/${scenes.length}</strong>
+            </div>
+            <h2>${escapeText(currentScene ? currentScene.title : "Chưa có scene")}</h2>
+            <p>${escapeText(currentScene ? currentScene.desc : "Template chưa có mô tả scene.")}</p>
+            <div class="preview-info-grid">
+              <div><span>Thời lượng scene</span><strong>${escapeText(sceneDuration)}</strong></div>
+              <div><span>Kịch bản bật</span><strong>${activeSegments.length}</strong></div>
+              <div><span>Ước tính</span><strong>${estimatedDuration}s</strong></div>
+            </div>
+          </section>
+
+          <section class="preview-scene-list" aria-label="Danh sách scene">
+            <div class="preview-section-title">Danh sách scene</div>
             ${scenes.map((scene, index) => `
-              <div class="scene-item ${selectedIdx === index ? 'active' : ''}" data-index="${index}">
-                <div class="scene-item-title">${index + 1}. ${scene.title}</div>
-                <div class="scene-item-duration">${scene.duration}</div>
+              <button class="scene-item ${selectedIdx === index ? 'active' : ''}" data-index="${index}" type="button">
+                <span class="scene-item-index">${index + 1}</span>
+                <span class="scene-item-copy">
+                  <strong>${escapeText(scene.title)}</strong>
+                  <small>${escapeText(scene.desc || "")}</small>
+                </span>
+                <span class="scene-item-duration">${escapeText(scene.duration)}</span>
+              </button>
+            `).join("")}
+          </section>
+
+          <section class="preview-segment-summary" aria-label="Kịch bản đang bật">
+            <div class="preview-section-title">Kịch bản đang bật</div>
+            ${activeSegments.length === 0 ? `
+              <div class="preview-empty-note">Chưa có đoạn kịch bản nào đang bật.</div>
+            ` : activeSegments.slice(0, 4).map((segment, index) => `
+              <div class="preview-segment-item">
+                <span>${index + 1}</span>
+                <strong>${escapeText(segment.name || "Đoạn chưa đặt tên")}</strong>
+                <small>${Number.parseInt(segment.durationSec, 10) || 8}s</small>
               </div>
             `).join("")}
+          </section>
+        </aside>
           </div>
-        </div>
-      </div>
     `;
 
     // Clear interval when navigating away
     const clearAutoplay = () => {
-      if (autoplayTimer) {
-        clearInterval(autoplayTimer);
-        autoplayTimer = null;
-        document.getElementById("btn-play-preview").textContent = "Chạy thử ▶";
-        showToast("Đã dừng trình chiếu thử.", "info");
-      }
+      stopPreviewAutoplay(true);
     };
 
     // Draw canvas content
@@ -1439,7 +1608,7 @@ const AppUI = (() => {
       if (autoplayTimer) {
         clearAutoplay();
       } else {
-        playBtn.textContent = "Dừng ❚❚";
+        playBtn.innerHTML = getPreviewPlayButtonHTML(true);
         showToast("Bắt đầu chạy trình chiếu các cảnh quay...");
 
         let localIdx = selectedIdx;
@@ -1447,14 +1616,6 @@ const AppUI = (() => {
           localIdx = (localIdx + 1) % scenes.length;
           AppState.setSelectedSceneIndex(localIdx);
         }, 3000); // Shift every 3s
-      }
-    });
-
-    // Clean up timer if we switch tab
-    AppState.subscribe("tabChanged", () => {
-      if (autoplayTimer) {
-        clearInterval(autoplayTimer);
-        autoplayTimer = null;
       }
     });
   };
@@ -2413,7 +2574,12 @@ const AppUI = (() => {
     });
 
     // Subscribe to state change events
-    AppState.subscribe("tabChanged", (tab) => switchTab(tab));
+    AppState.subscribe("tabChanged", (tab) => {
+      if (tab !== "preview") {
+        stopPreviewAutoplay(false);
+      }
+      switchTab(tab);
+    });
 
     AppState.subscribe("projectDataChanged", (data) => {
       // Re-trigger validation check

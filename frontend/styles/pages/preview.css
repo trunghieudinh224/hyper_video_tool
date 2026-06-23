@@ -1,1 +1,318 @@
 /* Page-specific styles for Xem trước. */
+
+.preview-workspace-header {
+  align-items: flex-start;
+}
+
+.preview-header-meta {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+}
+
+.preview-header-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-weight: 800;
+}
+
+.preview-header-meta strong {
+  color: var(--color-text);
+  font-size: var(--font-sm);
+}
+
+.preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.preview-pane {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.preview-canvas-shell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 28rem;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.preview-canvas-shell.is-landscape .preview-canvas {
+  aspect-ratio: 16 / 9;
+  width: min(100%, 52rem);
+}
+
+.preview-canvas-shell.is-vertical .preview-canvas {
+  aspect-ratio: 9 / 16;
+  width: min(100%, 20rem);
+}
+
+.preview-canvas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18rem;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.preview-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.preview-controls .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.preview-side-panel {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.preview-info-card,
+.preview-scene-list,
+.preview-segment-summary {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.preview-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--color-text-subtle);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.preview-info-header strong {
+  color: var(--color-primary);
+}
+
+.preview-info-card h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-xl);
+  line-height: 1.3;
+}
+
+.preview-info-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
+.preview-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.preview-info-grid div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
+.preview-info-grid span {
+  color: var(--color-text-subtle);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.preview-info-grid strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-section-title {
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  font-weight: 800;
+}
+
+.scene-item {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.scene-item:hover,
+.scene-item.active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+}
+
+.scene-item-index {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+
+.scene-item.active .scene-item-index {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+.scene-item-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scene-item-copy strong {
+  overflow: hidden;
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-item-copy small,
+.scene-item-duration {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  line-height: 1.35;
+}
+
+.scene-item-copy small {
+  overflow-wrap: anywhere;
+}
+
+.scene-item-duration {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.preview-empty-note {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.preview-segment-item {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.preview-segment-item span {
+  color: var(--color-text-subtle);
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+
+.preview-segment-item strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-segment-item small {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+
+@media (max-width: 1100px) {
+  .preview-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-side-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preview-info-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .preview-workspace-header,
+  .preview-header-meta {
+    align-items: flex-start;
+    justify-items: start;
+  }
+
+  .preview-layout,
+  .preview-side-panel,
+  .preview-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-canvas-shell {
+    min-height: 20rem;
+    padding: var(--space-3);
+  }
+
+  .preview-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preview-controls .btn {
+    justify-content: center;
+    min-height: 44px;
+    width: 100%;
+  }
+}
