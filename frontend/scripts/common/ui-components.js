@@ -9,8 +9,6 @@ const AppUI = (() => {
     DOM.saveStatus = document.getElementById("save-status");
     DOM.topbarProjectName = document.getElementById("topbar-project-name");
     DOM.topbarRenderBtn = document.getElementById("topbar-render-btn");
-    DOM.btnQuickImport = document.getElementById("btn-quick-import");
-    DOM.btnQuickExport = document.getElementById("btn-quick-export");
     DOM.sidebar = document.getElementById("sidebar");
     DOM.validationPanel = document.getElementById("validation-panel");
     DOM.validationCompactToggle = document.getElementById("validation-compact-toggle");
@@ -2378,16 +2376,6 @@ const AppUI = (() => {
     DOM.themeToggle.addEventListener("click", () => {
       const current = AppState.getActiveTheme();
       setAppTheme(current === 'light' ? 'dark' : 'light');
-    });
-
-    // Top bar quick action buttons
-    DOM.btnQuickExport.addEventListener("click", () => {
-      AppStorage.exportProjectJSON(AppState.getProjectData());
-      showToast("Đã tải tệp JSON backup dự án!");
-    });
-
-    DOM.btnQuickImport.addEventListener("click", () => {
-      AppState.setTab("settings");
     });
 
     DOM.topbarRenderBtn.addEventListener("click", () => {
