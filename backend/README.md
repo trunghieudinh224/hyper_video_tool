@@ -136,6 +136,21 @@ npm --prefix backend run check
 node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
 ```
 
+Smoke test render API thật khi backend đang chạy:
+
+```bash
+HVT_SMOKE_BASE_URL=http://127.0.0.1:3000 npm --prefix backend run smoke:render-api
+```
+
+Smoke test này sẽ:
+
+- Gửi `POST /api/render-jobs`.
+- Poll `GET /api/render-jobs/:id`.
+- Kiểm `HEAD /api/outputs/{jobId}.mp4`.
+- Kiểm `GET /api/outputs` có output vừa render.
+
+Thời gian chạy thường khoảng 40-60 giây vì có render MP4 thật.
+
 Roadmap:
 
 - `.agents/tasks/backend-roadmap.md`

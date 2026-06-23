@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/config.js && node --check src/server.js && node --check src/routes/outputs.js && node --check src/routes/render-jobs.js && node --check src/routes/render-preflight.js && node --check src/render/output-manifest.js && node --check src/render/render-payload-schema.js && node --check src/render/project-to-render-payload.js && node --check src/render/render-runner.js && node --check src/render/preflight.js && node --check scripts/check-hyperframes.js && node --check scripts/generate-render-payload-sample.js && node --check scripts/test-render-payload.js && npm run payload:test",
+    "check": "node --check src/config.js && node --check src/server.js && node --check src/routes/outputs.js && node --check src/routes/render-jobs.js && node --check src/routes/render-preflight.js && node --check src/render/output-manifest.js && node --check src/render/render-payload-schema.js && node --check src/render/project-to-render-payload.js && node --check src/render/render-runner.js && node --check src/render/preflight.js && node --check scripts/check-hyperframes.js && node --check scripts/generate-render-payload-sample.js && node --check scripts/smoke-render-api.js && node --check scripts/test-render-payload.js && npm run payload:test",
     "check:hyperframes": "node scripts/check-hyperframes.js",
     "hf:setup": "node scripts/run-hyperframes-local.js --setup-only",
     "hf:doctor:spike": "node scripts/run-hyperframes-local.js --cwd templates/hyperframes-spike doctor",
@@ -14,7 +14,8 @@
     "hf:render:spike": "node scripts/run-hyperframes-local.js --cwd templates/hyperframes-spike render --output /private/tmp/hyper-video-tool-spike.mp4",
     "payload:check": "node scripts/generate-render-payload-sample.js",
     "payload:write": "node scripts/generate-render-payload-sample.js --write",
-    "payload:test": "node scripts/test-render-payload.js"
+    "payload:test": "node scripts/test-render-payload.js",
+    "smoke:render-api": "node scripts/smoke-render-api.js"
   },
   "engines": {
     "node": ">=18"
