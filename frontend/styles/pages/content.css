@@ -14,7 +14,7 @@
 }
 
 .voice-script-field .form-label {
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   font-size: var(--font-xs);
   font-weight: 800;
   text-transform: uppercase;
