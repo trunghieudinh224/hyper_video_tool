@@ -1,8 +1,6 @@
 # Backend
 
-Thư mục này dành cho backend local ở phase sau.
-
-Backend Phase 1 đã có server local tối thiểu bằng Node.js built-in HTTP module. Chưa có API lưu file thật hoặc render HyperFrames thật.
+Backend local hiện serve UI tĩnh, kiểm tra môi trường render và gọi HyperFrames để xuất MP4 thật.
 
 Khi bắt đầu backend, giữ phạm vi backend trong thư mục này:
 
@@ -18,8 +16,7 @@ Không sửa cấu trúc UI trong `frontend/` khi chỉ làm backend, trừ khi 
 Yêu cầu Node.js 18+.
 
 ```bash
-cd backend
-npm start
+npm --prefix backend start
 ```
 
 Mặc định server chạy tại:
@@ -37,7 +34,7 @@ GET /api/health
 Có thể đổi host/port bằng env:
 
 ```bash
-HVT_HOST=127.0.0.1 HVT_PORT=3001 npm start
+HVT_HOST=127.0.0.1 HVT_PORT=3001 npm --prefix backend start
 ```
 
 ## Kiểm tra HyperFrames
@@ -45,11 +42,10 @@ HVT_HOST=127.0.0.1 HVT_PORT=3001 npm start
 HyperFrames render local cần Node.js 22+ và FFmpeg. Project có runner local để không cần cài global ngay:
 
 ```bash
-cd backend
-npm run hf:setup
-npm run hf:doctor:spike
-npm run hf:lint:spike
-npm run hf:render:spike
+npm --prefix backend run hf:setup
+npm --prefix backend run hf:doctor:spike
+npm --prefix backend run hf:lint:spike
+npm --prefix backend run hf:render:spike
 ```
 
 Composition spike tối thiểu nằm ở:
@@ -64,12 +60,12 @@ Output render spike mặc định:
 /private/tmp/hyper-video-tool-spike.mp4
 ```
 
-## Render project showcase qua API
+## Render Project Showcase Qua API
 
-Backend đã có render API MVP chạy đồng bộ:
+Backend render async bằng queue 1 worker local. `POST /api/render-jobs` trả job ngay, UI/API poll trạng thái bằng `GET /api/render-jobs/:id`.
 
 ```bash
-HVT_PORT=3011 npm start
+HVT_PORT=3011 npm --prefix backend start
 ```
 
 Tạo render job từ payload mẫu:
@@ -77,35 +73,70 @@ Tạo render job từ payload mẫu:
 ```bash
 curl -sS -X POST http://127.0.0.1:3011/api/render-jobs \
   -H 'Content-Type: application/json' \
-  --data-binary @../data/render-payload.sample.json
+  --data-binary @data/render-payload.sample.json
 ```
 
-Response trả metadata job, trong đó `outputPath` trỏ tới file MP4 local:
+Response trả metadata job ban đầu:
 
 ```text
-outputs/{jobId}.mp4
+status=queued
+progress=5
+outputPath=outputs/{jobId}.mp4
 ```
 
-Đọc lại metadata khi server còn chạy:
+Poll trạng thái:
 
 ```bash
 curl -sS http://127.0.0.1:3011/api/render-jobs/{jobId}
 ```
 
-Ghi chú:
+Khi `status=succeeded`, MP4 nằm ở:
 
-- Phase hiện tại render đồng bộ, request có thể chờ khoảng 35-45 giây.
-- Job metadata lưu trong memory nên restart server sẽ mất trạng thái job cũ.
-- File MP4 trong `outputs/` không được commit.
+```text
+outputs/{jobId}.mp4
+```
 
-Ghi chú:
+Xem/download qua API:
+
+```text
+GET /api/outputs/{jobId}.mp4
+GET /api/outputs/{jobId}.mp4?download=1
+GET /api/outputs
+```
+
+## Preflight
+
+Render page dùng endpoint:
+
+```text
+GET /api/render-preflight
+```
+
+Preflight kiểm:
+
+- Payload sample hợp lệ.
+- Template files đủ.
+- Template dùng GSAP local, không phụ thuộc CDN.
+- `outputs/` ghi được.
+- HyperFrames local runner, FFmpeg, FFprobe có sẵn.
+
+## Ghi Chú
 
 - Runner local tải dependency vào `.cache/hyperframes-runner/`.
 - Dependency runner được khóa bằng `backend/hyperframes-runner-package.json` và `backend/hyperframes-runner-package-lock.json`.
 - `.cache/` đã được ignore khỏi git.
-- `npm run check:hyperframes` vẫn dùng để kiểm tra dependency system/global nếu muốn.
+- File MP4 và manifest runtime trong `outputs/` không được commit.
+- Job metadata/log đang lưu memory nên restart server sẽ mất trạng thái job cũ, nhưng MP4/manifest vẫn còn.
+- `npm --prefix backend run check:hyperframes` vẫn dùng để kiểm tra dependency system/global nếu muốn.
 
-Roadmap triển khai:
+## Check
+
+```bash
+npm --prefix backend run check
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
+```
+
+Roadmap:
 
 - `.agents/tasks/backend-roadmap.md`
 - `.agents/tasks/hyperframes-roadmap.md`
