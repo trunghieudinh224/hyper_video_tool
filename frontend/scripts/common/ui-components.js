@@ -4,6 +4,9 @@ const AppUI = (() => {
   // DOM Cache
   const DOM = {};
 
+  // Internal view states
+  let templateRatioFilter = "all";
+
   const initDOM = () => {
     DOM.themeToggle = document.getElementById("theme-toggle");
     DOM.saveStatus = document.getElementById("save-status");
@@ -881,10 +884,26 @@ const AppUI = (() => {
   const renderAssetsScreen = (container, data) => {
     const list = data.assets || [];
     let currentFilter = "all";
+    let selectedAssetIds = [];
 
     const filterList = (filter) => {
       if (filter === "all") return list;
       return list.filter(a => a.type === filter);
+    };
+
+    const updateBulkDeleteButton = () => {
+      const btn = document.getElementById("assets-delete-selected-btn");
+      const countSpan = document.getElementById("selected-assets-count");
+      if (!btn) return;
+
+      if (selectedAssetIds.length > 0) {
+        btn.classList.remove("d-none");
+        if (countSpan) {
+          countSpan.textContent = selectedAssetIds.length;
+        }
+      } else {
+        btn.classList.add("d-none");
+      }
     };
 
     const renderGrid = (filter) => {
@@ -921,6 +940,7 @@ const AppUI = (() => {
         return `
           <div class="asset-card" data-id="${item.id}">
             <div class="asset-thumb">
+              <input type="checkbox" class="asset-checkbox" data-id="${item.id}" title="Chọn tài nguyên" ${selectedAssetIds.includes(item.id) ? 'checked' : ''}>
               ${thumbContent}
               ${item.useInVideo ? `<div class="asset-use-badge" title="Đang được sử dụng trong video">✓</div>` : ''}
             </div>
@@ -947,6 +967,21 @@ const AppUI = (() => {
           </div>
         `;
       }).join("");
+
+      // Bind Checkbox Events
+      grid.querySelectorAll(".asset-checkbox").forEach(chk => {
+        chk.addEventListener("change", (e) => {
+          const id = chk.getAttribute("data-id");
+          if (e.target.checked) {
+            if (!selectedAssetIds.includes(id)) {
+              selectedAssetIds.push(id);
+            }
+          } else {
+            selectedAssetIds = selectedAssetIds.filter(x => x !== id);
+          }
+          updateBulkDeleteButton();
+        });
+      });
 
       // Bind Grid Action Events
       grid.querySelectorAll(".asset-type-select").forEach(select => {
@@ -1018,10 +1053,16 @@ const AppUI = (() => {
           <button class="filter-btn" data-filter="screenshot">Ảnh chụp màn hình</button>
           <button class="filter-btn" data-filter="video">Video demo</button>
         </div>
-        <button id="assets-upload-btn" class="btn btn-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: var(--space-2);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-          Tải tệp lên
-        </button>
+        <div class="assets-action-buttons">
+          <button id="assets-delete-selected-btn" class="btn btn-danger d-none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: var(--space-2);"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+            Xóa đã chọn (<span id="selected-assets-count">0</span>)
+          </button>
+          <button id="assets-upload-btn" class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: var(--space-2);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Tải tệp lên
+          </button>
+        </div>
       </div>
 
       <div class="assets-hint-row">
@@ -1039,9 +1080,39 @@ const AppUI = (() => {
         container.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.getAttribute("data-filter");
+        selectedAssetIds = [];
+        updateBulkDeleteButton();
         renderGrid(currentFilter);
       });
     });
+
+    // Bind Bulk Delete Event
+    const bulkDeleteBtn = document.getElementById("assets-delete-selected-btn");
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.addEventListener("click", () => {
+        if (selectedAssetIds.length === 0) return;
+
+        showModal(
+          "Xác nhận xóa tài nguyên đã chọn",
+          `Bạn có chắc chắn muốn xóa ${selectedAssetIds.length} tài nguyên đã chọn?`,
+          [
+            { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+            {
+              text: "Xóa",
+              class: "btn-danger",
+              onClick: () => {
+                const assets = data.assets.filter(a => !selectedAssetIds.includes(a.id));
+                AppState.updateProjectField("assets", assets);
+                selectedAssetIds = [];
+                renderAssetsScreen(container, AppState.getProjectData());
+                closeModal();
+                showToast("Đã xóa các tài nguyên đã chọn.", "info");
+              }
+            }
+          ]
+        );
+      });
+    }
 
     const realInput = document.getElementById("real-file-input");
     const uploadBtn = document.getElementById("assets-upload-btn");
@@ -1127,6 +1198,10 @@ const AppUI = (() => {
 
   // 6. Template & Theme Picker View
   const renderTemplateScreen = (container, data) => {
+    const filteredTemplates = templateRatioFilter === "all"
+      ? TEMPLATES_LIST
+      : TEMPLATES_LIST.filter(t => t.ratio === templateRatioFilter);
+
     container.innerHTML = `
       <div class="workspace-header">
         <h1>Chọn Template & Tùy chỉnh Video</h1>
@@ -1134,26 +1209,43 @@ const AppUI = (() => {
 
       <div class="preview-layout">
         <!-- Templates List -->
-        <div style="display:flex; flex-direction:column; gap: var(--space-6);">
-          <h3 class="mb-2">1. Templates có sẵn</h3>
-          <div class="templates-grid" style="grid-template-columns: 1fr;">
-            ${TEMPLATES_LIST.map(tmpl => `
-              <div class="template-card ${data.templateId === tmpl.id ? 'active' : ''}" data-id="${tmpl.id}">
-                <div class="template-preview-thumb">
-                  <div class="template-preview-aspect">
-                    ${tmpl.ratio}
-                  </div>
-                </div>
-                <div class="template-details">
-                  <div class="template-title">${tmpl.name}</div>
-                  <div class="template-desc">${tmpl.desc}</div>
-                  <div class="template-meta-row">
-                    <span>Thời lượng: ~${tmpl.duration}</span>
-                    <span>Số Scene: ${tmpl.scenes.length}</span>
-                  </div>
-                </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>1. Templates có sẵn</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Định dạng video</label>
+              <div class="filter-group template-ratio-filter">
+                <button class="filter-btn ratio-filter-btn ${templateRatioFilter === 'all' ? 'active' : ''}" data-ratio="all">Tất cả</button>
+                <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '16:9' ? 'active' : ''}" data-ratio="16:9">Ngang 16:9</button>
+                <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '9:16' ? 'active' : ''}" data-ratio="9:16">Dọc 9:16</button>
               </div>
-            `).join("")}
+            </div>
+
+            <div class="templates-grid">
+              ${filteredTemplates.length === 0 ? `
+                <div class="empty-state" style="grid-column: 1 / -1; padding: var(--space-8);">
+                  <div class="empty-state-title" style="font-size: var(--font-base);">Không tìm thấy template nào</div>
+                </div>
+              ` : filteredTemplates.map(tmpl => `
+                <div class="template-card ${data.templateId === tmpl.id ? 'active' : ''}" data-id="${tmpl.id}">
+                  <div class="template-preview-thumb">
+                    <div class="template-preview-aspect ${tmpl.ratio === '9:16' ? 'ratio-9-16' : 'ratio-16-9'}">
+                      ${tmpl.ratio}
+                    </div>
+                  </div>
+                  <div class="template-details">
+                    <div class="template-title">${tmpl.name}</div>
+                    <div class="template-desc">${tmpl.desc}</div>
+                    <div class="template-meta-row">
+                      <span>Thời lượng: ~${tmpl.duration}</span>
+                      <span>Số Scene: ${tmpl.scenes.length}</span>
+                    </div>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
           </div>
         </div>
 
@@ -1162,23 +1254,28 @@ const AppUI = (() => {
           <div class="card-header">
             <h3>2. Thiết lập video</h3>
           </div>
-          <div class="card-body" style="display:flex; flex-direction:column; gap: var(--space-5);">
+          <div class="card-body">
             <div class="form-group">
               <label class="form-label">Theme màu video</label>
-              <div class="filter-group" style="width:100%;">
-                <button class="filter-btn btn-theme-choice ${data.templateConfig.theme === 'light' ? 'active' : ''}" data-val="light" style="flex:1;">Sáng</button>
-                <button class="filter-btn btn-theme-choice ${data.templateConfig.theme === 'dark' ? 'active' : ''}" data-val="dark" style="flex:1;">Tối</button>
+              <div class="filter-group theme-choice-wrapper">
+                <button class="filter-btn btn-theme-choice ${data.templateConfig.theme === 'light' ? 'active' : ''}" data-val="light">Sáng</button>
+                <button class="filter-btn btn-theme-choice ${data.templateConfig.theme === 'dark' ? 'active' : ''}" data-val="dark">Tối</button>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Màu nhấn chủ đạo (Accent Color)</label>
-              <div style="display:flex; gap: var(--space-2); margin-top: 4px;">
+              <div class="accent-color-header">
+                <label class="form-label">Màu nhấn chủ đạo (Accent Color)</label>
+                <span class="selected-color-name" id="active-accent-color-name">
+                  ${THEME_ACCENT_COLORS.find(c => c.id === data.templateConfig.accentColor)?.name || 'Mặc định'}
+                </span>
+              </div>
+              <div class="color-swatches-group">
                 ${THEME_ACCENT_COLORS.map(color => `
-                  <button class="btn btn-secondary btn-color-choice ${data.templateConfig.accentColor === color.id ? 'active' : ''}"
+                  <button class="color-swatch-btn btn-color-choice ${data.templateConfig.accentColor === color.id ? 'active' : ''}"
                     data-color="${color.id}"
-                    style="border-bottom: 3px solid ${color.value}; flex:1; height:40px;">
-                    ${color.name}
+                    title="${color.name}"
+                    style="--swatch-color: ${color.value};">
                   </button>
                 `).join("")}
               </div>
@@ -1214,6 +1311,14 @@ const AppUI = (() => {
           AppState.updateProjectField("templateId", id);
           renderTemplateScreen(container, AppState.getProjectData());
         }
+      });
+    });
+
+    // Ratio filter selection click
+    container.querySelectorAll(".ratio-filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        templateRatioFilter = btn.getAttribute("data-ratio");
+        renderTemplateScreen(container, AppState.getProjectData());
       });
     });
 

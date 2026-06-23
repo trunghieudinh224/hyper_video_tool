@@ -17,10 +17,10 @@
   font-size: var(--font-xs);
 }
 
-.dragover-active .assets-grid {
-  outline: 2px dashed color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
-  outline-offset: var(--space-3);
-  border-radius: var(--radius-md);
+.assets-action-buttons {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
 }
 
 /* Nút Tải tệp lên */
@@ -44,4 +44,50 @@
 #assets-upload-btn:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: 0 2px 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+/* Nút Xóa đã chọn */
+#assets-delete-selected-btn {
+  height: 38px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-danger) 12%, transparent);
+  transition: all var(--transition-fast) ease;
+}
+
+#assets-delete-selected-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--color-danger) 20%, transparent);
+}
+
+#assets-delete-selected-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-danger) 15%, transparent);
+}
+
+/* Checkbox trên mỗi card tài nguyên */
+.asset-thumb {
+  position: relative;
+}
+
+.asset-checkbox {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background-color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+  z-index: 10;
+  accent-color: var(--color-primary);
+  margin: 0;
+}
+
+.asset-checkbox:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }

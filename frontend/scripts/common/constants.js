@@ -92,7 +92,7 @@ const VIDEO_SEGMENT_TYPES = [
 const TEMPLATES_LIST = [
   {
     id: "project-showcase-90s",
-    name: "Video brief 90 giây",
+    name: "Video brief 90 giây (Ngang 16:9)",
     ratio: "16:9",
     duration: "60-90 giây",
     desc: "Phù hợp để giới thiệu nhanh tiến độ, ý tưởng và kết quả của các dự án nội bộ trong công ty.",
@@ -108,8 +108,24 @@ const TEMPLATES_LIST = [
     ]
   },
   {
+    id: "project-showcase-vertical-60s",
+    name: "Video ngắn 60 giây (Dọc 9:16)",
+    ratio: "9:16",
+    duration: "50-60 giây",
+    desc: "Phù hợp làm Reels, TikTok, Shorts để chia sẻ nhanh trên di động, định dạng dọc hiện đại.",
+    bestFor: "TikTok, Reels, Shorts, Mobile view",
+    scenes: [
+      { id: "intro", title: "Mở đầu", duration: "6s", desc: "Tên dự án, logo và tagline bắt mắt." },
+      { id: "problem", title: "Vấn đề", duration: "10s", desc: "Khó khăn cốt lõi của người dùng." },
+      { id: "solution", title: "Giải pháp", duration: "12s", desc: "Ứng dụng giải quyết thế nào." },
+      { id: "features", title: "Tính năng chính", duration: "18s", desc: "Giới thiệu các tính năng độc đáo." },
+      { id: "impact", title: "Kết quả", duration: "8s", desc: "Tác động thực tế và giá trị mang lại." },
+      { id: "outro", title: "Kêu gọi hành động", duration: "6s", desc: "Lời kết và CTA truy cập." }
+    ]
+  },
+  {
     id: "tech-deep-dive-120s",
-    name: "Tech Deep Dive 120 giây",
+    name: "Tech Deep Dive 120 giây (Ngang 16:9)",
     ratio: "16:9",
     duration: "100-120 giây",
     desc: "Mô tả sâu về kiến trúc hệ thống, tech stack và quy trình triển khai kỹ thuật.",

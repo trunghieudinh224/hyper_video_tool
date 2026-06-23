@@ -1,1 +1,230 @@
 /* Page-specific styles for Template. */
+
+/* Layout & spacing */
+.preview-layout {
+  gap: var(--space-8);
+}
+
+.templates-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Templates Grid - Fixed Height and Scrollable */
+.preview-layout .templates-grid {
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  height: 330px;
+  overflow-y: auto;
+  align-content: start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-right: var(--space-2);
+}
+
+/* Scrollbar styling for Templates Grid */
+.preview-layout .templates-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.preview-layout .templates-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.preview-layout .templates-grid::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.preview-layout .templates-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+
+/* Template Card - Beautiful Row Layout */
+.template-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: row;
+  height: 120px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.template-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.template-card.active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-md);
+  background-color: color-mix(in srgb, var(--color-primary) 3%, var(--color-surface));
+}
+
+.template-preview-thumb {
+  width: 180px;
+  height: auto !important;
+  background-color: var(--color-surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--color-border);
+  border-bottom: none;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.template-preview-aspect {
+  margin: 0;
+  border: 1px solid var(--color-border);
+  background-color: #0b0f19;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-on-primary);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6);
+  transition: all var(--transition-fast);
+}
+
+.template-preview-aspect.ratio-16-9 {
+  width: 110px;
+  height: 62px;
+}
+
+.template-preview-aspect.ratio-9-16 {
+  width: 45px;
+  height: 80px;
+}
+
+.template-details {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.template-title {
+  font-weight: 600;
+  font-size: var(--font-base);
+  color: var(--color-text);
+}
+
+.template-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.template-meta-row {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--font-xs);
+  color: var(--color-text-subtle);
+  margin-top: var(--space-1);
+}
+
+/* Customizer Panel & Ratio Switcher styles */
+.preview-layout .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.theme-choice-wrapper {
+  width: 100%;
+}
+
+.btn-theme-choice {
+  flex: 1;
+  height: 36px;
+  font-weight: 600;
+}
+
+/* Ratio Switcher - auto width (not stretched) */
+.template-ratio-filter {
+  align-self: flex-start;
+}
+
+.ratio-filter-btn {
+  height: 36px;
+  font-weight: 600;
+  padding: 0 var(--space-4);
+}
+
+.accent-color-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.accent-color-header .form-label {
+  margin-bottom: 0;
+}
+
+.selected-color-name {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-alt);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.color-swatches-group {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.color-swatch-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface);
+  background-color: var(--swatch-color);
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-sm);
+  transition: all var(--transition-fast) ease;
+  padding: 0;
+  position: relative;
+}
+
+.color-swatch-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 1px var(--color-border-strong), var(--shadow-md);
+}
+
+.color-swatch-btn.active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary), var(--shadow-md);
+}
+
+/* Custom form-control dropboxes */
+.preview-layout .form-control {
+  border-radius: var(--radius-md);
+  height: 40px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-sm);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.preview-layout .form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
