@@ -13,6 +13,8 @@ const AppUI = (() => {
     DOM.btnQuickExport = document.getElementById("btn-quick-export");
     DOM.sidebar = document.getElementById("sidebar");
     DOM.validationPanel = document.getElementById("validation-panel");
+    DOM.validationCompactToggle = document.getElementById("validation-compact-toggle");
+    DOM.validationClose = document.getElementById("validation-close");
     DOM.mobileSidebarToggle = document.getElementById("mobile-sidebar-toggle");
     DOM.mobileValidationToggle = document.getElementById("mobile-validation-toggle");
     DOM.toastContainer = document.getElementById("toast-container");
@@ -23,6 +25,8 @@ const AppUI = (() => {
     DOM.modalClose = document.getElementById("modal-close");
     DOM.errorCount = document.getElementById("error-count");
     DOM.warningCount = document.getElementById("warning-count");
+    DOM.compactErrorCount = document.getElementById("compact-error-count");
+    DOM.compactWarningCount = document.getElementById("compact-warning-count");
     DOM.validationList = document.getElementById("validation-list");
     DOM.tabsContent = document.getElementById("workspace-tabs-content");
     DOM.html = document.documentElement;
@@ -2231,6 +2235,11 @@ const AppUI = (() => {
     // Update summaries
     DOM.errorCount.textContent = errorCount;
     DOM.warningCount.textContent = warningCount;
+    DOM.compactErrorCount.textContent = errorCount;
+    DOM.compactWarningCount.textContent = warningCount;
+
+    DOM.validationPanel.classList.toggle("has-issues", errorCount + warningCount > 0);
+    DOM.validationPanel.classList.toggle("has-errors", errorCount > 0);
 
     // Toggle main render buttons disabled state
     if (errorCount > 0) {
@@ -2263,14 +2272,20 @@ const AppUI = (() => {
     DOM.validationList.innerHTML = "";
 
     if (errorCount === 0 && warningCount === 0) {
+      DOM.validationPanel.classList.remove("detail-open");
+      DOM.validationCompactToggle.setAttribute("aria-expanded", "false");
       DOM.validationList.innerHTML = `
-        <div class="empty-state" style="padding: var(--space-4); border:none; background:transparent;">
-          <span style="font-size:24px; margin-bottom:4px;">✓</span>
-          <div class="empty-state-title" style="font-size:var(--font-sm);">Dữ liệu hoàn hảo!</div>
-          <div class="empty-state-desc" style="font-size:var(--font-xs);">Không phát hiện lỗi hoặc cảnh báo nào. Sẵn sàng render!</div>
+        <div class="validation-empty">
+          <div class="validation-empty-title">Dữ liệu hợp lệ</div>
+          <div class="validation-empty-desc">Không có lỗi hoặc cảnh báo.</div>
         </div>
       `;
       return;
+    }
+
+    if (window.innerWidth > 768) {
+      DOM.validationPanel.classList.add("detail-open");
+      DOM.validationCompactToggle.setAttribute("aria-expanded", "true");
     }
 
     // Errors Group
@@ -2379,6 +2394,19 @@ const AppUI = (() => {
       AppState.setTab("render");
     });
 
+    DOM.validationCompactToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = DOM.validationPanel.classList.toggle("detail-open");
+      DOM.validationCompactToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      DOM.sidebar.classList.remove("mobile-open");
+    });
+
+    DOM.validationClose.addEventListener("click", (e) => {
+      e.stopPropagation();
+      DOM.validationPanel.classList.remove("detail-open", "mobile-open");
+      DOM.validationCompactToggle.setAttribute("aria-expanded", "false");
+    });
+
     // Left Sidebar navigation click binds
     document.querySelectorAll(".nav-item").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -2398,6 +2426,7 @@ const AppUI = (() => {
     DOM.mobileValidationToggle.addEventListener("click", (e) => {
       e.stopPropagation();
       DOM.validationPanel.classList.toggle("mobile-open");
+      DOM.validationPanel.classList.remove("detail-open");
       DOM.sidebar.classList.remove("mobile-open");
     });
 
@@ -2405,6 +2434,8 @@ const AppUI = (() => {
     document.addEventListener("click", () => {
       DOM.sidebar.classList.remove("mobile-open");
       DOM.validationPanel.classList.remove("mobile-open");
+      DOM.validationPanel.classList.remove("detail-open");
+      DOM.validationCompactToggle.setAttribute("aria-expanded", "false");
     });
 
     DOM.sidebar.addEventListener("click", (e) => e.stopPropagation());

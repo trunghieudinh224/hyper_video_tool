@@ -95,21 +95,34 @@ const AppShell = (() => {
               </div>
             </main>
 
-            <aside class="validation-panel" id="validation-panel">
-              <div class="validation-header">
-                <h3>Kiểm tra dữ liệu</h3>
-              </div>
-              <div class="validation-summary">
-                <div class="summary-item error-summary">
-                  <span class="count" id="error-count">0</span>
-                  <span class="label">Lỗi</span>
+            <aside class="validation-panel" id="validation-panel" aria-label="Kiểm tra dữ liệu">
+              <button id="validation-compact-toggle" class="validation-compact-toggle" type="button" aria-expanded="false" aria-controls="validation-drawer" title="Mở kiểm tra dữ liệu">
+                <span class="validation-compact-icon" aria-hidden="true">✓</span>
+                <span class="validation-compact-counts">
+                  <span><strong id="compact-error-count">0</strong> lỗi</span>
+                  <span><strong id="compact-warning-count">0</strong> cảnh báo</span>
+                </span>
+              </button>
+
+              <div id="validation-drawer" class="validation-drawer">
+                <div class="validation-header">
+                  <h3>Kiểm tra dữ liệu</h3>
+                  <button id="validation-close" class="btn btn-icon btn-sm" type="button" aria-label="Thu gọn kiểm tra dữ liệu">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
                 </div>
-                <div class="summary-item warning-summary">
-                  <span class="count" id="warning-count">0</span>
-                  <span class="label">Cảnh báo</span>
+                <div class="validation-summary">
+                  <div class="summary-item error-summary">
+                    <span class="count" id="error-count">0</span>
+                    <span class="label">Lỗi</span>
+                  </div>
+                  <div class="summary-item warning-summary">
+                    <span class="count" id="warning-count">0</span>
+                    <span class="label">Cảnh báo</span>
+                  </div>
                 </div>
+                <div class="validation-list" id="validation-list"></div>
               </div>
-              <div class="validation-list" id="validation-list"></div>
             </aside>
           </div>
         </div>
