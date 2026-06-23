@@ -122,6 +122,29 @@ function validateBooleanField(errors, target, fieldPath, required = true) {
   }
 }
 
+function validatePercentField(errors, target, fieldPath, min, max) {
+  const value = fieldPath.split(".").reduce((current, key) => {
+    if (!isPlainObject(current)) {
+      return undefined;
+    }
+    return current[key];
+  }, target);
+
+  if (value === undefined) {
+    return;
+  }
+
+  if (typeof value !== "string" || !/^[+-]\d+%$/.test(value)) {
+    pushError(errors, fieldPath, "Expected signed percent string, for example +10% or -10%.");
+    return;
+  }
+
+  const numericValue = Number.parseInt(value.slice(0, -1), 10);
+  if (numericValue < min || numericValue > max) {
+    pushError(errors, fieldPath, `Percent value must be between ${min}% and ${max}%.`);
+  }
+}
+
 function validateAudio(errors, audio) {
   if (!isPlainObject(audio)) {
     pushError(errors, "audio", "Audio settings object is required.");
@@ -136,6 +159,8 @@ function validateAudio(errors, audio) {
     validateStringField(errors, audio, "voiceover.provider");
     validateStringField(errors, audio, "voiceover.language");
     validateStringField(errors, audio, "voiceover.voiceId");
+    validatePercentField(errors, audio, "voiceover.rate", -30, 50);
+    validatePercentField(errors, audio, "voiceover.volume", -50, 50);
     validateStringField(errors, audio, "voiceover.script", false);
     validateStringField(errors, audio, "voiceover.outputPath", false);
 

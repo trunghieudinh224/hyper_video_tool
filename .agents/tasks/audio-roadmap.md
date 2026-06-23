@@ -75,6 +75,24 @@ Test report:
 - `npm --prefix backend run check` - passed
 - Browser smoke bằng Chrome hệ thống: Content scene script, Timeline milestone script, Render review/payload scene voiceover - passed
 
+## Phase 3.2 - Global Voice Rate And Volume
+
+Status: done
+
+Scope:
+- Thêm `audio.voiceover.rate` và `audio.voiceover.volume` áp dụng toàn bộ voiceover.
+- Render page có range control tốc độ đọc `-30%..+50%` và âm lượng `-50%..+50%`.
+- Backend truyền `--rate` và `--volume` vào `edge-tts`.
+- Cache key audio tính cả rate/volume để đổi setting không dùng nhầm file cũ.
+
+Out of scope:
+- Không có pitch.
+- Không chỉnh rate/volume theo từng scene hoặc từng timeline.
+
+Test report:
+- `npm --prefix backend run check` - passed
+- Chrome headless DOM smoke: Render page có controls `render-voiceover-rate` và `render-voiceover-volume`.
+
 ## Phase 4 - Background Music
 
 Status: pending

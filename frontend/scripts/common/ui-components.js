@@ -1466,6 +1466,16 @@ const AppUI = (() => {
     const selectedVoiceId = selectedVoiceList.some((voice) => voice.id === savedVoiceover.voiceId)
       ? savedVoiceover.voiceId
       : (selectedVoiceList[0] && selectedVoiceList[0].id) || "vi-VN-HoaiMyNeural";
+    const parsePercentValue = (value, fallback = 0) => {
+      const match = String(value || "").match(/^([+-]?\d+)%$/);
+      return match ? Number.parseInt(match[1], 10) : fallback;
+    };
+    const selectedVoiceRate = Math.min(50, Math.max(-30, parsePercentValue(savedVoiceover.rate, 0)));
+    const selectedVoiceVolume = Math.min(50, Math.max(-50, parsePercentValue(savedVoiceover.volume, 0)));
+    const formatPercentValue = (value) => {
+      const numericValue = Number.parseInt(value, 10) || 0;
+      return `${numericValue >= 0 ? "+" : ""}${numericValue}%`;
+    };
     const escapeTextarea = (value) => String(value || "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -1569,6 +1579,17 @@ const AppUI = (() => {
                   </div>
                 </div>
 
+                <div class="render-voiceover-grid">
+                  <div class="form-group">
+                    <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
+                    <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}" ${AppRender.isRendering() ? "disabled" : ""}>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="render-voiceover-volume">Âm lượng <span id="render-voiceover-volume-value">${formatPercentValue(selectedVoiceVolume)}</span></label>
+                    <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}" ${AppRender.isRendering() ? "disabled" : ""}>
+                  </div>
+                </div>
+
                 <div class="form-group">
                   <label class="form-label" for="render-voiceover-script">Kịch bản đọc tổng hợp</label>
                   <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="6" readonly>${escapeTextarea(voiceoverScript)}</textarea>
@@ -1633,6 +1654,10 @@ const AppUI = (() => {
     const voiceoverEnabledInput = document.getElementById("render-voiceover-enabled");
     const voiceoverLanguageInput = document.getElementById("render-voiceover-language");
     const voiceoverVoiceInput = document.getElementById("render-voiceover-voice");
+    const voiceoverRateInput = document.getElementById("render-voiceover-rate");
+    const voiceoverRateValue = document.getElementById("render-voiceover-rate-value");
+    const voiceoverVolumeInput = document.getElementById("render-voiceover-volume");
+    const voiceoverVolumeValue = document.getElementById("render-voiceover-volume-value");
     const voiceoverScriptInput = document.getElementById("render-voiceover-script");
 
     const getVoiceOptionsHTML = (language) => {
@@ -1649,6 +1674,8 @@ const AppUI = (() => {
           provider: "edge-tts",
           language: voiceoverLanguageInput ? voiceoverLanguageInput.value : "vi-VN",
           voiceId: voiceoverVoiceInput ? voiceoverVoiceInput.value : "vi-VN-HoaiMyNeural",
+          rate: voiceoverRateInput ? formatPercentValue(voiceoverRateInput.value) : "+0%",
+          volume: voiceoverVolumeInput ? formatPercentValue(voiceoverVolumeInput.value) : "+0%",
           script: voiceoverScriptInput ? voiceoverScriptInput.value.trim() : "",
           outputPath: ""
         }
@@ -1663,12 +1690,25 @@ const AppUI = (() => {
       });
     }
 
-    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverScriptInput].forEach((input) => {
+    const syncVoiceoverRangeLabels = () => {
+      if (voiceoverRateInput && voiceoverRateValue) {
+        voiceoverRateValue.textContent = formatPercentValue(voiceoverRateInput.value);
+      }
+      if (voiceoverVolumeInput && voiceoverVolumeValue) {
+        voiceoverVolumeValue.textContent = formatPercentValue(voiceoverVolumeInput.value);
+      }
+    };
+
+    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverRateInput, voiceoverVolumeInput, voiceoverScriptInput].forEach((input) => {
       if (!input) {
         return;
       }
-      input.addEventListener(input.tagName === "TEXTAREA" ? "input" : "change", saveVoiceoverSettings);
+      input.addEventListener(input.type === "range" || input.tagName === "TEXTAREA" ? "input" : "change", () => {
+        syncVoiceoverRangeLabels();
+        saveVoiceoverSettings();
+      });
     });
+    syncVoiceoverRangeLabels();
 
     const getOutputAspectRatio = (output) => {
       if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {

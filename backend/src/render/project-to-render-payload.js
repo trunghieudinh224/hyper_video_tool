@@ -26,6 +26,8 @@ const DEFAULT_AUDIO = {
     provider: "edge-tts",
     language: "vi-VN",
     voiceId: "vi-VN-HoaiMyNeural",
+    rate: "+0%",
+    volume: "+0%",
     script: "",
     outputPath: ""
   },
@@ -47,6 +49,15 @@ function text(value, fallback = "") {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function percent(value, fallback = "+0%") {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value >= 0 ? "+" : ""}${Math.trunc(value)}%`;
+  }
+
+  const normalized = text(value, fallback);
+  return /^[+-]\d+%$/.test(normalized) ? normalized : fallback;
 }
 
 function list(value) {
@@ -146,6 +157,8 @@ function mapAudioConfig(project = {}) {
       provider: text(sourceVoiceover.provider, voiceDefaults.provider),
       language: voiceDefaults.language,
       voiceId: text(sourceVoiceover.voiceId, voiceDefaults.voiceId),
+      rate: percent(sourceVoiceover.rate, DEFAULT_AUDIO.voiceover.rate),
+      volume: percent(sourceVoiceover.volume, DEFAULT_AUDIO.voiceover.volume),
       script: text(sourceVoiceover.script, ""),
       outputPath: text(sourceVoiceover.outputPath, "")
     },

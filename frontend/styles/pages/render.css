@@ -58,6 +58,23 @@
   gap: var(--space-3);
 }
 
+.render-voiceover-grid .form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.render-voiceover-grid .form-label span {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.render-voiceover-range {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
 .render-voiceover-script {
   min-height: 132px;
   resize: vertical;

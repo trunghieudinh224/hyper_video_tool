@@ -32,6 +32,8 @@ assert.deepEqual(
 assert.equal(generatedPayload.scenes.find((scene) => scene.type === "features").content.items.length, 4);
 assert.equal(generatedPayload.scenes.find((scene) => scene.type === "timeline").content.milestones.length, 5);
 assert.equal(generatedPayload.scenes.every((scene) => scene.voiceover && typeof scene.voiceover.script === "string"), true);
+assert.equal(generatedPayload.audio.voiceover.rate, "+0%");
+assert.equal(generatedPayload.audio.voiceover.volume, "+0%");
 assert.equal(generatedPayload.video.estimatedDuration, 74);
 assert.equal(generatedPayload.video.aspectRatio, "16:9");
 assert.equal(generatedPayload.video.width, 1920);

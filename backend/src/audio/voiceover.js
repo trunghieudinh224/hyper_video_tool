@@ -23,10 +23,25 @@ const VOICEOVER_VOICES = {
 
 const DEFAULT_LANGUAGE = "vi-VN";
 const DEFAULT_PROVIDER = "edge-tts";
+const DEFAULT_RATE = "+0%";
+const DEFAULT_VOLUME = "+0%";
 const EDGE_TTS_VENV_DIR = path.join(config.projectRoot, ".cache", "edge-tts-venv");
 
 function normalizeText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizePercent(value, fallback = "+0%") {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value >= 0 ? "+" : ""}${Math.trunc(value)}%`;
+  }
+
+  const normalized = normalizeText(value);
+  if (/^[+-]\d+%$/.test(normalized)) {
+    return normalized;
+  }
+
+  return fallback;
 }
 
 function estimateSpeechDurationSeconds(value) {
@@ -59,6 +74,8 @@ function normalizeVoiceoverConfig(input = {}) {
     provider: normalizeText(input.provider) || DEFAULT_PROVIDER,
     language,
     voiceId: voice.id,
+    rate: normalizePercent(input.rate, DEFAULT_RATE),
+    volume: normalizePercent(input.volume, DEFAULT_VOLUME),
     script: normalizeText(input.script),
     outputPath: normalizeText(input.outputPath)
   };
@@ -120,10 +137,10 @@ function getVoiceoverSceneReports(payload = {}) {
   });
 }
 
-function createVoiceoverCacheKey({ provider, language, voiceId, script }) {
+function createVoiceoverCacheKey({ provider, language, voiceId, rate, volume, script }) {
   return crypto
     .createHash("sha256")
-    .update(JSON.stringify({ provider, language, voiceId, script }))
+    .update(JSON.stringify({ provider, language, voiceId, rate, volume, script }))
     .digest("hex")
     .slice(0, 16);
 }
@@ -137,12 +154,16 @@ function getVoiceoverOutputPaths(cacheKey) {
   };
 }
 
-function createEdgeTtsArgs({ text, voiceId, mediaPath, subtitlePath }) {
+function createEdgeTtsArgs({ text, voiceId, rate = DEFAULT_RATE, volume = DEFAULT_VOLUME, mediaPath, subtitlePath }) {
   return [
     "-m",
     "edge_tts",
     "--voice",
     voiceId,
+    "--rate",
+    normalizePercent(rate, DEFAULT_RATE),
+    "--volume",
+    normalizePercent(volume, DEFAULT_VOLUME),
     "--text",
     text,
     "--write-media",
@@ -240,6 +261,8 @@ async function generateVoiceover(payload = {}, options = {}) {
       provider: voiceover.provider,
       language: voiceover.language,
       voiceId: voiceover.voiceId,
+      rate: voiceover.rate,
+      volume: voiceover.volume,
       script,
       mediaPath: "",
       subtitlePath: "",
@@ -259,6 +282,8 @@ async function generateVoiceover(payload = {}, options = {}) {
     provider: voiceover.provider,
     language: voiceover.language,
     voiceId: voiceover.voiceId,
+    rate: voiceover.rate,
+    volume: voiceover.volume,
     script
   });
   const paths = getVoiceoverOutputPaths(cacheKey);
@@ -270,6 +295,8 @@ async function generateVoiceover(payload = {}, options = {}) {
       provider: voiceover.provider,
       language: voiceover.language,
       voiceId: voiceover.voiceId,
+      rate: voiceover.rate,
+      volume: voiceover.volume,
       script,
       mediaPath: paths.mediaPath,
       subtitlePath: fs.existsSync(paths.subtitlePath) ? paths.subtitlePath : "",
@@ -280,6 +307,8 @@ async function generateVoiceover(payload = {}, options = {}) {
   await runEdgeTtsWithRetry(createEdgeTtsArgs({
     text: script,
     voiceId: voiceover.voiceId,
+    rate: voiceover.rate,
+    volume: voiceover.volume,
     mediaPath: paths.mediaPath,
     subtitlePath: paths.subtitlePath
   }), paths.mediaPath, options);
@@ -289,6 +318,8 @@ async function generateVoiceover(payload = {}, options = {}) {
     provider: voiceover.provider,
     language: voiceover.language,
     voiceId: voiceover.voiceId,
+    rate: voiceover.rate,
+    volume: voiceover.volume,
     script,
     mediaPath: paths.mediaPath,
     subtitlePath: fs.existsSync(paths.subtitlePath) ? paths.subtitlePath : "",

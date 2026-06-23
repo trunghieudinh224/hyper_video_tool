@@ -12,6 +12,14 @@ const AppRender = (() => {
 
   const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
 
+  const normalizePercent = (value, fallback = "+0%") => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return `${value >= 0 ? "+" : ""}${Math.trunc(value)}%`;
+    }
+    const normalized = normalizeText(value);
+    return /^[+-]\d+%$/.test(normalized) ? normalized : fallback;
+  };
+
   const estimateSpeechDurationSeconds = (value) => {
     const text = normalizeText(value);
     if (!text) {
@@ -185,6 +193,8 @@ const AppRender = (() => {
           provider: voiceover.provider || "edge-tts",
           language: voiceover.language || "vi-VN",
           voiceId: voiceover.voiceId || "vi-VN-HoaiMyNeural",
+          rate: normalizePercent(voiceover.rate, "+0%"),
+          volume: normalizePercent(voiceover.volume, "+0%"),
           script: voiceover.script || sceneVoiceoverScript,
           outputPath: voiceover.outputPath || ""
         },

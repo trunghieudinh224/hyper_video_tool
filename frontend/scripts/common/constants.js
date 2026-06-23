@@ -30,6 +30,8 @@ const INITIAL_PROJECT_DATA = {
       provider: "edge-tts",
       language: "vi-VN",
       voiceId: "vi-VN-HoaiMyNeural",
+      rate: "+0%",
+      volume: "+0%",
       script: "",
       outputPath: ""
     }

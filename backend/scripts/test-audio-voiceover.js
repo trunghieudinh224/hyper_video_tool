@@ -42,6 +42,8 @@ const defaultPayload = projectToRenderPayload(sampleProject);
 assert.equal(defaultPayload.audio.voiceover.enabled, false);
 assert.equal(defaultPayload.audio.voiceover.provider, "edge-tts");
 assert.equal(defaultPayload.audio.voiceover.language, "vi-VN");
+assert.equal(defaultPayload.audio.voiceover.rate, "+0%");
+assert.equal(defaultPayload.audio.voiceover.volume, "+0%");
 assert.equal(defaultPayload.audio.backgroundMusic.enabled, false);
 assert.equal(defaultPayload.audio.soundEffects.enabled, false);
 assert.equal(validateRenderPayload(defaultPayload).valid, true, "Default audio contract should validate.");
@@ -52,11 +54,15 @@ const englishPayload = projectToRenderPayload({
     voiceover: {
       enabled: true,
       language: "en-US",
+      rate: "+15%",
+      volume: "-10%",
       script: "This is the English narration."
     }
   }
 });
 assert.equal(englishPayload.audio.voiceover.voiceId, "en-US-JennyNeural");
+assert.equal(englishPayload.audio.voiceover.rate, "+15%");
+assert.equal(englishPayload.audio.voiceover.volume, "-10%");
 assert.equal(validateRenderPayload(englishPayload).valid, true, "Enabled English voiceover should validate.");
 assert.equal(buildVoiceoverScript(englishPayload), "This is the English narration.");
 
@@ -131,6 +137,8 @@ assert.equal(missingScriptValidation.errors.some((error) => error.path === "audi
 const edgeArgs = createEdgeTtsArgs({
   text: "Xin chào.",
   voiceId: "vi-VN-HoaiMyNeural",
+  rate: "+10%",
+  volume: "-5%",
   mediaPath: "/tmp/voice.mp3",
   subtitlePath: "/tmp/voice.srt"
 });
@@ -139,6 +147,10 @@ assert.deepEqual(edgeArgs, [
   "edge_tts",
   "--voice",
   "vi-VN-HoaiMyNeural",
+  "--rate",
+  "+10%",
+  "--volume",
+  "-5%",
   "--text",
   "Xin chào.",
   "--write-media",
