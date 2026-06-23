@@ -174,7 +174,7 @@ const AppStorage = (() => {
     } catch (e) {}
   };
 
-  const loadSampleData = async () => {
+  const loadSampleData = () => {
     return JSON.parse(JSON.stringify(STATIC_SAMPLE_DATA));
   };
 

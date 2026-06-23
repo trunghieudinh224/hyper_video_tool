@@ -1,6 +1,25 @@
 /* Static page entry point */
 
 const HyperVideoPage = (() => {
+  const isBlankProjectData = (data) => {
+    if (!data || typeof data !== "object") {
+      return true;
+    }
+
+    const textFields = [
+      "projectName",
+      "projectSlug",
+      "shortSummary",
+      "problemContext",
+      "solutionWhat"
+    ];
+
+    const hasText = textFields.some((field) => String(data[field] || "").trim());
+    const hasCollections = [data.features, data.milestones, data.assets].some((items) => Array.isArray(items) && items.length > 0);
+
+    return !hasText && !hasCollections;
+  };
+
   const boot = (page) => {
     const currentPage = page || AppNavigation.getCurrentPage();
 
@@ -11,13 +30,9 @@ const HyperVideoPage = (() => {
     AppUI.initTheme();
     AppUI.initGlobalEvents();
 
-    let projectData = AppStorage.loadLocalData();
-
-    if (projectData) {
-      AppState.setProjectData(projectData, true);
-    } else {
-      AppState.setProjectData(JSON.parse(JSON.stringify(INITIAL_PROJECT_DATA)), true);
-    }
+    const projectData = AppStorage.loadLocalData();
+    const initialProjectData = isBlankProjectData(projectData) ? AppStorage.loadSampleData() : projectData;
+    AppState.setProjectData(initialProjectData, true);
 
     const valResults = AppValidation.validate(AppState.getProjectData());
     AppState.setValidation(valResults);
