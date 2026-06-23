@@ -440,6 +440,49 @@ Completed, ngày 23/06/2026.
 - Poll job qua `GET /api/render-jobs/:id` pass, output render thành công.
 - Browser smoke test Render page pass: UI nhận job, poll tới `Hoàn tất`, progress `100%`, output lưu local history.
 
+## Phase 9 - Template Text Hardening MVP
+
+### Objective
+
+Giảm rủi ro text dài/ngắn làm vỡ layout video trong template `project-showcase-90s`.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm giới hạn text theo từng field/scene.
+- Thêm CSS clamp/overflow guard cho các vùng chữ chính.
+- Browser stress test với payload dài bất thường.
+- Render sample payload thật để xác nhận HyperFrames vẫn xuất MP4.
+
+Không làm:
+
+- Chưa auto-scale font theo pixel.
+- Chưa screenshot regression suite cố định.
+- Chưa hardening nhiều template.
+
+Files impact dự kiến:
+
+- `templates/project-showcase-90s/script.js`
+- `templates/project-showcase-90s/style.css`
+- `.agents/tasks/current-task.md`
+
+Verification:
+
+- Template JS syntax pass.
+- HyperFrames lint pass.
+- Browser stress test không overflow.
+- HyperFrames render sample payload pass.
+
+### Status
+
+Completed, ngày 23/06/2026.
+
+- Thêm text limits và `data-truncated` marker cho text bị cắt.
+- Thêm CSS clamp/overflow guard cho intro, problem, solution, features, timeline, impact, outro.
+- Browser stress test payload dài pass cho đủ 7 scene, không overflow container.
+- Render sample payload pass, output `/private/tmp/hyper-video-tool-text-hardening-sample.mp4`, duration `74.000000`, size `1540362`.
+
 ## Future Scope
 
 - Voiceover tự động.

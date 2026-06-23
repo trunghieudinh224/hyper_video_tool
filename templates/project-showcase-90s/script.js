@@ -10,6 +10,25 @@ const SCENE_TIMELINE = [
   { id: "scene-impact", start: 58, duration: 10 },
   { id: "scene-outro", start: 68, duration: 6 },
 ];
+const TEXT_LIMITS = {
+  projectName: 72,
+  tagline: 130,
+  summary: 190,
+  team: 56,
+  problem: 280,
+  targetUsers: 90,
+  useCase: 110,
+  solution: 270,
+  highlight: 150,
+  featureTitle: 70,
+  featureDescription: 150,
+  featureBenefit: 120,
+  milestoneDate: 28,
+  milestoneTitle: 60,
+  impactMetric: 36,
+  impactDescription: 190,
+  outroNote: 170,
+};
 
 window.addEventListener("DOMContentLoaded", () => {
   registerHyperFramesTimeline();
@@ -125,24 +144,24 @@ function updateTemplatePayload(payload) {
 function renderIntroScene(scene, payload) {
   const content = scene.content || {};
   const source = payload.source || {};
-  setText("intro-title", content.projectName || source.projectName || "Tên dự án");
-  setText("intro-tagline", content.tagline || "Tagline giới thiệu dự án nội bộ");
-  setText("intro-summary", content.summary || "Tóm tắt ngắn về giá trị dự án.");
-  setText("intro-team", content.ownerTeam || source.ownerTeam || "Team phát triển");
+  setText("intro-title", content.projectName || source.projectName || "Tên dự án", TEXT_LIMITS.projectName);
+  setText("intro-tagline", content.tagline || "Tagline giới thiệu dự án nội bộ", TEXT_LIMITS.tagline);
+  setText("intro-summary", content.summary || "Tóm tắt ngắn về giá trị dự án.", TEXT_LIMITS.summary);
+  setText("intro-team", content.ownerTeam || source.ownerTeam || "Team phát triển", TEXT_LIMITS.team);
   renderLogo("intro-logo", payload.assets && payload.assets.logo, source.projectName);
 }
 
 function renderProblemScene(scene) {
   const content = scene.content || {};
-  setText("problem-content", content.problem || "Chưa có mô tả vấn đề.");
-  setText("problem-users", content.targetUsers || "Người dùng nội bộ");
-  setText("problem-use-case", content.useCase || "Use case chính của dự án");
+  setText("problem-content", content.problem || "Chưa có mô tả vấn đề.", TEXT_LIMITS.problem);
+  setText("problem-users", content.targetUsers || "Người dùng nội bộ", TEXT_LIMITS.targetUsers);
+  setText("problem-use-case", content.useCase || "Use case chính của dự án", TEXT_LIMITS.useCase);
 }
 
 function renderSolutionScene(scene) {
   const content = scene.content || {};
-  setText("solution-content", content.solution || "Chưa có mô tả giải pháp.");
-  setText("solution-highlight", content.keyHighlight || "Chưa có điểm nhấn chính.");
+  setText("solution-content", content.solution || "Chưa có mô tả giải pháp.", TEXT_LIMITS.solution);
+  setText("solution-highlight", content.keyHighlight || "Chưa có điểm nhấn chính.", TEXT_LIMITS.highlight);
 }
 
 function renderFeaturesScene(scene) {
@@ -158,9 +177,9 @@ function renderFeaturesScene(scene) {
   items.forEach((feature, index) => {
     const item = createElement("article", "feature-item");
     item.appendChild(createElement("div", "feature-index", String(index + 1).padStart(2, "0")));
-    item.appendChild(createElement("div", "feature-title", feature.title || "Tính năng chưa đặt tên"));
-    item.appendChild(createElement("div", "feature-desc", feature.description || "Chưa có mô tả tính năng."));
-    item.appendChild(createElement("div", "feature-benefit", feature.benefit || "Chưa có giá trị nổi bật."));
+    item.appendChild(createElement("div", "feature-title", feature.title || "Tính năng chưa đặt tên", TEXT_LIMITS.featureTitle));
+    item.appendChild(createElement("div", "feature-desc", feature.description || "Chưa có mô tả tính năng.", TEXT_LIMITS.featureDescription));
+    item.appendChild(createElement("div", "feature-benefit", feature.benefit || "Chưa có giá trị nổi bật.", TEXT_LIMITS.featureBenefit));
     target.appendChild(item);
   });
 }
@@ -178,8 +197,8 @@ function renderTimelineScene(scene) {
   milestones.forEach((milestone, index) => {
     const item = createElement("article", `timeline-node status-${milestone.status || "upcoming"}`);
     item.appendChild(createElement("div", "node-dot", String(index + 1)));
-    item.appendChild(createElement("div", "node-date", milestone.date || "Chưa có thời gian"));
-    item.appendChild(createElement("div", "node-title", milestone.title || "Cột mốc chưa đặt tên"));
+    item.appendChild(createElement("div", "node-date", milestone.date || "Chưa có thời gian", TEXT_LIMITS.milestoneDate));
+    item.appendChild(createElement("div", "node-title", milestone.title || "Cột mốc chưa đặt tên", TEXT_LIMITS.milestoneTitle));
     item.appendChild(createElement("div", "node-status", getStatusLabel(milestone.status)));
     target.appendChild(item);
   });
@@ -188,16 +207,16 @@ function renderTimelineScene(scene) {
 function renderImpactScene(scene) {
   const content = scene.content || {};
   const resultImpact = content.resultImpact || "Mô tả kết quả đạt được cụ thể.";
-  setText("impact-value", extractImpactMetric(resultImpact));
-  setText("impact-description", resultImpact);
-  setText("impact-highlight", content.highlight || "Chưa có điểm nhấn tác động.");
+  setText("impact-value", extractImpactMetric(resultImpact), TEXT_LIMITS.impactMetric);
+  setText("impact-description", resultImpact, TEXT_LIMITS.impactDescription);
+  setText("impact-highlight", content.highlight || "Chưa có điểm nhấn tác động.", TEXT_LIMITS.highlight);
 }
 
 function renderOutroScene(scene, payload) {
   const content = scene.content || {};
   const source = payload.source || {};
-  setText("outro-note", content.endingNote || "Cảm ơn đã theo dõi!");
-  setText("outro-team", content.ownerTeam || source.ownerTeam || "Team phát triển");
+  setText("outro-note", content.endingNote || "Cảm ơn đã theo dõi!", TEXT_LIMITS.outroNote);
+  setText("outro-team", content.ownerTeam || source.ownerTeam || "Team phát triển", TEXT_LIMITS.team);
   renderLogo("outro-logo", payload.assets && payload.assets.logo, source.projectName);
 }
 
@@ -215,10 +234,10 @@ function getActiveSceneType() {
   return activeScene.id.replace(/^scene-/, "");
 }
 
-function setText(id, value) {
+function setText(id, value, maxLength) {
   const element = document.getElementById(id);
   if (element) {
-    element.textContent = value || "";
+    assignText(element, value, maxLength);
   }
 }
 
@@ -232,15 +251,43 @@ function clearChildren(element) {
   }
 }
 
-function createElement(tagName, className, text) {
+function createElement(tagName, className, text, maxLength) {
   const element = document.createElement(tagName);
   if (className) {
     element.className = className;
   }
   if (text !== undefined) {
-    element.textContent = text;
+    assignText(element, text, maxLength);
   }
   return element;
+}
+
+function assignText(element, value, maxLength) {
+  const originalText = normalizeText(value || "");
+  const displayText = clampText(originalText, maxLength);
+  element.textContent = displayText;
+
+  if (displayText !== originalText) {
+    element.setAttribute("title", originalText);
+    element.setAttribute("data-truncated", "true");
+    return;
+  }
+
+  element.removeAttribute("title");
+  element.removeAttribute("data-truncated");
+}
+
+function normalizeText(value) {
+  return String(value).replace(/\s+/g, " ").trim();
+}
+
+function clampText(value, maxLength) {
+  if (!maxLength || value.length <= maxLength) {
+    return value;
+  }
+
+  const clipped = value.slice(0, Math.max(0, maxLength - 3)).trimEnd();
+  return `${clipped}...`;
 }
 
 function createEmptyCopy(text) {

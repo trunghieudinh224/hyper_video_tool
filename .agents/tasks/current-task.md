@@ -20,34 +20,32 @@ Project hiện đã có:
 - Danh sách output persist bằng runtime manifest `outputs/manifest.json`.
 - Preflight render qua `GET /api/render-preflight`.
 
-## Phase Hoàn Tất - Async Render Queue MVP
+## Phase Hoàn Tất - Template Text Hardening MVP
 
 ### Objective
 
-Chuyển render job từ request đồng bộ dài sang queue async tối thiểu để UI không bị treo khi bắt đầu render.
+Giảm rủi ro chữ tiếng Việt dài/ngắn làm vỡ layout video trong template `project-showcase-90s`.
 
 ### Scope
 
 Đã làm:
 
-- `POST /api/render-jobs` validate payload, tạo job, đưa vào queue và trả `202` ngay.
-- Backend xử lý queue 1 worker local bằng child process HyperFrames.
-- `GET /api/render-jobs/:id` trả `queued/running/succeeded/failed`, `progress`, logs và metadata output.
-- UI Render page gửi job rồi poll trạng thái tới khi hoàn tất.
-- Output thành công vẫn ghi MP4 trong `outputs/` và manifest runtime.
+- Thêm giới hạn text theo từng loại nội dung trong `templates/project-showcase-90s/script.js`.
+- Chuẩn hóa whitespace trước khi render text.
+- Gắn `data-truncated="true"` và `title` khi nội dung bị cắt.
+- Thêm CSS `line-clamp`, `overflow-wrap`, `overflow hidden`, max width/height cho các block dễ tràn.
+- Bảo vệ các scene: intro, problem, solution, features, timeline, impact, outro.
 
 Không làm trong phase này:
 
-- Chưa có cancel job thật.
-- Chưa có nhiều worker song song.
-- Chưa persist full job queue/logs qua restart backend.
-- Chưa có websocket/realtime push.
+- Chưa làm auto font scaling theo pixel chính xác.
+- Chưa thêm screenshot regression test cố định vào repo.
+- Chưa xử lý multi-template vì hiện MVP chỉ có `project-showcase-90s`.
 
 ### Files impact
 
-- `backend/src/render/render-runner.js`
-- `backend/src/routes/render-jobs.js`
-- `frontend/scripts/common/render-preview.js`
+- `templates/project-showcase-90s/script.js`
+- `templates/project-showcase-90s/style.css`
 - `.agents/tasks/current-task.md`
 - `.agents/tasks/hyperframes-roadmap.md`
 
@@ -55,24 +53,23 @@ Không làm trong phase này:
 
 Status: passed
 
-- `node --check frontend/scripts/common/render-preview.js` pass.
+- `node --check templates/project-showcase-90s/script.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint` pass `0 errors, 0 warnings`.
 - `npm --prefix backend run check` pass.
-- `POST /api/render-jobs` trả `202` trong `28ms`, job ban đầu `queued`, progress `5`.
-- Poll `GET /api/render-jobs/:id` quan sát job `running` nhiều vòng và kết thúc `succeeded`.
-- Output API test: `outputs/46370514-be43-4921-aca6-b2b405c944c7.mp4`, `duration=74.000000`, `size=1652781`.
-- `GET /api/outputs` thấy output vừa render trong manifest.
-- `HEAD /api/outputs/46370514-be43-4921-aca6-b2b405c944c7.mp4` trả `200 OK`.
-- Browser smoke test pass:
-  - UI Render page nhận job backend.
-  - Progress lên `100%`.
-  - Status pill hiển thị `Hoàn tất`.
-  - Console log có `Backend đã nhận job` và `Backend render thành công`.
-  - `localStorage.hyper_video_outputs` có output backend `succeeded`.
+- Browser stress test với payload cực dài pass:
+  - 7 scene đều `sceneFitsVertical=true`.
+  - 7 scene đều `sceneFitsHorizontal=true`.
+  - Không có element tràn ngoài `#video-container`.
+  - Có truncation đúng chỗ: intro 4, problem 3, solution 2, features 12, timeline 10, impact 2, outro 2.
   - Không có console error.
+- HyperFrames render sample payload thật pass:
+  - Output: `/private/tmp/hyper-video-tool-text-hardening-sample.mp4`.
+  - `duration=74.000000`.
+  - `size=1540362`.
+- Ghi chú: có một render fallback trước đó cũng completed, nhưng test chính thức dùng sample payload tạm `render-payload.json` và đã xóa file tạm sau render.
 
 ## Remaining roadmap sau phase này
 
-- Hardening text overflow cho dữ liệu dài/ngắn.
 - Local/vendor strategy cho thư viện template đang dùng CDN.
 - Cancel queued/running job nếu cần UX tốt hơn.
 - Persist render jobs/logs qua backend restart nếu cần audit nội bộ.
