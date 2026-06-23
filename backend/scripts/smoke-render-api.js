@@ -5,10 +5,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "../..");
-const samplePayloadPath = path.join(projectRoot, "data", "render-payload.sample.json");
+const samplePayloadPath = process.env.HVT_SMOKE_PAYLOAD_PATH
+  ? path.resolve(projectRoot, process.env.HVT_SMOKE_PAYLOAD_PATH)
+  : path.join(projectRoot, "data", "render-payload.sample.json");
 const baseUrl = (process.env.HVT_SMOKE_BASE_URL || "http://127.0.0.1:3000").replace(/\/$/, "");
 const timeoutMs = Number.parseInt(process.env.HVT_SMOKE_TIMEOUT_MS || "120000", 10);
 const pollIntervalMs = Number.parseInt(process.env.HVT_SMOKE_POLL_MS || "2000", 10);
+const expectedResolution = process.env.HVT_SMOKE_EXPECT_RESOLUTION || "";
 
 function readSamplePayload() {
   return fs.readFileSync(samplePayloadPath, "utf8");
@@ -88,10 +91,11 @@ async function verifyOutput(job) {
   const listBody = await readJsonResponse(listResponse);
   assert.equal(listResponse.status, 200, "GET /api/outputs should return 200.");
   assert.equal(listBody.success, true, "Output list should succeed.");
-  assert.ok(
-    listBody.data.outputs.some((output) => output.jobId === job.id || output.filename === filename),
-    "Output manifest should include rendered job."
-  );
+  const outputRecord = listBody.data.outputs.find((output) => output.jobId === job.id || output.filename === filename);
+  assert.ok(outputRecord, "Output manifest should include rendered job.");
+  if (expectedResolution) {
+    assert.equal(outputRecord.resolution, expectedResolution, "Output manifest should include expected resolution.");
+  }
 
   return filename;
 }

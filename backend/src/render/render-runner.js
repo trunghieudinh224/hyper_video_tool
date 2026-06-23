@@ -6,12 +6,11 @@ const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
 const { upsertOutputRecord } = require("./output-manifest");
-const { validateRenderPayload } = require("./render-payload-schema");
+const { SUPPORTED_TEMPLATE_IDS, validateRenderPayload } = require("./render-payload-schema");
 
 const jobs = new Map();
 const jobQueue = [];
 let activeJobId = null;
-const SUPPORTED_TEMPLATE_ID = "project-showcase-90s";
 
 function stableJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -50,6 +49,10 @@ function createJobRecord(payload) {
     id: jobId,
     status: "queued",
     templateId: payload.template.id,
+    aspectRatio: payload.video.aspectRatio,
+    width: payload.video.width,
+    height: payload.video.height,
+    resolution: `${payload.video.width}x${payload.video.height}`,
     projectName: payload.source.projectName,
     outputPath: relativePath(outputPath),
     createdAt: now,
@@ -69,13 +72,13 @@ function validateJobPayload(payload) {
     return validation;
   }
 
-  if (payload.template.id !== SUPPORTED_TEMPLATE_ID) {
+  if (!SUPPORTED_TEMPLATE_IDS.has(payload.template.id)) {
     return {
       valid: false,
       errors: [
         {
           path: "template.id",
-          message: `Only template ${SUPPORTED_TEMPLATE_ID} is supported by the MVP render runner.`
+          message: `Template id must be one of: ${Array.from(SUPPORTED_TEMPLATE_IDS).join(", ")}.`
         }
       ]
     };
@@ -85,7 +88,7 @@ function validateJobPayload(payload) {
 }
 
 function prepareWorkDir(jobId, payload) {
-  const templateDir = path.join(config.projectRoot, "templates", SUPPORTED_TEMPLATE_ID);
+  const templateDir = path.join(config.projectRoot, "templates", payload.template.id);
   const workDir = getWorkDir(jobId);
   const compositionDir = path.join(workDir, "composition");
 
@@ -239,7 +242,7 @@ function getRenderJob(jobId) {
 }
 
 module.exports = {
-  SUPPORTED_TEMPLATE_ID,
+  SUPPORTED_TEMPLATE_IDS,
   getRenderJob,
   queueRenderJob
 };

@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { config } = require("../config");
-const { validateRenderPayload } = require("./render-payload-schema");
+const { VIDEO_PRESETS, validateRenderPayload } = require("./render-payload-schema");
 
 function checkFileExists(filePath, label) {
   const exists = fs.existsSync(filePath) && fs.statSync(filePath).isFile();
@@ -62,35 +62,42 @@ function checkOutputsDirectory() {
   }
 }
 
-function checkTemplateFiles() {
-  const templateDir = path.join(config.projectRoot, "templates", "project-showcase-90s");
+function checkTemplateFilesForPreset(preset) {
+  const templateDir = path.join(config.projectRoot, "templates", preset.templateId);
   const checks = [
-    checkFileExists(path.join(templateDir, "index.html"), "Template index.html"),
-    checkFileExists(path.join(templateDir, "style.css"), "Template style.css"),
-    checkFileExists(path.join(templateDir, "script.js"), "Template script.js"),
-    checkFileExists(path.join(templateDir, "vendor", "gsap.min.js"), "Template local GSAP")
+    checkFileExists(path.join(templateDir, "index.html"), `${preset.templateName} index.html`),
+    checkFileExists(path.join(templateDir, "style.css"), `${preset.templateName} style.css`),
+    checkFileExists(path.join(templateDir, "script.js"), `${preset.templateName} script.js`),
+    checkFileExists(path.join(templateDir, "vendor", "gsap.min.js"), `${preset.templateName} local GSAP`)
   ];
 
   const indexPath = path.join(templateDir, "index.html");
   if (fs.existsSync(indexPath)) {
     const html = fs.readFileSync(indexPath, "utf8");
     checks.push({
-      id: "template-composition-id",
-      label: "Template composition metadata",
-      status: html.includes('data-composition-id="project-showcase-90s"') && html.includes('window.__timelines["project-showcase-90s"]') ? "ok" : "error",
+      id: `${preset.templateId}-composition-id`,
+      label: `${preset.templateName} composition metadata`,
+      status: html.includes(`data-composition-id="${preset.templateId}"`)
+        && html.includes(`data-width="${preset.width}"`)
+        && html.includes(`data-height="${preset.height}"`)
+        && html.includes(`window.__timelines["${preset.templateId}"]`) ? "ok" : "error",
       message: "Template composition metadata checked.",
-      detail: "project-showcase-90s"
+      detail: `${preset.templateId} ${preset.width}x${preset.height}`
     });
     checks.push({
-      id: "template-local-gsap",
-      label: "Template local animation runtime",
+      id: `${preset.templateId}-local-gsap`,
+      label: `${preset.templateName} local animation runtime`,
       status: html.includes('src="vendor/gsap.min.js"') && !html.includes("cdn.jsdelivr.net/npm/gsap") ? "ok" : "error",
       message: "Template should use local GSAP instead of CDN.",
-      detail: "templates/project-showcase-90s/vendor/gsap.min.js"
+      detail: `templates/${preset.templateId}/vendor/gsap.min.js`
     });
   }
 
   return checks;
+}
+
+function checkTemplateFiles() {
+  return Object.values(VIDEO_PRESETS).flatMap(checkTemplateFilesForPreset);
 }
 
 function checkRunnerFiles() {
@@ -149,6 +156,7 @@ function getRenderPreflight() {
     actions: [
       "Nếu runner dependency bị thiếu, chạy: npm --prefix backend run hf:setup",
       "Nếu template lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint",
+      "Nếu template dọc lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-vertical-60s lint",
       "Nếu outputs/ không ghi được, kiểm tra quyền ghi thư mục project."
     ]
   };

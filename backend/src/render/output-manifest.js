@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { config } = require("../config");
+const { VIDEO_PRESETS } = require("./render-payload-schema");
 
 const MANIFEST_FILENAME = "manifest.json";
 const MANIFEST_VERSION = "1.0.0";
@@ -44,7 +45,8 @@ function formatDateTime(value) {
 }
 
 function getTemplateName(templateId) {
-  return templateId === "project-showcase-90s" ? "Showcase 90s" : templateId;
+  const preset = Object.values(VIDEO_PRESETS).find((item) => item.templateId === templateId);
+  return preset ? preset.templateName : templateId;
 }
 
 function normalizeOutputRecord(record) {
@@ -71,6 +73,10 @@ function normalizeOutputRecord(record) {
     outputPath: `outputs/${record.filename}`,
     templateId: record.templateId,
     template: record.template || getTemplateName(record.templateId),
+    aspectRatio: record.aspectRatio || null,
+    width: record.width || null,
+    height: record.height || null,
+    resolution: record.resolution || (record.width && record.height ? `${record.width}x${record.height}` : ""),
     projectName: record.projectName || "",
     status: record.status || "succeeded",
     outputSize,
@@ -103,6 +109,10 @@ function upsertOutputRecord(job) {
     outputPath: `outputs/${filename}`,
     templateId: job.templateId,
     template: getTemplateName(job.templateId),
+    aspectRatio: job.aspectRatio,
+    width: job.width,
+    height: job.height,
+    resolution: job.resolution,
     projectName: job.projectName,
     status: job.status,
     outputSize: job.outputSize || null,

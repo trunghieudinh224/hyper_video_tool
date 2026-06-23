@@ -150,3 +150,49 @@ Status: passed
 Remaining risks:
 
 - Backend API chưa render dọc cho tới Phase 3.
+
+## Phase Vertical Video 3 - Backend Render Dọc End-To-End
+
+### Objective
+
+Backend render runner hỗ trợ nhiều template và API render được payload dọc `project-showcase-vertical-60s` ra MP4 `1080x1920`.
+
+### Scope
+
+Đã làm:
+
+- Đổi runner từ hardcode `project-showcase-90s` sang whitelist từ preset payload.
+- Runner copy template theo `payload.template.id`.
+- Job API trả thêm `aspectRatio`, `width`, `height`, `resolution`.
+- Output manifest lưu thêm `aspectRatio`, `width`, `height`, `resolution`.
+- Preflight kiểm cả template ngang và template dọc.
+- Smoke script nhận payload path và expected resolution qua env để test dọc.
+
+Không làm trong phase này:
+
+- Chưa thêm UI chọn dọc/ngang.
+- Chưa thêm cancel job thật.
+- Chưa persist full job log qua restart.
+
+### Test Report
+
+Status: passed
+
+- `npm --prefix backend run check` pass.
+- `node -e "...getRenderPreflight()"` pass với `status=ok`, `checks=18`, `errors=[]`.
+- Backend local chạy tại `http://127.0.0.1:3018`.
+- `GET /api/render-preflight` pass, kiểm đủ template ngang và dọc.
+- API smoke render dọc pass:
+  - Command dùng `HVT_SMOKE_PAYLOAD_PATH=/private/tmp/hvt-vertical-payload.json`.
+  - Job: `d594b9ec-49a2-4ea2-93d0-f0bead7f8c22`.
+  - Output: `outputs/d594b9ec-49a2-4ea2-93d0-f0bead7f8c22.mp4`.
+  - Manifest có `resolution=1080x1920`.
+- `ffprobe outputs/d594b9ec-49a2-4ea2-93d0-f0bead7f8c22.mp4`:
+  - `width=1080`.
+  - `height=1920`.
+  - `duration=74.000000`.
+  - `size=2950067`.
+
+Remaining risks:
+
+- UI chưa build payload dọc cho tới Phase 4.
