@@ -141,6 +141,10 @@
   width: 100%;
 }
 
+.page-content {
+  padding-bottom: calc(var(--space-12) + var(--space-8) + env(safe-area-inset-bottom));
+}
+
 .page-form-stack {
   display: flex;
   flex-direction: column;
