@@ -41,17 +41,13 @@ const HyperVideoPage = (() => {
     const checkMobileDisplay = () => {
       const isMobile = window.innerWidth <= 768;
       const sidebarToggle = document.getElementById("mobile-sidebar-toggle");
-      const valToggle = document.getElementById("mobile-validation-toggle");
 
-      if (sidebarToggle && valToggle) {
+      if (sidebarToggle) {
         if (isMobile) {
           sidebarToggle.style.display = "flex";
-          valToggle.style.display = "flex";
         } else {
           sidebarToggle.style.display = "none";
-          valToggle.style.display = "none";
           document.getElementById("sidebar").classList.remove("mobile-open");
-          document.getElementById("validation-panel").classList.remove("mobile-open");
         }
       }
     };

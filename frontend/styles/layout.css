@@ -107,23 +107,6 @@
   transition: background-color var(--transition-normal), padding var(--transition-normal);
 }
 
-/* Validation panel styling */
-.validation-panel {
-  width: var(--validation-rail-width);
-  height: 100%;
-  background-color: var(--color-surface);
-  border-left: 1px solid var(--color-border);
-  display: flex;
-  align-items: stretch;
-  flex-shrink: 0;
-  overflow: hidden;
-  transition: background-color var(--transition-normal), border-color var(--transition-normal), width var(--transition-normal), right var(--transition-normal);
-}
-
-.validation-panel.detail-open {
-  width: calc(var(--validation-width) + var(--validation-rail-width));
-}
-
 /* Workspace main layouts */
 .workspace-header {
   display: flex;
@@ -186,7 +169,6 @@
 @media (max-width: 1024px) {
   :root {
     --sidebar-width: 200px;
-    --validation-width: 280px;
   }
   
   .topbar {
@@ -206,7 +188,6 @@
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 0px; /* Hide sidebar by default on mobile */
-    --validation-width: 0px; /* Hide validation panel by default on mobile */
   }
 
   .sidebar {
@@ -223,27 +204,6 @@
 
   .sidebar.mobile-open {
     left: 0;
-  }
-
-  .validation-panel {
-    position: absolute;
-    right: -320px;
-    top: 0;
-    bottom: 0;
-    width: 320px;
-    height: 100vh;
-    box-shadow: var(--shadow-md);
-    border-left: 1px solid var(--color-border);
-    z-index: 1010; /* Ensure validation panel is on top of mobile topbar */
-  }
-
-  .validation-panel.mobile-open {
-    right: 0;
-  }
-
-  .validation-panel.mobile-open,
-  .validation-panel.detail-open {
-    width: 320px;
   }
 
   .topbar {

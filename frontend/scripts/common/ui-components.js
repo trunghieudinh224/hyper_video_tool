@@ -10,22 +10,13 @@ const AppUI = (() => {
     DOM.topbarProjectName = document.getElementById("topbar-project-name");
     DOM.topbarRenderBtn = document.getElementById("topbar-render-btn");
     DOM.sidebar = document.getElementById("sidebar");
-    DOM.validationPanel = document.getElementById("validation-panel");
-    DOM.validationCompactToggle = document.getElementById("validation-compact-toggle");
-    DOM.validationClose = document.getElementById("validation-close");
     DOM.mobileSidebarToggle = document.getElementById("mobile-sidebar-toggle");
-    DOM.mobileValidationToggle = document.getElementById("mobile-validation-toggle");
     DOM.toastContainer = document.getElementById("toast-container");
     DOM.modalContainer = document.getElementById("modal-container");
     DOM.modalTitle = document.getElementById("modal-title");
     DOM.modalBody = document.getElementById("modal-body");
     DOM.modalFooter = document.getElementById("modal-footer");
     DOM.modalClose = document.getElementById("modal-close");
-    DOM.errorCount = document.getElementById("error-count");
-    DOM.warningCount = document.getElementById("warning-count");
-    DOM.compactErrorCount = document.getElementById("compact-error-count");
-    DOM.compactWarningCount = document.getElementById("compact-warning-count");
-    DOM.validationList = document.getElementById("validation-list");
     DOM.tabsContent = document.getElementById("workspace-tabs-content");
     DOM.html = document.documentElement;
 
@@ -94,7 +85,6 @@ const AppUI = (() => {
   const switchTab = (tabId) => {
     // Close mobile sidebars on transition
     DOM.sidebar.classList.remove("mobile-open");
-    DOM.validationPanel.classList.remove("mobile-open");
 
     const currentPage = document.body.getAttribute("data-page");
     if (currentPage === tabId) {
@@ -153,15 +143,11 @@ const AppUI = (() => {
 
   // 1. Overview View
   const renderOverviewScreen = (container, data) => {
-    const val = AppState.getValidation();
-    const errorCount = val.errors.length;
-
     // Quick checks
     const checkBasic = (data.projectName && data.shortSummary) ? "success" : "danger";
     const checkFeatures = (data.features || []).filter(f => f.useInVideo).length >= 3 ? "success" : "warning";
     const checkAssets = (data.assets || []).some(a => ["logo", "screenshot", "video"].includes(a.type) && a.useInVideo) ? "success" : "warning";
     const checkTemplate = data.templateId ? "success" : "danger";
-    const checkReady = errorCount === 0 ? "success" : "danger";
 
     container.innerHTML = `
       <div class="workspace-header">
@@ -205,7 +191,7 @@ const AppUI = (() => {
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid var(--color-border); padding-top: var(--space-2); margin-top: var(--space-1); font-weight:600;">
               <span>Trạng thái sẵn sàng render</span>
-              <span class="status-pill status-${checkReady}">${checkReady === 'success' ? 'Sẵn sàng' : 'Chưa sẵn sàng'}</span>
+              <span class="status-pill status-info">Kiểm tra ở Render</span>
             </div>
           </div>
         </div>
@@ -218,7 +204,7 @@ const AppUI = (() => {
         <div class="card-body" style="display:flex; gap: var(--space-3); flex-wrap: wrap;">
           <button id="quick-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu thử nghiệm</button>
           <button id="quick-preview-btn" class="btn btn-secondary">Xem trước scene (16:9)</button>
-          <button id="quick-render-btn" class="btn btn-primary" ${errorCount > 0 ? 'disabled' : ''}>Đi tới Render Video</button>
+          <button id="quick-render-btn" class="btn btn-primary">Đi tới Render Video</button>
         </div>
       </div>
     `;
@@ -1512,8 +1498,6 @@ const AppUI = (() => {
 
   // 8. Render Engine View
   const renderRenderScreen = (container, data) => {
-    const val = AppState.getValidation();
-    const errorCount = val.errors.length;
     const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
 
     let buttonStateHTML = "";
@@ -1521,7 +1505,7 @@ const AppUI = (() => {
       buttonStateHTML = `<button id="btn-trigger-render-cancel" class="btn btn-danger">Hủy bỏ xuất bản</button>`;
     } else {
       buttonStateHTML = `
-        <button id="btn-trigger-render-start" class="btn btn-primary" ${errorCount > 0 ? 'disabled' : ''}>
+        <button id="btn-trigger-render-start" class="btn btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Bắt đầu Render
         </button>
@@ -1549,6 +1533,10 @@ const AppUI = (() => {
               <h3>Cấu hình render</h3>
             </div>
             <div class="card-body render-config-body">
+              <div id="render-validation-panel" class="render-validation-panel is-ok">
+                <span class="render-validation-title">Dữ liệu sẽ được kiểm tra khi bắt đầu render.</span>
+              </div>
+
               <div class="render-basic-grid">
                 <div class="form-group">
                   <label class="form-label" for="render-format">Tỷ lệ video</label>
@@ -1619,6 +1607,7 @@ const AppUI = (() => {
     const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
     const renderLogDetails = document.getElementById("render-log-details");
     const renderInlineResult = document.getElementById("render-inline-result");
+    const renderValidationPanel = document.getElementById("render-validation-panel");
     const getOutputAspectRatio = (output) => {
       if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
         return "9/16";
@@ -1660,6 +1649,53 @@ const AppUI = (() => {
           { text: "Đóng", class: "btn-secondary", onClick: closeModal }
         ]
       );
+    };
+
+    const renderValidationResult = (validationResults) => {
+      const errors = validationResults.errors || [];
+      const warnings = validationResults.warnings || [];
+
+      if (errors.length === 0 && warnings.length === 0) {
+        renderValidationPanel.className = "render-validation-panel is-ok";
+        renderValidationPanel.innerHTML = `
+          <span class="render-validation-title">Dữ liệu hợp lệ, có thể render.</span>
+        `;
+        return;
+      }
+
+      renderValidationPanel.className = `render-validation-panel ${errors.length > 0 ? "is-error" : "is-warning"}`;
+      renderValidationPanel.innerHTML = `
+        <div class="render-validation-heading">
+          <span class="render-validation-title">${errors.length > 0 ? "Cần sửa dữ liệu trước khi render" : "Có cảnh báo trước khi render"}</span>
+          <span class="render-validation-count">${errors.length} lỗi · ${warnings.length} cảnh báo</span>
+        </div>
+        <div class="render-validation-list">
+          ${errors.map((item) => `
+            <button class="render-validation-item" type="button" data-tab="${item.tab}" data-field="${item.field}">
+              <span class="render-validation-item-type">Lỗi</span>
+              <span>
+                <strong>${item.title}</strong>
+                <small>${item.message}</small>
+              </span>
+            </button>
+          `).join("")}
+          ${warnings.map((item) => `
+            <button class="render-validation-item" type="button" data-tab="${item.tab}" data-field="${item.field}">
+              <span class="render-validation-item-type">Cảnh báo</span>
+              <span>
+                <strong>${item.title}</strong>
+                <small>${item.message}</small>
+              </span>
+            </button>
+          `).join("")}
+        </div>
+      `;
+
+      renderValidationPanel.querySelectorAll(".render-validation-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          focusValidationError(item.getAttribute("data-tab"), item.getAttribute("data-field"));
+        });
+      });
     };
 
     const renderInlineResultContent = (output) => {
@@ -1802,6 +1838,14 @@ const AppUI = (() => {
         const fps = parseInt(document.getElementById("render-fps").value);
         const filename = document.getElementById("render-filename").value.trim() || "output.mp4";
         const currentData = AppState.getProjectData();
+        const validationResults = AppValidation.validate(currentData);
+        AppState.setValidation(validationResults);
+        renderValidationResult(validationResults);
+        if (validationResults.errors.length > 0) {
+          showToast("Còn lỗi dữ liệu, sửa xong rồi render lại.", "error");
+          return;
+        }
+
         const currentVoiceover = (currentData.audio && currentData.audio.voiceover) || {};
         const currentPayload = AppRender.buildRenderPayload(currentData, { formatId });
         if (currentVoiceover.enabled && !(currentPayload.audio.voiceover.script || "").trim()) {
@@ -2137,27 +2181,10 @@ const AppUI = (() => {
     });
   };
 
-  // ================= VALIDATION DISPLAY =================
+  // ================= VALIDATION BADGES =================
 
   const updateValidationUI = (valResults) => {
-    const errorCount = valResults.errors.length;
-    const warningCount = valResults.warnings.length;
-
-    // Update summaries
-    DOM.errorCount.textContent = errorCount;
-    DOM.warningCount.textContent = warningCount;
-    DOM.compactErrorCount.textContent = errorCount;
-    DOM.compactWarningCount.textContent = warningCount;
-
-    DOM.validationPanel.classList.toggle("has-issues", errorCount + warningCount > 0);
-    DOM.validationPanel.classList.toggle("has-errors", errorCount > 0);
-
-    // Toggle main render buttons disabled state
-    if (errorCount > 0) {
-      DOM.topbarRenderBtn.disabled = true;
-    } else {
-      DOM.topbarRenderBtn.disabled = false;
-    }
+    DOM.topbarRenderBtn.disabled = false;
 
     // Sidebar Badges updates
     Object.values(DOM.badges).forEach((badge) => {
@@ -2182,60 +2209,6 @@ const AppUI = (() => {
 
     valResults.errors.forEach(e => addBadgeToTab(e.tab, true));
     valResults.warnings.forEach(w => addBadgeToTab(w.tab, false));
-
-    // Populate List panel
-    DOM.validationList.innerHTML = "";
-
-    if (errorCount === 0 && warningCount === 0) {
-      DOM.validationPanel.classList.remove("detail-open");
-      DOM.validationCompactToggle.setAttribute("aria-expanded", "false");
-      DOM.validationList.innerHTML = `
-        <div class="validation-empty">
-          <div class="validation-empty-title">Dữ liệu hợp lệ</div>
-          <div class="validation-empty-desc">Không có lỗi hoặc cảnh báo.</div>
-        </div>
-      `;
-      return;
-    }
-
-    if (window.innerWidth > 768) {
-      DOM.validationPanel.classList.add("detail-open");
-      DOM.validationCompactToggle.setAttribute("aria-expanded", "true");
-    }
-
-    // Errors Group
-    valResults.errors.forEach(err => {
-      const card = document.createElement("div");
-      card.className = "validation-card val-error";
-      card.innerHTML = `
-        <div class="validation-card-header">
-          <span>${err.title}</span>
-          <span class="text-danger" style="font-size:10px; font-weight:700;">LỖI</span>
-        </div>
-        <div class="validation-card-body">${err.message}</div>
-      `;
-      card.addEventListener("click", () => {
-        focusValidationError(err.tab, err.field);
-      });
-      DOM.validationList.appendChild(card);
-    });
-
-    // Warnings Group
-    valResults.warnings.forEach(war => {
-      const card = document.createElement("div");
-      card.className = "validation-card val-warning";
-      card.innerHTML = `
-        <div class="validation-card-header">
-          <span>${war.title}</span>
-          <span class="text-warning" style="font-size:10px; font-weight:700;">CẢNH BÁO</span>
-        </div>
-        <div class="validation-card-body">${war.message}</div>
-      `;
-      card.addEventListener("click", () => {
-        focusValidationError(war.tab, war.field);
-      });
-      DOM.validationList.appendChild(card);
-    });
   };
 
   const focusValidationError = (tab, fieldId) => {
@@ -2299,19 +2272,6 @@ const AppUI = (() => {
       AppState.setTab("render");
     });
 
-    DOM.validationCompactToggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isOpen = DOM.validationPanel.classList.toggle("detail-open");
-      DOM.validationCompactToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      DOM.sidebar.classList.remove("mobile-open");
-    });
-
-    DOM.validationClose.addEventListener("click", (e) => {
-      e.stopPropagation();
-      DOM.validationPanel.classList.remove("detail-open", "mobile-open");
-      DOM.validationCompactToggle.setAttribute("aria-expanded", "false");
-    });
-
     // Left Sidebar navigation click binds
     document.querySelectorAll(".nav-item").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -2324,27 +2284,14 @@ const AppUI = (() => {
     DOM.mobileSidebarToggle.addEventListener("click", (e) => {
       e.stopPropagation();
       DOM.sidebar.classList.toggle("mobile-open");
-      DOM.validationPanel.classList.remove("mobile-open");
-    });
-
-    // Mobile validation panel toggle clicks
-    DOM.mobileValidationToggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      DOM.validationPanel.classList.toggle("mobile-open");
-      DOM.validationPanel.classList.remove("detail-open");
-      DOM.sidebar.classList.remove("mobile-open");
     });
 
     // Close sidebars on clicking anywhere else
     document.addEventListener("click", () => {
       DOM.sidebar.classList.remove("mobile-open");
-      DOM.validationPanel.classList.remove("mobile-open");
-      DOM.validationPanel.classList.remove("detail-open");
-      DOM.validationCompactToggle.setAttribute("aria-expanded", "false");
     });
 
     DOM.sidebar.addEventListener("click", (e) => e.stopPropagation());
-    DOM.validationPanel.addEventListener("click", (e) => e.stopPropagation());
 
     // Modal overlay closes when clicking on shadow
     DOM.modalContainer.addEventListener("click", (e) => {
