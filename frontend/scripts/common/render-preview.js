@@ -3,7 +3,15 @@
 const AppRender = (() => {
   let isRendering = false;
 
+  const getRenderFormat = (renderConfig = {}) => {
+    const formats = Array.isArray(window.RENDER_FORMATS) ? window.RENDER_FORMATS : RENDER_FORMATS;
+    return formats.find((format) => format.id === renderConfig.formatId)
+      || formats.find((format) => format.resolution === renderConfig.resolution)
+      || formats[0];
+  };
+
   const buildRenderPayload = (projectData, renderConfig = {}) => {
+    const renderFormat = getRenderFormat(renderConfig);
     const selectedAssets = projectData.assets || [];
     const logo = selectedAssets.find((asset) => asset.type === "logo" && asset.useInVideo) || null;
     const screenshots = selectedAssets.filter((asset) => asset.type === "screenshot" && asset.useInVideo);
@@ -20,7 +28,7 @@ const AppRender = (() => {
         presenterRole: projectData.presenterRole || "Người thuyết trình"
       },
       template: {
-        id: projectData.templateId || "project-showcase-90s",
+        id: renderConfig.templateId || renderFormat.templateId,
         config: projectData.templateConfig || {
           theme: "dark",
           accentColor: "blue",
@@ -29,8 +37,9 @@ const AppRender = (() => {
         }
       },
       video: {
-        width: renderConfig.resolution === "1280x720" ? 1280 : 1920,
-        height: renderConfig.resolution === "1280x720" ? 720 : 1080,
+        aspectRatio: renderFormat.aspectRatio,
+        width: renderFormat.width,
+        height: renderFormat.height,
         fps: Number(renderConfig.fps || 30),
         format: "mp4",
         estimatedDuration: 74
@@ -222,8 +231,10 @@ const AppRender = (() => {
       jobId: job.id,
       filename: job.outputPath ? job.outputPath.split("/").pop() : `${job.id}.mp4`,
       outputPath: job.outputPath,
-      template: job.templateId === "project-showcase-90s" ? "Showcase 90s" : job.templateId,
-      resolution: config.resolution || "1920x1080",
+      templateId: job.templateId,
+      template: config.templateName || (job.templateId === "project-showcase-90s" ? "Showcase 90s" : job.templateId),
+      aspectRatio: job.aspectRatio || config.aspectRatio,
+      resolution: job.resolution || config.resolution || "1920x1080",
       size: formatBytes(job.outputSize),
       outputSize: job.outputSize,
       durationMs: job.durationMs,
@@ -238,7 +249,9 @@ const AppRender = (() => {
     jobId: output.jobId || output.id,
     filename: output.filename,
     outputPath: output.outputPath || (output.filename ? `outputs/${output.filename}` : ""),
+    templateId: output.templateId,
     template: output.template || (output.templateId === "project-showcase-90s" ? "Showcase 90s" : output.templateId),
+    aspectRatio: output.aspectRatio || "",
     resolution: output.resolution || "1920x1080",
     size: formatBytes(output.outputSize),
     outputSize: output.outputSize,
@@ -275,14 +288,23 @@ const AppRender = (() => {
 
     isRendering = true;
     const projectData = AppState.getProjectData();
-    const payload = buildRenderPayload(projectData, config);
+    const renderFormat = getRenderFormat(config);
+    const normalizedConfig = {
+      ...config,
+      formatId: renderFormat.id,
+      aspectRatio: renderFormat.aspectRatio,
+      resolution: renderFormat.resolution,
+      templateId: renderFormat.templateId,
+      templateName: renderFormat.templateName
+    };
+    const payload = buildRenderPayload(projectData, normalizedConfig);
     const queuedJob = {
       id: `job_${Date.now()}`,
       filename: config.filename || `${projectData.projectSlug || "project"}_video.mp4`,
-      resolution: config.resolution || "1920x1080",
+      resolution: normalizedConfig.resolution,
       fps: config.fps || 30,
       projectName: projectData.projectName,
-      templateId: projectData.templateId,
+      templateId: normalizedConfig.templateId,
       status: "rendering",
       progress: 12,
       startTime: new Date().toLocaleTimeString()
@@ -341,7 +363,7 @@ const AppRender = (() => {
       onLog("SUCCESS", `Backend render thành công: ${job.outputPath}`);
       onLog("SUCCESS", `Thời gian render: ${Math.round((job.durationMs || 0) / 1000)} giây.`);
 
-      const output = createOutputRecord(job, config);
+      const output = createOutputRecord(job, normalizedConfig);
       const outputs = AppStorage.loadOutputs();
       AppStorage.saveOutputs([output, ...outputs.filter((item) => item.id !== output.id)]);
       AppState.setRenderQueue([]);

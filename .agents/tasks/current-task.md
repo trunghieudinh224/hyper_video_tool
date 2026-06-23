@@ -196,3 +196,60 @@ Status: passed
 Remaining risks:
 
 - UI chưa build payload dọc cho tới Phase 4.
+
+## Phase Vertical Video 4 - UI Chọn Dọc/Ngang End-To-End
+
+### Objective
+
+Người dùng chọn tỷ lệ video trên Render page và render được MP4 đúng tỷ lệ, Outputs page hiển thị đúng template/resolution.
+
+### Scope
+
+Đã làm:
+
+- Thêm frontend render formats:
+  - `Ngang 16:9 - 1920x1080`.
+  - `Dọc 9:16 - 1080x1920`.
+- Render page có selector tỷ lệ video.
+- UI build payload dọc bằng template `project-showcase-vertical-60s`.
+- Outputs local/backend record giữ `templateId`, `aspectRatio`, `resolution`.
+- Modal preview output dùng aspect ratio `9/16` cho video dọc.
+- README và backend README cập nhật cách test dọc.
+
+Không làm trong phase này:
+
+- Chưa thêm Preview page dọc.
+- Chưa thêm nhiều style dọc.
+- Chưa thêm audio/voiceover/subtitle.
+
+### Test Report
+
+Status: passed
+
+- `npm --prefix backend run check` pass.
+- `node --check frontend/scripts/common/constants.js && node --check frontend/scripts/common/render-preview.js && node --check frontend/scripts/common/ui-components.js` pass.
+- Chrome headless Render page smoke pass:
+  - Selector có `Ngang 16:9 - 1920x1080`.
+  - Selector có `Dọc 9:16 - 1080x1920`.
+  - Preflight panel status `Sẵn sàng`.
+- UI end-to-end render dọc qua Chrome CDP pass:
+  - Chọn `vertical-9x16`.
+  - Bấm `Bắt đầu Render`.
+  - Poll tới `Hoàn tất`, progress `100%`.
+  - Output: `outputs/718e79e7-0e4e-41b6-afbb-3501271da478.mp4`.
+- `ffprobe outputs/718e79e7-0e4e-41b6-afbb-3501271da478.mp4`:
+  - `width=1080`.
+  - `height=1920`.
+  - `duration=74.000000`.
+  - `size=2945527`.
+- API/Outputs check pass:
+  - `GET /api/outputs` có output dọc `Showcase Vertical 60s`, `aspectRatio=9:16`, `resolution=1080x1920`.
+  - Outputs page smoke thấy output dọc `1080x1920`.
+- Regression ngang pass:
+  - `HVT_SMOKE_EXPECT_RESOLUTION=1920x1080 npm --prefix backend run smoke:render-api` pass.
+  - Output: `outputs/d0e0d054-051e-47e0-91cd-5bd8627217e0.mp4`.
+  - `ffprobe`: `width=1920`, `height=1080`, `duration=74.000000`, `size=1540362`.
+
+Remaining risks:
+
+- Preview page vẫn là preview ngang; roadmap đã để Future Scope.

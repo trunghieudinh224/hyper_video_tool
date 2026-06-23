@@ -61,6 +61,29 @@ const TEMPLATES_LIST = [
   }
 ];
 
+const RENDER_FORMATS = [
+  {
+    id: "landscape-16x9",
+    label: "Ngang 16:9 - 1920x1080",
+    aspectRatio: "16:9",
+    resolution: "1920x1080",
+    width: 1920,
+    height: 1080,
+    templateId: "project-showcase-90s",
+    templateName: "Showcase 90s"
+  },
+  {
+    id: "vertical-9x16",
+    label: "Dọc 9:16 - 1080x1920",
+    aspectRatio: "9:16",
+    resolution: "1080x1920",
+    width: 1080,
+    height: 1920,
+    templateId: "project-showcase-vertical-60s",
+    templateName: "Showcase Vertical 60s"
+  }
+];
+
 const THEME_ACCENT_COLORS = [
   { id: "blue", name: "Xanh chuyên nghiệp", value: "#1f4fd8" },
   { id: "gray", name: "Xám trung tính", value: "#5f6b7a" },

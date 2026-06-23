@@ -142,6 +142,15 @@ Smoke test render API thật khi backend đang chạy:
 HVT_SMOKE_BASE_URL=http://127.0.0.1:3000 npm --prefix backend run smoke:render-api
 ```
 
+Smoke test render dọc dùng payload tạm:
+
+```bash
+HVT_SMOKE_BASE_URL=http://127.0.0.1:3000 \
+HVT_SMOKE_PAYLOAD_PATH=/private/tmp/hvt-vertical-payload.json \
+HVT_SMOKE_EXPECT_RESOLUTION=1080x1920 \
+npm --prefix backend run smoke:render-api
+```
+
 Smoke test này sẽ:
 
 - Gửi `POST /api/render-jobs`.

@@ -1376,6 +1376,7 @@ const AppUI = (() => {
   const renderRenderScreen = (container, data) => {
     const val = AppState.getValidation();
     const errorCount = val.errors.length;
+    const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
 
     let buttonStateHTML = "";
     if (AppRender.isRendering()) {
@@ -1413,10 +1414,11 @@ const AppUI = (() => {
             </div>
             <div class="card-body" style="display:flex; flex-direction:column; gap: var(--space-3);">
               <div class="form-group">
-                <label class="form-label" for="render-resolution">Độ phân giải (Resolution)</label>
-                <select id="render-resolution" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
-                  <option value="1920x1080">Full HD (1920x1080) - 16:9 [Khuyên dùng]</option>
-                  <option value="1280x720">HD (1280x720) - 16:9</option>
+                <label class="form-label" for="render-format">Tỷ lệ video</label>
+                <select id="render-format" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
+                  ${renderFormats.map((format, index) => `
+                    <option value="${format.id}" ${index === 0 ? 'selected' : ''}>${format.label}</option>
+                  `).join("")}
                 </select>
               </div>
 
@@ -1580,7 +1582,7 @@ const AppUI = (() => {
 
     if (startBtn) {
       startBtn.addEventListener("click", () => {
-        const resolution = document.getElementById("render-resolution").value;
+        const formatId = document.getElementById("render-format").value;
         const fps = parseInt(document.getElementById("render-fps").value);
         const filename = document.getElementById("render-filename").value.trim() || "output.mp4";
 
@@ -1590,7 +1592,7 @@ const AppUI = (() => {
         startBtn.disabled = true;
         startBtn.textContent = "Đang render...";
 
-        AppRender.startRender({ resolution, fps, filename }, onProgress, onLog, onComplete, onFailure);
+        AppRender.startRender({ formatId, fps, filename }, onProgress, onLog, onComplete, onFailure);
       });
     }
 
@@ -1605,6 +1607,12 @@ const AppUI = (() => {
   // 9. Outputs / History View
   const renderOutputsScreen = (container, data) => {
     const list = AppStorage.loadOutputs();
+    const getOutputAspectRatio = (output) => {
+      if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
+        return "9/16";
+      }
+      return "16/9";
+    };
 
     if (AppRender.listBackendOutputs && container.dataset.outputsSynced !== "true") {
       container.dataset.outputsSynced = "true";
@@ -1700,12 +1708,13 @@ const AppUI = (() => {
           const filename = output.outputPath ? output.outputPath.split("/").pop() : output.filename;
           const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
           const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
+          const previewAspectRatio = getOutputAspectRatio(output);
           const mockupVideoBody = document.createElement("div");
           mockupVideoBody.innerHTML = `
             ${videoUrl ? `
-              <video controls preload="metadata" src="${videoUrl}" style="width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; margin-bottom:12px;"></video>
+              <video controls preload="metadata" src="${videoUrl}" style="width:100%; max-height:70vh; aspect-ratio:${previewAspectRatio}; background:#000; border-radius:4px; margin-bottom:12px;"></video>
             ` : `
-              <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; flex-direction:column; margin-bottom:12px;">
+              <div style="width:100%; aspect-ratio:${previewAspectRatio}; background:#000; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; flex-direction:column; margin-bottom:12px;">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 <p style="margin-top:8px; font-size:var(--font-sm); opacity:0.8;">Không có filename hợp lệ để preview.</p>
               </div>
@@ -1713,6 +1722,7 @@ const AppUI = (() => {
             <div style="display:grid; gap: var(--space-2); font-size:var(--font-sm);">
               <p><strong>Job ID:</strong> ${output.jobId || output.id}</p>
               <p><strong>Đường dẫn output:</strong> ${output.outputPath || `outputs/${output.filename}`}</p>
+              <p><strong>Tỷ lệ:</strong> ${output.aspectRatio || "Không rõ"}</p>
               <p><strong>Dung lượng:</strong> ${output.size}</p>
               <p><strong>Thời gian render:</strong> ${output.durationMs ? `${Math.round(output.durationMs / 1000)} giây` : "Không rõ"}</p>
               ${downloadUrl ? `<p><a class="btn btn-primary" href="${downloadUrl}" download>Tải MP4</a></p>` : ""}

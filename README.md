@@ -65,9 +65,10 @@ Trên UI:
 1. Mở `http://127.0.0.1:3000`.
 2. Vào tab `Render`.
 3. Bấm `Kiểm tra lại` để xem preflight.
-4. Bấm `Bắt đầu Render`.
-5. Chờ trạng thái `Hoàn tất`.
-6. Vào tab `Video đã xuất` để xem/download MP4.
+4. Chọn `Ngang 16:9 - 1920x1080` hoặc `Dọc 9:16 - 1080x1920`.
+5. Bấm `Bắt đầu Render`.
+6. Chờ trạng thái `Hoàn tất`.
+7. Vào tab `Video đã xuất` để xem/download MP4.
 
 Qua API:
 
@@ -100,6 +101,15 @@ Smoke test render API thật khi backend đang chạy:
 
 ```bash
 HVT_SMOKE_BASE_URL=http://127.0.0.1:3000 npm --prefix backend run smoke:render-api
+```
+
+Smoke test payload dọc:
+
+```bash
+HVT_SMOKE_BASE_URL=http://127.0.0.1:3000 \
+HVT_SMOKE_PAYLOAD_PATH=/private/tmp/hvt-vertical-payload.json \
+HVT_SMOKE_EXPECT_RESOLUTION=1080x1920 \
+npm --prefix backend run smoke:render-api
 ```
 
 Lệnh smoke này sẽ tạo một MP4 thật trong `outputs/`, nên thời gian chạy thường khoảng 40-60 giây.
