@@ -347,6 +347,55 @@ Remaining:
 - Chưa thêm local vendor cho GSAP CDN.
 - Chưa async queue/poll render.
 
+## Phase 7 - Output Manifest MVP
+
+### Objective
+
+Persist metadata video đã render ở backend để trang Outputs khôi phục được danh sách MP4 sau khi reload hoặc clear `localStorage`.
+
+### Scope
+
+Sẽ làm:
+
+- Ghi `outputs/manifest.json` sau khi render job thành công.
+- Thêm `GET /api/outputs` trả danh sách output còn tồn tại trên ổ đĩa.
+- UI Outputs merge danh sách backend vào lịch sử local.
+- Bảo đảm manifest runtime không bị commit.
+
+Không làm:
+
+- Chưa xóa MP4 thật từ UI.
+- Chưa làm database.
+- Chưa persist full render log/job queue.
+
+Files impact dự kiến:
+
+- `.gitignore`
+- `backend/src/render/output-manifest.js`
+- `backend/src/render/render-runner.js`
+- `backend/src/routes/outputs.js`
+- `backend/src/server.js`
+- `frontend/scripts/common/render-preview.js`
+- `frontend/scripts/common/ui-components.js`
+- `.agents/tasks/current-task.md`
+
+Verification:
+
+- Render job thật tạo MP4 và ghi manifest.
+- `GET /api/outputs` trả output vừa render.
+- Outputs page load được video từ backend dù `localStorage` rỗng.
+- Existing preview/download endpoint vẫn hoạt động.
+
+### Status
+
+Completed, ngày 23/06/2026.
+
+- Backend ghi manifest runtime `outputs/manifest.json` sau render job thành công.
+- `GET /api/outputs` trả danh sách output còn tồn tại.
+- UI Outputs tự đồng bộ backend outputs vào lịch sử local khi mở trang.
+- Manifest runtime và MP4 nằm trong `outputs/`, không commit vào git.
+- Browser smoke test pass sau khi clear `localStorage`.
+
 ## Future Scope
 
 - Voiceover tự động.

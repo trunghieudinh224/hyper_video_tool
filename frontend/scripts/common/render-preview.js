@@ -207,6 +207,43 @@ const AppRender = (() => {
     };
   };
 
+  const normalizeBackendOutput = (output) => ({
+    id: output.id || output.jobId,
+    jobId: output.jobId || output.id,
+    filename: output.filename,
+    outputPath: output.outputPath || (output.filename ? `outputs/${output.filename}` : ""),
+    template: output.template || (output.templateId === "project-showcase-90s" ? "Showcase 90s" : output.templateId),
+    resolution: output.resolution || "1920x1080",
+    size: formatBytes(output.outputSize),
+    outputSize: output.outputSize,
+    durationMs: output.durationMs,
+    dateCreated: output.dateCreated || (output.completedAt || output.createdAt || "").replace("T", " ").substring(0, 19),
+    status: output.status || "succeeded",
+    source: "backend"
+  });
+
+  const listBackendOutputs = async () => {
+    const response = await fetch("/api/outputs", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    let responseBody;
+    try {
+      responseBody = await response.json();
+    } catch (_error) {
+      throw new Error("Không đọc được danh sách video từ backend. Hãy chạy UI qua backend local.");
+    }
+
+    if (!response.ok || !responseBody.success) {
+      throw new Error(responseBody.message || "Không tải được danh sách video đã xuất.");
+    }
+
+    return (responseBody.data.outputs || []).map(normalizeBackendOutput);
+  };
+
   const startRender = async (config, onProgress, onLog, onComplete, onFailure) => {
     if (isRendering) return;
 
@@ -265,6 +302,7 @@ const AppRender = (() => {
   return {
     buildRenderPayload,
     getPreflight,
+    listBackendOutputs,
     startRender,
     cancelRender,
     isRendering: () => isRendering

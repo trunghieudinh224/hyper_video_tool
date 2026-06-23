@@ -5,6 +5,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
+const { upsertOutputRecord } = require("./output-manifest");
 const { validateRenderPayload } = require("./render-payload-schema");
 
 const jobs = new Map();
@@ -154,6 +155,7 @@ function renderPayloadToVideo(payload) {
     job.completedAt = new Date().toISOString();
     job.updatedAt = job.completedAt;
     job.durationMs = Date.now() - startedAt;
+    job.outputRecord = upsertOutputRecord(job);
     return job;
   } catch (error) {
     job.status = "failed";

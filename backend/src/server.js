@@ -110,8 +110,8 @@ async function requestHandler(request, response) {
     }
   }
 
-  if (requestUrl.pathname.startsWith("/api/outputs/")) {
-    const handled = handleOutputs(request, response, requestUrl);
+  if (requestUrl.pathname === "/api/outputs" || requestUrl.pathname.startsWith("/api/outputs/")) {
+    const handled = handleOutputs(request, response, requestUrl, sendJson);
     if (handled) {
       return;
     }

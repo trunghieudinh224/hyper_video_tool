@@ -1606,6 +1606,28 @@ const AppUI = (() => {
   const renderOutputsScreen = (container, data) => {
     const list = AppStorage.loadOutputs();
 
+    if (AppRender.listBackendOutputs && container.dataset.outputsSynced !== "true") {
+      container.dataset.outputsSynced = "true";
+      AppRender.listBackendOutputs()
+        .then((backendOutputs) => {
+          if (!backendOutputs.length) {
+            return;
+          }
+
+          const currentOutputs = AppStorage.loadOutputs();
+          const backendIds = new Set(backendOutputs.map((item) => item.id));
+          const mergedOutputs = [
+            ...backendOutputs,
+            ...currentOutputs.filter((item) => !backendIds.has(item.id))
+          ];
+          AppStorage.saveOutputs(mergedOutputs);
+          renderOutputsScreen(container, AppState.getProjectData());
+        })
+        .catch(() => {
+          // Outputs page still works with local history when backend is not running.
+        });
+    }
+
     let contentHTML = "";
     if (list.length === 0) {
       contentHTML = `
