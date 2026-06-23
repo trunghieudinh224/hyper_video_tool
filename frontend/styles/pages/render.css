@@ -1,1 +1,116 @@
 /* Page-specific styles for Render. */
+
+.render-result-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.render-result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.render-result-header h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-md);
+}
+
+.render-result-header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  overflow-wrap: anywhere;
+}
+
+.render-result-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.render-result-meta div {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-surface-alt);
+}
+
+.render-result-meta span {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--color-text-subtle);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.render-result-meta strong {
+  display: block;
+  font-size: var(--font-sm);
+  overflow-wrap: anywhere;
+}
+
+.render-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.render-result-video {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: #000;
+}
+
+.render-result-video.is-landscape {
+  aspect-ratio: 16 / 9;
+}
+
+.render-result-video.is-vertical {
+  aspect-ratio: 9 / 16;
+}
+
+.render-result-video-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: var(--font-sm);
+}
+
+.render-result-details {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-sm);
+}
+
+.render-result-details div {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+  .render-result-header {
+    flex-direction: column;
+  }
+
+  .render-result-meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .render-result-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}

@@ -1444,6 +1444,7 @@ const AppUI = (() => {
               ${buttonStateHTML}
             </div>
           </div>
+          <div id="render-result-panel" class="render-result-panel d-none"></div>
         </div>
 
         <!-- Right: Progress bar & Live terminal logs emulator -->
@@ -1475,6 +1476,93 @@ const AppUI = (() => {
     const renderConsole = document.getElementById("render-console");
     const preflightPanel = document.getElementById("render-preflight-panel");
     const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
+    const renderResultPanel = document.getElementById("render-result-panel");
+
+    const getOutputAspectRatio = (output) => {
+      if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
+        return "9/16";
+      }
+      return "16/9";
+    };
+
+    const getOutputFilename = (output) => {
+      return output.outputPath ? output.outputPath.split("/").pop() : output.filename;
+    };
+
+    const renderOutputPreviewModal = (output) => {
+      const filename = getOutputFilename(output);
+      const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
+      const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
+      const previewClass = getOutputAspectRatio(output) === "9/16" ? "is-vertical" : "is-landscape";
+      const body = document.createElement("div");
+
+      body.innerHTML = `
+        ${videoUrl ? `
+          <video controls preload="metadata" src="${videoUrl}" class="render-result-video ${previewClass}"></video>
+        ` : `
+          <div class="render-result-video render-result-video-empty ${previewClass}">Không có file hợp lệ để preview.</div>
+        `}
+        <div class="render-result-details">
+          <div><strong>File:</strong> ${filename || "Không rõ"}</div>
+          <div><strong>Đường dẫn:</strong> ${output.outputPath || "Không rõ"}</div>
+          <div><strong>Template:</strong> ${output.template || output.templateId || "Không rõ"}</div>
+          <div><strong>Độ phân giải:</strong> ${output.resolution || "Không rõ"}</div>
+          ${downloadUrl ? `<div><a class="btn btn-primary" href="${downloadUrl}" download>Tải MP4</a></div>` : ""}
+        </div>
+      `;
+
+      showModal(
+        "Video đã render",
+        body,
+        [
+          { text: "Mở Video đã xuất", class: "btn-primary", onClick: () => AppState.setTab("outputs") },
+          { text: "Đóng", class: "btn-secondary", onClick: closeModal }
+        ]
+      );
+    };
+
+    const renderResultPanelContent = (output) => {
+      const filename = getOutputFilename(output);
+      const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
+      const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
+
+      renderResultPanel.classList.remove("d-none");
+      renderResultPanel.innerHTML = `
+        <div class="render-result-header">
+          <div>
+            <h3>Video đã sẵn sàng</h3>
+            <p>${output.outputPath || filename || "File MP4 đã được tạo trong thư mục outputs/."}</p>
+          </div>
+          <span class="status-pill status-success">Hoàn tất</span>
+        </div>
+        <div class="render-result-meta">
+          <div>
+            <span>Template</span>
+            <strong>${output.template || output.templateId || "Không rõ"}</strong>
+          </div>
+          <div>
+            <span>Độ phân giải</span>
+            <strong>${output.resolution || "Không rõ"}</strong>
+          </div>
+          <div>
+            <span>Dung lượng</span>
+            <strong>${output.size || "Không rõ"}</strong>
+          </div>
+        </div>
+        <div class="render-result-actions">
+          <button id="render-result-preview-btn" class="btn btn-primary">Xem video</button>
+          ${downloadUrl ? `<a class="btn btn-secondary" href="${downloadUrl}" download>Tải MP4</a>` : ""}
+          <button id="render-result-outputs-btn" class="btn btn-secondary">Video đã xuất</button>
+        </div>
+      `;
+
+      document.getElementById("render-result-preview-btn").addEventListener("click", () => {
+        renderOutputPreviewModal(output);
+      });
+      document.getElementById("render-result-outputs-btn").addEventListener("click", () => {
+        AppState.setTab("outputs");
+      });
+    };
 
     const renderPreflightPanel = (preflight) => {
       const statusClass = preflight.status === "ok" ? "status-success" : preflight.status === "warning" ? "status-warning" : "status-danger";
@@ -1549,6 +1637,7 @@ const AppUI = (() => {
       statusPill.textContent = "Hoàn tất";
       startBtn.disabled = false;
       startBtn.textContent = "Render lại";
+      renderResultPanelContent(outputObj);
       showToast(`Đã xuất video thành công: ${outputObj.outputPath || outputObj.filename}`);
     };
 
@@ -1587,6 +1676,8 @@ const AppUI = (() => {
         const filename = document.getElementById("render-filename").value.trim() || "output.mp4";
 
         renderConsole.innerHTML = "";
+        renderResultPanel.classList.add("d-none");
+        renderResultPanel.innerHTML = "";
         statusPill.className = "status-pill status-warning";
         statusPill.textContent = "Đang render";
         startBtn.disabled = true;
