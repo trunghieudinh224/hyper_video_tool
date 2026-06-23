@@ -154,6 +154,28 @@ const AppRender = (() => {
     return responseBody.data.job;
   };
 
+  const getPreflight = async () => {
+    const response = await fetch("/api/render-preflight", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    let responseBody;
+    try {
+      responseBody = await response.json();
+    } catch (_error) {
+      throw new Error("Không đọc được preflight từ backend. Hãy chạy UI qua backend local.");
+    }
+
+    if (!response.ok && !responseBody.data) {
+      throw new Error(responseBody.message || "Render preflight thất bại.");
+    }
+
+    return responseBody.data.preflight;
+  };
+
   const formatBytes = (bytes) => {
     if (!Number.isFinite(bytes)) {
       return "Không rõ";
@@ -242,6 +264,7 @@ const AppRender = (() => {
 
   return {
     buildRenderPayload,
+    getPreflight,
     startRender,
     cancelRender,
     isRendering: () => isRendering

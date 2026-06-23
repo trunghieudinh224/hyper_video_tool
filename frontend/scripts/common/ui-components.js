@@ -1394,6 +1394,16 @@ const AppUI = (() => {
         <h1>Render xuất bản Video</h1>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-header">
+          <h3>Kiểm tra môi trường render</h3>
+          <button id="btn-refresh-preflight" class="btn btn-secondary btn-sm">Kiểm tra lại</button>
+        </div>
+        <div class="card-body" id="render-preflight-panel">
+          <p class="text-muted">Đang kiểm tra backend, template, payload và HyperFrames runner...</p>
+        </div>
+      </div>
+
       <div class="preview-layout" style="grid-template-columns: minmax(360px, 1fr) minmax(0, 1.25fr);">
         <!-- Left: Render configuration settings -->
         <div style="display:flex; flex-direction:column; gap: var(--space-4);">
@@ -1461,6 +1471,55 @@ const AppUI = (() => {
     const progressText = document.getElementById("render-progress-text");
     const progressBar = document.getElementById("render-progress-bar");
     const renderConsole = document.getElementById("render-console");
+    const preflightPanel = document.getElementById("render-preflight-panel");
+    const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
+
+    const renderPreflightPanel = (preflight) => {
+      const statusClass = preflight.status === "ok" ? "status-success" : preflight.status === "warning" ? "status-warning" : "status-danger";
+      const statusText = preflight.status === "ok" ? "Sẵn sàng" : preflight.status === "warning" ? "Có cảnh báo" : "Có lỗi";
+
+      preflightPanel.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap: var(--space-3); margin-bottom: var(--space-4);">
+          <div>
+            <div style="font-weight:600;">Trạng thái render local</div>
+            <div class="text-muted" style="font-size: var(--font-xs);">Lần kiểm tra: ${preflight.checkedAt}</div>
+          </div>
+          <span class="status-pill ${statusClass}">${statusText}</span>
+        </div>
+        <div style="display:grid; gap: var(--space-2);">
+          ${preflight.checks.map((check) => {
+            const checkClass = check.status === "ok" ? "status-success" : check.status === "warning" ? "status-warning" : "status-danger";
+            return `
+              <div style="display:flex; justify-content:space-between; gap: var(--space-3); align-items:flex-start; border-top:1px solid var(--color-border); padding-top: var(--space-2);">
+                <div>
+                  <div style="font-weight:600;">${check.label}</div>
+                  <div class="text-muted" style="font-size: var(--font-xs);">${check.message}</div>
+                </div>
+                <span class="status-pill ${checkClass}">${check.status}</span>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    };
+
+    const loadPreflight = async () => {
+      preflightPanel.innerHTML = `<p class="text-muted">Đang kiểm tra môi trường render...</p>`;
+      try {
+        const preflight = await AppRender.getPreflight();
+        renderPreflightPanel(preflight);
+      } catch (error) {
+        preflightPanel.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap: var(--space-3);">
+            <div>
+              <div style="font-weight:600;">Không kết nối được backend render</div>
+              <div class="text-muted" style="font-size: var(--font-xs);">${error.message}</div>
+            </div>
+            <span class="status-pill status-danger">offline</span>
+          </div>
+        `;
+      }
+    };
 
     const onProgress = (percent) => {
       progressText.textContent = `${percent}%`;
@@ -1516,6 +1575,9 @@ const AppUI = (() => {
     }
 
     const startBtn = document.getElementById("btn-trigger-render-start");
+    refreshPreflightBtn.addEventListener("click", loadPreflight);
+    loadPreflight();
+
     if (startBtn) {
       startBtn.addEventListener("click", () => {
         const resolution = document.getElementById("render-resolution").value;

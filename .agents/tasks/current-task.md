@@ -626,6 +626,97 @@ Remaining risks:
 - Chưa có list outputs từ backend manifest; Outputs page vẫn dựa vào localStorage.
 - Chưa hỗ trợ HTTP Range request tối ưu cho seek video dài.
 
+## Phase Hiện Tại - Render Preflight MVP
+
+### Objective
+
+Thêm preflight check để người dùng biết môi trường render local đã sẵn sàng chưa trước khi bấm render. Sau phase này backend có endpoint kiểm tra payload sample, template, outputs folder và HyperFrames local runner; UI Render page hiển thị trạng thái này.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm service `backend/src/render/preflight.js`.
+- Thêm route `GET /api/render-preflight`.
+- Kiểm tra `data/render-payload.sample.json` có hợp lệ không.
+- Kiểm tra template `project-showcase-90s` có đủ file tối thiểu không.
+- Kiểm tra `outputs/` có thể tạo/ghi được không.
+- Kiểm tra local runner `.cache/hyperframes-runner` đã có Node, HyperFrames, FFmpeg, FFprobe chưa.
+- UI Render page gọi preflight và hiển thị status trước phần cấu hình render.
+
+Không làm trong phase này:
+
+- Không tự chạy `hf:setup` từ endpoint.
+- Không chạy HyperFrames lint/render trong preflight vì sẽ chậm.
+- Không thay render API sang async queue.
+- Không sửa responsive.
+
+Files impact:
+
+- `backend/src/render/preflight.js`
+- `backend/src/routes/render-preflight.js`
+- `backend/src/server.js`
+- `backend/package.json`
+- `frontend/scripts/common/render-preview.js`
+- `frontend/scripts/common/ui-components.js`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `npm --prefix backend run check`
+- `GET /api/render-preflight` trả JSON.
+- Browser smoke test Render page có preflight panel.
+- Render thật vẫn chạy được sau khi thêm preflight.
+
+### Test Report - Render Preflight MVP
+
+Status: passed
+
+- Created:
+  - `backend/src/render/preflight.js`
+  - `backend/src/routes/render-preflight.js`
+- Updated:
+  - `backend/src/server.js`
+  - `backend/package.json`
+  - `frontend/scripts/common/render-preview.js`
+  - `frontend/scripts/common/ui-components.js`
+- Backend API added:
+  - `GET /api/render-preflight`
+- Preflight checks:
+  - Render payload sample valid.
+  - Template `project-showcase-90s` has `index.html`, `style.css`, `script.js`.
+  - Template composition metadata and timeline registry present.
+  - `outputs/` writable.
+  - Local runner has Node runtime, HyperFrames CLI, FFmpeg, FFprobe.
+- API smoke test:
+  - `GET /api/render-preflight`: HTTP `200`.
+  - `success=true`, `status=ok`, `ready=true`.
+  - `checkCount=10`.
+- Browser smoke test Render page:
+  - Preflight panel status: `Sẵn sàng`.
+  - Panel includes `Render payload sample`.
+  - Panel includes `HyperFrames CLI`.
+  - Refresh button calls `/api/render-preflight` again.
+  - Console/page errors: none.
+
+Commands run:
+
+```bash
+npm --prefix backend run check
+HVT_PORT=3014 npm --prefix backend start
+curl -sS http://127.0.0.1:3014/api/render-preflight
+node --check frontend/scripts/common/render-preview.js
+node --check frontend/scripts/common/ui-components.js
+npm --prefix backend run payload:check
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
+git diff --check
+```
+
+Remaining risks:
+
+- Preflight không tự chạy `hf:setup`; nếu runner thiếu, user vẫn phải chạy command được gợi ý.
+- Preflight chưa chạy HyperFrames lint/render thật để giữ endpoint nhanh.
+
 ## Yêu Cầu Mới
 
 UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.

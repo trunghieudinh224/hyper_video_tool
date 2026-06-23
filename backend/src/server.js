@@ -5,6 +5,7 @@ const http = require("node:http");
 const path = require("node:path");
 const { config } = require("./config");
 const { handleOutputs } = require("./routes/outputs");
+const { handleRenderPreflight } = require("./routes/render-preflight");
 const { handleRenderJobs } = require("./routes/render-jobs");
 
 const MIME_TYPES = {
@@ -93,6 +94,13 @@ async function requestHandler(request, response) {
       }
     });
     return;
+  }
+
+  if (requestUrl.pathname === "/api/render-preflight") {
+    const handled = handleRenderPreflight(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
   }
 
   if (requestUrl.pathname.startsWith("/api/render-jobs")) {

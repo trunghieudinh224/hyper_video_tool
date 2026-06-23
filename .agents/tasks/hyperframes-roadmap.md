@@ -331,6 +331,22 @@ Approval gate:
 
 - Chỉ làm sau khi đã render được MP4 thật end-to-end.
 
+### Status
+
+In progress, ngày 23/06/2026.
+
+- Đã thêm Render Preflight MVP:
+  - `GET /api/render-preflight`
+  - kiểm payload sample, template files, composition metadata, outputs folder, local runner files.
+  - Render page hiển thị preflight panel và refresh button.
+- Browser smoke test pass, endpoint trả `status=ok`, `ready=true`.
+
+Remaining:
+
+- Chưa kiểm text overflow nhiều bộ dữ liệu dài/ngắn.
+- Chưa thêm local vendor cho GSAP CDN.
+- Chưa async queue/poll render.
+
 ## Future Scope
 
 - Voiceover tự động.
