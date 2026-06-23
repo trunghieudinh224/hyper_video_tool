@@ -20,32 +20,31 @@ Project hiện đã có:
 - Danh sách output persist bằng runtime manifest `outputs/manifest.json`.
 - Preflight render qua `GET /api/render-preflight`.
 
-## Phase Hoàn Tất - Template Text Hardening MVP
+## Phase Hoàn Tất - Local GSAP Vendor MVP
 
 ### Objective
 
-Giảm rủi ro chữ tiếng Việt dài/ngắn làm vỡ layout video trong template `project-showcase-90s`.
+Loại bỏ phụ thuộc CDN GSAP trong template `project-showcase-90s` để render/preview ổn định hơn khi mạng yếu hoặc offline.
 
 ### Scope
 
 Đã làm:
 
-- Thêm giới hạn text theo từng loại nội dung trong `templates/project-showcase-90s/script.js`.
-- Chuẩn hóa whitespace trước khi render text.
-- Gắn `data-truncated="true"` và `title` khi nội dung bị cắt.
-- Thêm CSS `line-clamp`, `overflow-wrap`, `overflow hidden`, max width/height cho các block dễ tràn.
-- Bảo vệ các scene: intro, problem, solution, features, timeline, impact, outro.
+- Vendor `gsap.min.js` vào `templates/project-showcase-90s/vendor/`.
+- Đổi `templates/project-showcase-90s/index.html` từ CDN sang script local.
+- Cập nhật preflight để kiểm file local GSAP tồn tại.
+- Cập nhật preflight để báo lỗi nếu template production dùng lại CDN GSAP.
 
 Không làm trong phase này:
 
-- Chưa làm auto font scaling theo pixel chính xác.
-- Chưa thêm screenshot regression test cố định vào repo.
-- Chưa xử lý multi-template vì hiện MVP chỉ có `project-showcase-90s`.
+- Chưa vendor GSAP cho `templates/hyperframes-spike/` vì spike không nằm trong render flow chính.
+- Chưa thay thế GSAP bằng animation runtime khác.
 
 ### Files impact
 
-- `templates/project-showcase-90s/script.js`
-- `templates/project-showcase-90s/style.css`
+- `templates/project-showcase-90s/index.html`
+- `templates/project-showcase-90s/vendor/gsap.min.js`
+- `backend/src/render/preflight.js`
 - `.agents/tasks/current-task.md`
 - `.agents/tasks/hyperframes-roadmap.md`
 
@@ -53,24 +52,19 @@ Không làm trong phase này:
 
 Status: passed
 
-- `node --check templates/project-showcase-90s/script.js` pass.
-- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint` pass `0 errors, 0 warnings`.
 - `npm --prefix backend run check` pass.
-- Browser stress test với payload cực dài pass:
-  - 7 scene đều `sceneFitsVertical=true`.
-  - 7 scene đều `sceneFitsHorizontal=true`.
-  - Không có element tràn ngoài `#video-container`.
-  - Có truncation đúng chỗ: intro 4, problem 3, solution 2, features 12, timeline 10, impact 2, outro 2.
-  - Không có console error.
-- HyperFrames render sample payload thật pass:
-  - Output: `/private/tmp/hyper-video-tool-text-hardening-sample.mp4`.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint` pass `0 errors, 0 warnings`.
+- `rg` xác nhận production template dùng `vendor/gsap.min.js`, không còn CDN GSAP.
+- Preflight direct check pass cho `Template local GSAP` và `Template local animation runtime`.
+- HyperFrames render sample payload thật với local GSAP pass:
+  - Output: `/private/tmp/hyper-video-tool-local-gsap.mp4`.
   - `duration=74.000000`.
   - `size=1540362`.
-- Ghi chú: có một render fallback trước đó cũng completed, nhưng test chính thức dùng sample payload tạm `render-payload.json` và đã xóa file tạm sau render.
+- Compile log không còn dòng `Inlined CDN script`.
+- File payload tạm `templates/project-showcase-90s/render-payload.json` đã được xóa sau render test.
 
 ## Remaining roadmap sau phase này
 
-- Local/vendor strategy cho thư viện template đang dùng CDN.
 - Cancel queued/running job nếu cần UX tốt hơn.
 - Persist render jobs/logs qua backend restart nếu cần audit nội bộ.
 - Explore-project workflow nối sang quy trình tạo brief/script cho video.

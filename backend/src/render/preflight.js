@@ -67,7 +67,8 @@ function checkTemplateFiles() {
   const checks = [
     checkFileExists(path.join(templateDir, "index.html"), "Template index.html"),
     checkFileExists(path.join(templateDir, "style.css"), "Template style.css"),
-    checkFileExists(path.join(templateDir, "script.js"), "Template script.js")
+    checkFileExists(path.join(templateDir, "script.js"), "Template script.js"),
+    checkFileExists(path.join(templateDir, "vendor", "gsap.min.js"), "Template local GSAP")
   ];
 
   const indexPath = path.join(templateDir, "index.html");
@@ -79,6 +80,13 @@ function checkTemplateFiles() {
       status: html.includes('data-composition-id="project-showcase-90s"') && html.includes('window.__timelines["project-showcase-90s"]') ? "ok" : "error",
       message: "Template composition metadata checked.",
       detail: "project-showcase-90s"
+    });
+    checks.push({
+      id: "template-local-gsap",
+      label: "Template local animation runtime",
+      status: html.includes('src="vendor/gsap.min.js"') && !html.includes("cdn.jsdelivr.net/npm/gsap") ? "ok" : "error",
+      message: "Template should use local GSAP instead of CDN.",
+      detail: "templates/project-showcase-90s/vendor/gsap.min.js"
     });
   }
 

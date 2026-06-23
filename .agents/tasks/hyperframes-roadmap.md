@@ -483,6 +483,47 @@ Completed, ngày 23/06/2026.
 - Browser stress test payload dài pass cho đủ 7 scene, không overflow container.
 - Render sample payload pass, output `/private/tmp/hyper-video-tool-text-hardening-sample.mp4`, duration `74.000000`, size `1540362`.
 
+## Phase 10 - Local GSAP Vendor MVP
+
+### Objective
+
+Loại bỏ phụ thuộc CDN GSAP khỏi template production để render/preview ổn định hơn khi mạng yếu hoặc offline.
+
+### Scope
+
+Sẽ làm:
+
+- Vendor `gsap.min.js` vào `templates/project-showcase-90s/vendor/`.
+- Đổi template production sang script local.
+- Thêm preflight check cho local GSAP và chống dùng lại CDN.
+
+Không làm:
+
+- Chưa vendor template spike.
+- Chưa thay GSAP bằng runtime khác.
+
+Files impact dự kiến:
+
+- `templates/project-showcase-90s/index.html`
+- `templates/project-showcase-90s/vendor/gsap.min.js`
+- `backend/src/render/preflight.js`
+- `.agents/tasks/current-task.md`
+
+Verification:
+
+- HyperFrames lint pass.
+- Backend check pass.
+- Preflight thấy local GSAP OK.
+- Render sample payload pass, compile log không còn inline CDN.
+
+### Status
+
+Completed, ngày 23/06/2026.
+
+- `templates/project-showcase-90s/index.html` dùng `vendor/gsap.min.js`.
+- Preflight kiểm `Template local GSAP` và `Template local animation runtime`.
+- Render sample payload pass, output `/private/tmp/hyper-video-tool-local-gsap.mp4`, duration `74.000000`, size `1540362`.
+
 ## Future Scope
 
 - Voiceover tự động.
