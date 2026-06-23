@@ -275,6 +275,21 @@ Approval gate:
 
 - Chỉ implement khi backend render runner đã pass.
 
+### Status
+
+Completed as MVP, ngày 23/06/2026.
+
+- Render page đã gọi `POST /api/render-jobs` thật.
+- UI build render payload từ state/localStorage hiện tại.
+- Browser end-to-end test pass: bấm Render từ UI, backend xuất MP4, Outputs page thấy video mới.
+- Output test: `outputs/a8e20d64-965c-4034-a2e3-5060b760177e.mp4`, `duration=74.000000`, `size=1657098`.
+
+Remaining:
+
+- Chưa có async queue/poll UI.
+- Chưa có download/play endpoint cho MP4.
+- Outputs history vẫn lưu localStorage.
+
 ## Phase 6 - Render Quality Và Hardening
 
 ### Objective

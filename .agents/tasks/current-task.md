@@ -439,6 +439,101 @@ Remaining risks:
 - Chưa có endpoint download/serve MP4; output path hiện là local relative path.
 - Output MP4 trong `outputs/` được ignore, không commit.
 
+## Phase Hiện Tại - UI Integration Với Render Thật
+
+### Objective
+
+Nối màn hình Render của UI với backend render API thật. Sau phase này người dùng chạy app qua backend local, bấm Render trong UI, backend tạo MP4 bằng HyperFrames và Outputs page hiển thị metadata video đã render.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm frontend helper build render payload từ state UI hiện tại.
+- Thêm frontend API client gọi `POST /api/render-jobs`.
+- Đổi Render page từ giả lập sang gọi backend thật.
+- Lưu output render thành công vào `localStorage` để Outputs page thấy video mới.
+- Cập nhật Outputs page hiển thị job id, output path và size thật.
+- Giữ thông báo rõ khi mở UI bằng file/static server không có backend API.
+
+Không làm trong phase này:
+
+- Không làm async queue/poll UI vì backend hiện vẫn render đồng bộ.
+- Không thêm endpoint download/serve MP4.
+- Không đổi kiến trúc backend sang persisted job store.
+- Không làm responsive.
+
+Files impact:
+
+- `frontend/scripts/common/render-preview.js`
+- `frontend/scripts/common/ui-components.js`
+- `frontend/pages/render.html`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `node --check frontend/scripts/common/render-preview.js`
+- `node --check frontend/scripts/common/ui-components.js`
+- `npm --prefix backend run check`
+- Chạy backend local và test UI Render page bằng browser.
+- Bấm Render, chờ API trả success, xác nhận Outputs page có record mới.
+- `ffprobe outputs/{jobId}.mp4` xác nhận video thật.
+
+### Test Report - UI Integration Với Render Thật
+
+Status: passed
+
+- Updated:
+  - `frontend/scripts/common/render-preview.js`
+  - `frontend/scripts/common/ui-components.js`
+- Render page hiện gọi backend thật:
+  - Build render payload từ state UI hiện tại.
+  - `POST /api/render-jobs`.
+  - Progress UI chuyển `12% -> 35% -> 100%`.
+  - Console log giữ lại thông báo backend render thành công.
+  - Output thành công được lưu vào `localStorage` key `hyper_video_outputs`.
+- Outputs page hiện hiển thị output thật:
+  - `jobId`
+  - `filename`
+  - `outputPath`
+  - `size`
+  - `durationMs`
+  - modal chi tiết không còn gọi đây là mock MP4.
+- Browser end-to-end test bằng Google Chrome headless:
+  - URL: `http://127.0.0.1:3012/pages/overview.html`
+  - Load dữ liệu mẫu bằng nút `Tải dữ liệu mẫu thử nghiệm`.
+  - Vào Render page bằng nút `Đi tới Render Video`.
+  - Render button enabled.
+  - Click `Bắt đầu Render`.
+  - API response: `POST /api/render-jobs` trả HTTP `201`.
+  - Render status: `Hoàn tất`.
+  - Progress: `100%`.
+  - Console có `Backend render thành công`.
+  - Outputs page header: `Video đã xuất (1)`.
+  - Output path: `outputs/a8e20d64-965c-4034-a2e3-5060b760177e.mp4`.
+- `ffprobe` output MP4 từ UI render:
+  - `duration=74.000000`
+  - `size=1657098`
+
+Commands run:
+
+```bash
+node --check frontend/scripts/common/render-preview.js
+node --check frontend/scripts/common/ui-components.js
+npm --prefix backend run check
+npm --prefix backend run payload:check
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
+HVT_PORT=3012 npm --prefix backend start
+.cache/hyperframes-runner/bin/ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 outputs/a8e20d64-965c-4034-a2e3-5060b760177e.mp4
+git diff --check
+```
+
+Remaining risks:
+
+- Backend render API vẫn chạy đồng bộ nên UI phải chờ request hoàn tất, chưa có polling/job async thật.
+- UI chưa có nút download/play trực tiếp MP4 vì backend chưa expose output files.
+- Outputs history vẫn lưu trong localStorage, chưa persist backend manifest.
+
 ## Yêu Cầu Mới
 
 UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.

@@ -1,117 +1,249 @@
-/* Mock Video Render Process Manager */
+/* Render payload builder and backend render API client */
 
 const AppRender = (() => {
-  let renderInterval = null;
-  let currentProgress = 0;
-  let renderJob = null; // Store current job config
+  let isRendering = false;
 
-  const startRender = (config, onProgress, onLog, onComplete, onFailure) => {
-    if (renderInterval) return; // Prevent multiple runs
+  const buildRenderPayload = (projectData, renderConfig = {}) => {
+    const selectedAssets = projectData.assets || [];
+    const logo = selectedAssets.find((asset) => asset.type === "logo" && asset.useInVideo) || null;
+    const screenshots = selectedAssets.filter((asset) => asset.type === "screenshot" && asset.useInVideo);
+    const videos = selectedAssets.filter((asset) => asset.type === "video" && asset.useInVideo);
+    const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
+    const milestones = (projectData.milestones || []).slice(0, 5);
 
-    currentProgress = 0;
-    renderJob = {
-      id: "job_" + Date.now(),
-      filename: config.filename || "output.mp4",
+    return {
+      version: "1.0.0",
+      source: {
+        projectName: projectData.projectName || "Untitled Project",
+        projectSlug: projectData.projectSlug || "untitled-project",
+        ownerTeam: projectData.ownerTeam || "Team phát triển",
+        presenterRole: projectData.presenterRole || "Người thuyết trình"
+      },
+      template: {
+        id: projectData.templateId || "project-showcase-90s",
+        config: projectData.templateConfig || {
+          theme: "dark",
+          accentColor: "blue",
+          fontSize: "default",
+          logoPosition: "top-left"
+        }
+      },
+      video: {
+        width: renderConfig.resolution === "1280x720" ? 1280 : 1920,
+        height: renderConfig.resolution === "1280x720" ? 720 : 1080,
+        fps: Number(renderConfig.fps || 30),
+        format: "mp4",
+        estimatedDuration: 74
+      },
+      assets: {
+        logo,
+        screenshots,
+        videos,
+        all: selectedAssets
+      },
+      scenes: [
+        {
+          id: "scene-intro",
+          type: "intro",
+          title: "Giới thiệu dự án",
+          duration: 6,
+          content: {
+            projectName: projectData.projectName || "Untitled Project",
+            tagline: projectData.tagline || "Video giới thiệu dự án nội bộ.",
+            ownerTeam: projectData.ownerTeam || "Team phát triển",
+            summary: projectData.shortSummary || "Tóm tắt ngắn về giá trị dự án."
+          }
+        },
+        {
+          id: "scene-problem",
+          type: "problem",
+          title: "Bối cảnh và vấn đề",
+          duration: 10,
+          content: {
+            problem: projectData.problemContext || "Chưa có mô tả vấn đề.",
+            targetUsers: projectData.targetUsers || "Người dùng nội bộ.",
+            useCase: projectData.useCase || "Use case chính của dự án."
+          }
+        },
+        {
+          id: "scene-solution",
+          type: "solution",
+          title: "Giải pháp",
+          duration: 10,
+          content: {
+            solution: projectData.solutionWhat || "Chưa có mô tả giải pháp.",
+            keyHighlight: projectData.keyHighlight || "Chưa có điểm nhấn chính."
+          }
+        },
+        {
+          id: "scene-features",
+          type: "features",
+          title: "Tính năng nổi bật",
+          duration: 18,
+          content: {
+            items: activeFeatures.map((feature, index) => ({
+              id: feature.id || `feature_${index + 1}`,
+              title: feature.name || feature.title || "Tính năng chưa đặt tên",
+              description: feature.description || "",
+              benefit: feature.benefit || ""
+            }))
+          }
+        },
+        {
+          id: "scene-timeline",
+          type: "timeline",
+          title: "Timeline phát triển",
+          duration: 14,
+          content: {
+            milestones: milestones.map((milestone, index) => ({
+              id: milestone.id || `milestone_${index + 1}`,
+              title: milestone.name || milestone.title || "Cột mốc chưa đặt tên",
+              date: milestone.date || "",
+              description: milestone.description || "",
+              status: milestone.status || "upcoming"
+            }))
+          }
+        },
+        {
+          id: "scene-impact",
+          type: "impact",
+          title: "Kết quả và tác động",
+          duration: 10,
+          content: {
+            resultImpact: projectData.resultImpact || "Chưa có mô tả kết quả đạt được.",
+            highlight: projectData.keyHighlight || "Chưa có điểm nhấn tác động."
+          }
+        },
+        {
+          id: "scene-outro",
+          type: "outro",
+          title: "Kết thúc",
+          duration: 6,
+          content: {
+            endingNote: projectData.endingNote || "Cảm ơn đã theo dõi!",
+            ownerTeam: projectData.ownerTeam || "Team phát triển"
+          }
+        }
+      ]
+    };
+  };
+
+  const createRenderJob = async (payload) => {
+    const response = await fetch("/api/render-jobs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let responseBody;
+    try {
+      responseBody = await response.json();
+    } catch (_error) {
+      throw new Error("Backend không trả JSON hợp lệ. Hãy chạy UI qua backend local, không mở file HTML trực tiếp.");
+    }
+
+    if (!response.ok || !responseBody.success) {
+      const details = Array.isArray(responseBody.errors)
+        ? responseBody.errors.map((error) => `${error.path}: ${error.message}`).join("; ")
+        : "";
+      throw new Error(details || responseBody.message || "Render job thất bại.");
+    }
+
+    return responseBody.data.job;
+  };
+
+  const formatBytes = (bytes) => {
+    if (!Number.isFinite(bytes)) {
+      return "Không rõ";
+    }
+
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  };
+
+  const createOutputRecord = (job, config) => {
+    const completedAt = job.completedAt ? new Date(job.completedAt) : new Date();
+
+    return {
+      id: job.id,
+      jobId: job.id,
+      filename: job.outputPath ? job.outputPath.split("/").pop() : `${job.id}.mp4`,
+      outputPath: job.outputPath,
+      template: job.templateId === "project-showcase-90s" ? "Showcase 90s" : job.templateId,
+      resolution: config.resolution || "1920x1080",
+      size: formatBytes(job.outputSize),
+      outputSize: job.outputSize,
+      durationMs: job.durationMs,
+      dateCreated: completedAt.toISOString().replace("T", " ").substring(0, 19),
+      status: job.status,
+      source: "backend"
+    };
+  };
+
+  const startRender = async (config, onProgress, onLog, onComplete, onFailure) => {
+    if (isRendering) return;
+
+    isRendering = true;
+    const projectData = AppState.getProjectData();
+    const payload = buildRenderPayload(projectData, config);
+    const queuedJob = {
+      id: `job_${Date.now()}`,
+      filename: config.filename || `${projectData.projectSlug || "project"}_video.mp4`,
       resolution: config.resolution || "1920x1080",
       fps: config.fps || 30,
-      projectName: AppState.getProjectData().projectName,
-      templateId: AppState.getProjectData().templateId,
+      projectName: projectData.projectName,
+      templateId: projectData.templateId,
       status: "rendering",
-      progress: 0,
+      progress: 12,
       startTime: new Date().toLocaleTimeString()
     };
 
-    // Update state to lock render buttons
-    const activeQueue = [renderJob];
-    AppState.setRenderQueue(activeQueue);
+    AppState.setRenderQueue([queuedJob]);
+    onProgress(12);
+    onLog("INITIALIZING", "Đang tạo render payload từ dữ liệu UI hiện tại.");
+    onLog("INFO", `Template: ${payload.template.id} | ${payload.video.width}x${payload.video.height} | ${payload.video.fps}fps.`);
+    onLog("INFO", "Gửi job sang backend HyperFrames local. Request sẽ chờ cho đến khi MP4 render xong.");
 
-    onLog("INITIALIZING", `Khởi tạo tiến trình xuất bản video cho dự án: "${renderJob.projectName}"...`);
-    onLog("INFO", `Cấu hình: Độ phân giải ${renderJob.resolution} | Tốc độ khung hình ${renderJob.fps} fps | Định dạng MP4.`);
-    
-    // Simulate steps in rendering
-    const logSteps = [
-      { progress: 5, type: "INFO", message: "Đang phân tích cấu trúc Project JSON..." },
-      { progress: 10, type: "INFO", message: `Đang nạp cấu hình Template: "${renderJob.templateId}"` },
-      { progress: 20, type: "INFO", message: "Đang chuẩn bị thư mục assets & tải ảnh chụp màn hình lên cache..." },
-      { progress: 30, type: "INFO", message: "Đang dựng Scene 1 (Mở đầu): Render text & căn lề logo..." },
-      { progress: 40, type: "INFO", message: "Đang dựng Scene 2 (Vấn đề): Xử lý bối cảnh & mô tả..." },
-      { progress: 50, type: "INFO", message: "Đang dựng Scene 3 (Giải pháp): Xây dựng hoạt ảnh giải pháp..." },
-      { progress: 65, type: "INFO", message: "Đang dựng Scene 4 (Tính năng): Tạo slides demo tính năng..." },
-      { progress: 75, type: "INFO", message: "Đang dựng Scene 5 (Timeline): Bố trí các mốc phát triển..." },
-      { progress: 85, type: "INFO", message: "Đang dựng Scene 6 (Kết quả): Xử lý biểu đồ & chỉ số..." },
-      { progress: 90, type: "INFO", message: "Đang tổng hợp Scene 7 (Kết thúc): Ghi chú và kêu gọi hành động..." },
-      { progress: 95, type: "INFO", message: "Đang nạp nhạc nền và mã hóa âm thanh AAC..." },
-      { progress: 98, type: "INFO", message: "Đang ghép nối toàn bộ phân cảnh và xuất luồng video qua FFmpeg..." }
-    ];
+    try {
+      onProgress(35);
+      const job = await createRenderJob(payload);
+      onProgress(100);
+      onLog("SUCCESS", `Backend render thành công: ${job.outputPath}`);
+      onLog("SUCCESS", `Thời gian render: ${Math.round((job.durationMs || 0) / 1000)} giây.`);
 
-    let logIndex = 0;
-
-    renderInterval = setInterval(() => {
-      // Slow down rendering near 99% to wait for FFmpeg completion step
-      let increment = Math.floor(Math.random() * 8) + 2;
-      if (currentProgress >= 90) {
-        increment = 1;
+      const output = createOutputRecord(job, config);
+      const outputs = AppStorage.loadOutputs();
+      AppStorage.saveOutputs([output, ...outputs.filter((item) => item.id !== output.id)]);
+      AppState.setRenderQueue([]);
+      isRendering = false;
+      onComplete(output);
+    } catch (error) {
+      onProgress(0);
+      onLog("ERROR", error.message);
+      AppState.setRenderQueue([]);
+      isRendering = false;
+      if (onFailure) {
+        onFailure(error);
       }
-      
-      currentProgress += increment;
-      if (currentProgress > 100) currentProgress = 100;
-
-      onProgress(currentProgress);
-      renderJob.progress = currentProgress;
-
-      // Trigger logs based on progress threshold
-      while (logIndex < logSteps.length && currentProgress >= logSteps[logIndex].progress) {
-        onLog(logSteps[logIndex].type, logSteps[logIndex].message);
-        logIndex++;
-      }
-
-      if (currentProgress === 100) {
-        clearInterval(renderInterval);
-        renderInterval = null;
-
-        // Render Success Actions
-        onLog("SUCCESS", `[Render engine] Tạo video thành công!`);
-        onLog("SUCCESS", `Video được lưu vào thư mục đầu ra: outputs/${renderJob.filename}`);
-
-        // Add to outputs history
-        const mockOutput = {
-          id: "vid_" + Date.now(),
-          filename: renderJob.filename,
-          template: renderJob.templateId === "project-showcase-90s" ? "Showcase 90s" : "Tech Deep Dive",
-          resolution: renderJob.resolution,
-          size: (Math.random() * 8 + 6).toFixed(1) + " MB",
-          dateCreated: new Date().toISOString().replace('T', ' ').substring(0, 19),
-          status: "exists"
-        };
-
-        const currentOutputs = AppStorage.loadOutputs();
-        currentOutputs.unshift(mockOutput);
-        AppStorage.saveOutputs(currentOutputs);
-
-        AppState.setRenderQueue([]);
-        onComplete(mockOutput);
-      }
-    }, 400);
+    }
   };
 
   const cancelRender = (onLog, onCancel) => {
-    if (!renderInterval) return;
-
-    clearInterval(renderInterval);
-    renderInterval = null;
-    currentProgress = 0;
-
-    onLog("ERROR", "TIẾN TRÌNH BỊ HỦY BỞI NGƯỜI DÙNG.");
-    onLog("ERROR", "Đang dọn dẹp tài nguyên render tạm thời...");
-
-    AppState.setRenderQueue([]);
-    renderJob = null;
-    onCancel();
+    onLog("ERROR", "Backend render hiện chạy đồng bộ nên không thể hủy request đang chạy từ UI MVP.");
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   return {
+    buildRenderPayload,
     startRender,
     cancelRender,
-    isRendering: () => renderInterval !== null
+    isRendering: () => isRendering
   };
 })();

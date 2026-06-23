@@ -1448,7 +1448,7 @@ const AppUI = (() => {
 
               <div style="font-size: var(--font-xs); font-weight:600; color: var(--color-text-muted);">Hộp thoại Log (Terminal Logs):</div>
               <div id="render-console" class="console-box">
-                <span class="console-line text-subtle">&gt; Nhấn "Bắt đầu Render" để chạy giả lập tiến trình render HyperFrames...</span>
+                <span class="console-line text-subtle">&gt; Nhấn "Bắt đầu Render" để gửi job thật sang backend HyperFrames local...</span>
               </div>
             </div>
           </div>
@@ -1486,8 +1486,17 @@ const AppUI = (() => {
     const onComplete = (outputObj) => {
       statusPill.className = "status-pill status-success";
       statusPill.textContent = "Hoàn tất";
-      showToast(`Đã xuất video thành công: ${outputObj.filename}`);
-      renderRenderScreen(container, AppState.getProjectData());
+      startBtn.disabled = false;
+      startBtn.textContent = "Render lại";
+      showToast(`Đã xuất video thành công: ${outputObj.outputPath || outputObj.filename}`);
+    };
+
+    const onFailure = (error) => {
+      statusPill.className = "status-pill status-danger";
+      statusPill.textContent = "Lỗi render";
+      startBtn.disabled = false;
+      startBtn.textContent = "Thử render lại";
+      showToast(error.message || "Render thất bại.", "error");
     };
 
     const onCancel = () => {
@@ -1516,9 +1525,10 @@ const AppUI = (() => {
         renderConsole.innerHTML = "";
         statusPill.className = "status-pill status-warning";
         statusPill.textContent = "Đang render";
+        startBtn.disabled = true;
+        startBtn.textContent = "Đang render...";
 
-        AppRender.startRender({ resolution, fps, filename }, onProgress, onLog, onComplete, onCancel);
-        renderRenderScreen(container, AppState.getProjectData());
+        AppRender.startRender({ resolution, fps, filename }, onProgress, onLog, onComplete, onFailure);
       });
     }
 
@@ -1561,13 +1571,16 @@ const AppUI = (() => {
             <tbody>
               ${list.map(vid => `
                 <tr>
-                  <td style="font-weight:600;">${vid.filename}</td>
+                  <td>
+                    <div style="font-weight:600;">${vid.filename}</div>
+                    <div class="text-subtle" style="font-size: var(--font-xs);">${vid.outputPath || `outputs/${vid.filename}`}</div>
+                  </td>
                   <td>${vid.template}</td>
                   <td>${vid.resolution}</td>
                   <td>${vid.size}</td>
                   <td class="text-muted" style="font-size: var(--font-xs);">${vid.dateCreated}</td>
                   <td style="text-align:right; display:flex; justify-content:flex-end; gap: var(--space-2);">
-                    <button class="btn btn-secondary btn-sm btn-open-video" data-name="${vid.filename}">Mở xem</button>
+                    <button class="btn btn-secondary btn-sm btn-open-video" data-id="${vid.id}">Chi tiết</button>
                     <button class="btn btn-danger btn-sm btn-delete-output" data-id="${vid.id}">Xóa</button>
                   </td>
                 </tr>
@@ -1593,23 +1606,31 @@ const AppUI = (() => {
     if (list.length === 0) {
       document.getElementById("outputs-render-btn").addEventListener("click", () => AppState.setTab("render"));
     } else {
-      // Play mock video
+      // Show local output details
       container.querySelectorAll(".btn-open-video").forEach(btn => {
         btn.addEventListener("click", () => {
-          const name = btn.getAttribute("data-name");
+          const id = btn.getAttribute("data-id");
+          const output = AppStorage.loadOutputs().find((item) => item.id === id);
+          if (!output) return;
+
           const mockupVideoBody = document.createElement("div");
-          mockupVideoBody.style.textAlign = "center";
           mockupVideoBody.innerHTML = `
             <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; flex-direction:column; margin-bottom:12px;">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <p style="margin-top:8px; font-size:var(--font-sm); opacity:0.8;">[Trình chiếu Video Mockup MP4]</p>
-              <h3 style="color:#fff; font-size:var(--font-lg); margin-top:4px;">${name}</h3>
+              <p style="margin-top:8px; font-size:var(--font-sm); opacity:0.8;">Video MP4 đã render bằng backend local</p>
+              <h3 style="color:#fff; font-size:var(--font-lg); margin-top:4px;">${output.filename}</h3>
             </div>
-            <p class="text-muted" style="font-size:var(--font-sm);">Video thật sẽ được kết xuất dưới dạng MP4 cục bộ tại outputs/${name} ở giai đoạn backend sau.</p>
+            <div style="display:grid; gap: var(--space-2); font-size:var(--font-sm);">
+              <p><strong>Job ID:</strong> ${output.jobId || output.id}</p>
+              <p><strong>Đường dẫn output:</strong> ${output.outputPath || `outputs/${output.filename}`}</p>
+              <p><strong>Dung lượng:</strong> ${output.size}</p>
+              <p><strong>Thời gian render:</strong> ${output.durationMs ? `${Math.round(output.durationMs / 1000)} giây` : "Không rõ"}</p>
+              <p class="text-muted">MVP hiện chưa có endpoint download/preview trực tiếp. File MP4 đã nằm trên máy ở đường dẫn output phía trên.</p>
+            </div>
           `;
 
           showModal(
-            "Xem Video",
+            "Chi tiết video đã render",
             mockupVideoBody,
             [{ text: "Đóng", class: "btn-secondary", onClick: closeModal }]
           );
