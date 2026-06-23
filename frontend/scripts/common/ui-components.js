@@ -1613,19 +1613,26 @@ const AppUI = (() => {
           const output = AppStorage.loadOutputs().find((item) => item.id === id);
           if (!output) return;
 
+          const filename = output.outputPath ? output.outputPath.split("/").pop() : output.filename;
+          const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
+          const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
           const mockupVideoBody = document.createElement("div");
           mockupVideoBody.innerHTML = `
-            <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; flex-direction:column; margin-bottom:12px;">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <p style="margin-top:8px; font-size:var(--font-sm); opacity:0.8;">Video MP4 đã render bằng backend local</p>
-              <h3 style="color:#fff; font-size:var(--font-lg); margin-top:4px;">${output.filename}</h3>
-            </div>
+            ${videoUrl ? `
+              <video controls preload="metadata" src="${videoUrl}" style="width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; margin-bottom:12px;"></video>
+            ` : `
+              <div style="width:100%; aspect-ratio:16/9; background:#000; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#fff; flex-direction:column; margin-bottom:12px;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <p style="margin-top:8px; font-size:var(--font-sm); opacity:0.8;">Không có filename hợp lệ để preview.</p>
+              </div>
+            `}
             <div style="display:grid; gap: var(--space-2); font-size:var(--font-sm);">
               <p><strong>Job ID:</strong> ${output.jobId || output.id}</p>
               <p><strong>Đường dẫn output:</strong> ${output.outputPath || `outputs/${output.filename}`}</p>
               <p><strong>Dung lượng:</strong> ${output.size}</p>
               <p><strong>Thời gian render:</strong> ${output.durationMs ? `${Math.round(output.durationMs / 1000)} giây` : "Không rõ"}</p>
-              <p class="text-muted">MVP hiện chưa có endpoint download/preview trực tiếp. File MP4 đã nằm trên máy ở đường dẫn output phía trên.</p>
+              ${downloadUrl ? `<p><a class="btn btn-primary" href="${downloadUrl}" download>Tải MP4</a></p>` : ""}
+              <p class="text-muted">File MP4 nằm trong thư mục local outputs/; link preview/download chỉ hoạt động khi app chạy qua backend.</p>
             </div>
           `;
 

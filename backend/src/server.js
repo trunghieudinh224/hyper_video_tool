@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { config } = require("./config");
+const { handleOutputs } = require("./routes/outputs");
 const { handleRenderJobs } = require("./routes/render-jobs");
 
 const MIME_TYPES = {
@@ -96,6 +97,13 @@ async function requestHandler(request, response) {
 
   if (requestUrl.pathname.startsWith("/api/render-jobs")) {
     const handled = await handleRenderJobs(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
+  }
+
+  if (requestUrl.pathname.startsWith("/api/outputs/")) {
+    const handled = handleOutputs(request, response, requestUrl);
     if (handled) {
       return;
     }

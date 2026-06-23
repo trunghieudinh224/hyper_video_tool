@@ -534,6 +534,98 @@ Remaining risks:
 - UI chưa có nút download/play trực tiếp MP4 vì backend chưa expose output files.
 - Outputs history vẫn lưu trong localStorage, chưa persist backend manifest.
 
+## Phase Hiện Tại - Output Serve/Download MVP
+
+### Objective
+
+Cho phép UI mở xem và tải MP4 đã render qua backend local. Sau phase này Outputs page không chỉ hiển thị path, mà có thể preview video trong modal và download file từ `outputs/`.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm route backend `GET /api/outputs/:filename` serve file MP4 trong `outputs/`.
+- Chặn path traversal và filename không hợp lệ.
+- Hỗ trợ `HEAD /api/outputs/:filename`.
+- Hỗ trợ download bằng query `?download=1`.
+- Cập nhật Outputs modal để dùng `<video controls>` với URL backend thật.
+- Thêm link tải MP4 trong modal chi tiết.
+
+Không làm trong phase này:
+
+- Không tạo manifest output backend.
+- Không list outputs từ backend.
+- Không stream range request nâng cao.
+- Không xóa file MP4 thật từ UI.
+
+Files impact:
+
+- `backend/src/routes/outputs.js`
+- `backend/src/server.js`
+- `backend/package.json`
+- `frontend/scripts/common/ui-components.js`
+- `.agents/tasks/current-task.md`
+
+Verification plan:
+
+- `npm --prefix backend run check`
+- Chạy backend local.
+- `GET /api/outputs/{filename}.mp4` trả `200` và `Content-Type: video/mp4`.
+- `HEAD /api/outputs/{filename}.mp4` trả `200`.
+- `GET /api/outputs/../data/sample-project.json` không đọc được file ngoài `outputs/`.
+- Browser smoke test Outputs modal có video `src` và download link đúng.
+
+### Test Report - Output Serve/Download MVP
+
+Status: passed
+
+- Created:
+  - `backend/src/routes/outputs.js`
+- Updated:
+  - `backend/src/config.js`
+  - `backend/src/server.js`
+  - `backend/package.json`
+  - `frontend/scripts/common/ui-components.js`
+- Backend API added:
+  - `GET /api/outputs/:filename`
+  - `HEAD /api/outputs/:filename`
+  - `GET /api/outputs/:filename?download=1`
+- Route safety:
+  - Chỉ nhận filename match pattern `[a-zA-Z0-9_-]+.mp4`.
+  - Request encoded traversal `%2e%2e%2fdata%2fsample-project.json` trả `400`.
+  - Request `../data/sample-project.json` không đọc được file ngoài `outputs/`.
+- Route smoke test:
+  - `HEAD /api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4`: `200`, `Content-Type: video/mp4`.
+  - `GET /api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4`: `200`, downloaded `1652781` bytes.
+  - `GET /api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4?download=1`: có `Content-Disposition: attachment`.
+  - `ffprobe` downloaded file: `duration=74.000000`, `size=1652781`.
+- Browser smoke test Outputs modal:
+  - `video src`: `/api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4`
+  - download href: `/api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4?download=1`
+  - modal hiển thị output path.
+  - Console/page errors: none.
+
+Commands run:
+
+```bash
+node --check frontend/scripts/common/ui-components.js
+npm --prefix backend run check
+HVT_PORT=3013 npm --prefix backend start
+curl -sS -I http://127.0.0.1:3013/api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4
+curl -sS -I "http://127.0.0.1:3013/api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4?download=1"
+curl -sS -o /tmp/hvt-output-download-test.mp4 -w "%{http_code} %{size_download}\n" http://127.0.0.1:3013/api/outputs/f0294c7f-ae99-4e1e-8aa1-ea5e4cc226bf.mp4
+.cache/hyperframes-runner/bin/ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /tmp/hvt-output-download-test.mp4
+curl -sS -o /tmp/hvt-traversal-2.json -w "%{http_code}\n" "http://127.0.0.1:3013/api/outputs/%2e%2e%2fdata%2fsample-project.json"
+npm --prefix backend run payload:check
+node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint
+git diff --check
+```
+
+Remaining risks:
+
+- Chưa có list outputs từ backend manifest; Outputs page vẫn dựa vào localStorage.
+- Chưa hỗ trợ HTTP Range request tối ưu cho seek video dài.
+
 ## Yêu Cầu Mới
 
 UI trước đây từng dựng MVP tĩnh bằng một `frontend/index.html` dạng SPA tab ẩn/hiện. Hướng này không còn đúng với yêu cầu mới.

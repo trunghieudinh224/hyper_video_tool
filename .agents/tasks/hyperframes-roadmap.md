@@ -287,7 +287,7 @@ Completed as MVP, ngày 23/06/2026.
 Remaining:
 
 - Chưa có async queue/poll UI.
-- Chưa có download/play endpoint cho MP4.
+- Đã có preview/download endpoint MVP cho MP4 ở phase sau.
 - Outputs history vẫn lưu localStorage.
 
 ## Phase 6 - Render Quality Và Hardening
