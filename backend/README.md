@@ -60,6 +60,16 @@ Output render spike mặc định:
 /private/tmp/hyper-video-tool-spike.mp4
 ```
 
+## Voiceover Local
+
+Voiceover MVP dùng `edge-tts` trong venv local tại `.cache/edge-tts-venv/`, không cài Python package global:
+
+```bash
+npm --prefix backend run audio:setup
+```
+
+Lệnh này cần network để tải package Python. Sau khi setup xong, Render page có thể bật Voiceover, chọn tiếng Việt/Anh/Nhật, nhập kịch bản đọc và xuất MP4 có audio track.
+
 ## Render Project Showcase Qua API
 
 Backend render async bằng queue 1 worker local. `POST /api/render-jobs` trả job ngay, UI/API poll trạng thái bằng `GET /api/render-jobs/:id`.

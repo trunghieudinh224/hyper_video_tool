@@ -5,6 +5,8 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
+const { generateVoiceover } = require("../audio/voiceover");
+const { muxVoiceoverIntoVideo } = require("./media");
 const { upsertOutputRecord } = require("./output-manifest");
 const { SUPPORTED_TEMPLATE_IDS, validateRenderPayload } = require("./render-payload-schema");
 
@@ -36,8 +38,44 @@ function getWorkDir(jobId) {
   return path.join(config.projectRoot, ".cache", "render-jobs", jobId);
 }
 
+function getVideoOnlyOutputPath(jobId) {
+  return path.join(getWorkDir(jobId), `${jobId}.video-only.mp4`);
+}
+
 function getRunnerScriptPath() {
   return path.join(config.projectRoot, "backend", "scripts", "run-hyperframes-local.js");
+}
+
+function createInitialAudioState(payload) {
+  const voiceover = payload.audio && payload.audio.voiceover ? payload.audio.voiceover : {};
+
+  return {
+    voiceover: {
+      enabled: Boolean(voiceover.enabled),
+      provider: voiceover.provider || null,
+      language: voiceover.language || null,
+      voiceId: voiceover.voiceId || null,
+      outputPath: null,
+      subtitlePath: null,
+      cached: false
+    }
+  };
+}
+
+function createRelativeAudioResult(voiceoverResult) {
+  if (!voiceoverResult || !voiceoverResult.enabled) {
+    return createInitialAudioState({ audio: { voiceover: voiceoverResult || {} } }).voiceover;
+  }
+
+  return {
+    enabled: true,
+    provider: voiceoverResult.provider,
+    language: voiceoverResult.language,
+    voiceId: voiceoverResult.voiceId,
+    outputPath: relativePath(voiceoverResult.mediaPath),
+    subtitlePath: voiceoverResult.subtitlePath ? relativePath(voiceoverResult.subtitlePath) : null,
+    cached: Boolean(voiceoverResult.cached)
+  };
 }
 
 function createJobRecord(payload) {
@@ -55,6 +93,7 @@ function createJobRecord(payload) {
     resolution: `${payload.video.width}x${payload.video.height}`,
     projectName: payload.source.projectName,
     outputPath: relativePath(outputPath),
+    audio: createInitialAudioState(payload),
     createdAt: now,
     updatedAt: now,
     startedAt: null,
@@ -145,6 +184,8 @@ function runHyperFramesRender(compositionDir, outputPath, job) {
 
 async function executeRenderJob(job, payload) {
   const outputPath = getOutputPath(job.id);
+  const voiceoverEnabled = Boolean(payload.audio && payload.audio.voiceover && payload.audio.voiceover.enabled);
+  const renderOutputPath = voiceoverEnabled ? getVideoOnlyOutputPath(job.id) : outputPath;
   const startedAt = Date.now();
   job.status = "running";
   job.progress = 15;
@@ -156,6 +197,17 @@ async function executeRenderJob(job, payload) {
     ensureDirectory(path.dirname(outputPath));
     const compositionDir = prepareWorkDir(job.id, payload);
     appendLog(job, "INFO", `Prepared composition workdir: ${relativePath(compositionDir)}.`);
+    if (voiceoverEnabled) {
+      appendLog(job, "INFO", "Generating voiceover audio.");
+      const voiceoverResult = await generateVoiceover(payload);
+      job.audio.voiceover = createRelativeAudioResult(voiceoverResult);
+      appendLog(
+        job,
+        "SUCCESS",
+        `Voiceover ready: ${job.audio.voiceover.outputPath}${job.audio.voiceover.cached ? " (cached)" : ""}.`
+      );
+    }
+
     const progressTimer = setInterval(() => {
       if (job.status !== "running") {
         clearInterval(progressTimer);
@@ -169,7 +221,7 @@ async function executeRenderJob(job, payload) {
 
     let result;
     try {
-      result = await runHyperFramesRender(compositionDir, outputPath, job);
+      result = await runHyperFramesRender(compositionDir, renderOutputPath, job);
     } finally {
       clearInterval(progressTimer);
     }
@@ -179,6 +231,16 @@ async function executeRenderJob(job, payload) {
       const error = new Error(`HyperFrames render failed with exit code ${result.status}.`);
       error.code = "RENDER_FAILED";
       throw error;
+    }
+
+    if (voiceoverEnabled) {
+      appendLog(job, "INFO", "Muxing voiceover into MP4 output.");
+      await muxVoiceoverIntoVideo({
+        videoPath: renderOutputPath,
+        audioPath: path.join(config.projectRoot, job.audio.voiceover.outputPath),
+        outputPath
+      });
+      appendLog(job, "SUCCESS", "Voiceover audio track attached.");
     }
 
     const stats = fs.statSync(outputPath);

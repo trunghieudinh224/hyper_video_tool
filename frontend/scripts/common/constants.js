@@ -23,6 +23,16 @@ const INITIAL_PROJECT_DATA = {
     accentColor: "blue",
     fontSize: "default",
     logoPosition: "top-left"
+  },
+  audio: {
+    voiceover: {
+      enabled: false,
+      provider: "edge-tts",
+      language: "vi-VN",
+      voiceId: "vi-VN-HoaiMyNeural",
+      script: "",
+      outputPath: ""
+    }
   }
 };
 
@@ -83,6 +93,27 @@ const RENDER_FORMATS = [
     templateName: "Showcase Vertical 60s"
   }
 ];
+
+const VOICEOVER_LANGUAGES = [
+  { id: "vi-VN", label: "Tiếng Việt" },
+  { id: "en-US", label: "English" },
+  { id: "ja-JP", label: "日本語" }
+];
+
+const VOICEOVER_VOICES = {
+  "vi-VN": [
+    { id: "vi-VN-HoaiMyNeural", label: "Hoai My" },
+    { id: "vi-VN-NamMinhNeural", label: "Nam Minh" }
+  ],
+  "en-US": [
+    { id: "en-US-JennyNeural", label: "Jenny" },
+    { id: "en-US-GuyNeural", label: "Guy" }
+  ],
+  "ja-JP": [
+    { id: "ja-JP-NanamiNeural", label: "Nanami" },
+    { id: "ja-JP-KeitaNeural", label: "Keita" }
+  ]
+};
 
 const THEME_ACCENT_COLORS = [
   { id: "blue", name: "Xanh chuyên nghiệp", value: "#1f4fd8" },

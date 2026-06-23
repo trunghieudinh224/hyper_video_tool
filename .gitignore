@@ -3,8 +3,7 @@
 .cache/
 node_modules/
 dist/
-outputs/*.mp4
-outputs/*.json
+outputs/
 *.log
 *.sqlite
 .env

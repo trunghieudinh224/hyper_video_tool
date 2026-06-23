@@ -52,6 +52,7 @@ function serializeJob(job) {
     projectName: job.projectName,
     outputPath: job.outputPath,
     outputSize: job.outputSize || null,
+    audio: job.audio || null,
     progress: job.progress || 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,

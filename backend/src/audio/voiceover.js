@@ -23,6 +23,7 @@ const VOICEOVER_VOICES = {
 
 const DEFAULT_LANGUAGE = "vi-VN";
 const DEFAULT_PROVIDER = "edge-tts";
+const EDGE_TTS_VENV_DIR = path.join(config.projectRoot, ".cache", "edge-tts-venv");
 
 function normalizeText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -116,8 +117,20 @@ function createEdgeTtsArgs({ text, voiceId, mediaPath, subtitlePath }) {
   ];
 }
 
+function getDefaultPythonCommand() {
+  if (process.env.HVT_PYTHON) {
+    return process.env.HVT_PYTHON;
+  }
+
+  const venvPython = process.platform === "win32"
+    ? path.join(EDGE_TTS_VENV_DIR, "Scripts", "python.exe")
+    : path.join(EDGE_TTS_VENV_DIR, "bin", "python");
+
+  return fs.existsSync(venvPython) ? venvPython : "python3";
+}
+
 function runEdgeTts(args, options = {}) {
-  const pythonCommand = options.pythonCommand || process.env.HVT_PYTHON || "python3";
+  const pythonCommand = options.pythonCommand || getDefaultPythonCommand();
   const spawnImpl = options.spawn || spawn;
 
   return new Promise((resolve, reject) => {
@@ -142,7 +155,7 @@ function runEdgeTts(args, options = {}) {
       }
 
       const error = new Error(
-        `edge-tts failed with exit code ${exitCode}. Install it with: python3 -m pip install edge-tts`
+        `edge-tts failed with exit code ${exitCode}. Install it with: npm --prefix backend run audio:setup`
       );
       error.code = "EDGE_TTS_FAILED";
       error.stdout = stdout;
@@ -150,6 +163,36 @@ function runEdgeTts(args, options = {}) {
       reject(error);
     });
   });
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function runEdgeTtsWithRetry(args, mediaPath, options = {}) {
+  const maxAttempts = options.maxAttempts || 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    fs.rmSync(mediaPath, { force: true });
+
+    try {
+      const result = await runEdgeTts(args, options);
+      if (fs.existsSync(mediaPath) && fs.statSync(mediaPath).size > 0) {
+        return result;
+      }
+      throw new Error("edge-tts produced an empty audio file.");
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        await wait(800 * attempt);
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 async function generateVoiceover(payload = {}, options = {}) {
@@ -199,12 +242,12 @@ async function generateVoiceover(payload = {}, options = {}) {
     };
   }
 
-  await runEdgeTts(createEdgeTtsArgs({
+  await runEdgeTtsWithRetry(createEdgeTtsArgs({
     text: script,
     voiceId: voiceover.voiceId,
     mediaPath: paths.mediaPath,
     subtitlePath: paths.subtitlePath
-  }), options);
+  }), paths.mediaPath, options);
 
   return {
     enabled: true,
@@ -224,6 +267,7 @@ module.exports = {
   createEdgeTtsArgs,
   createVoiceoverCacheKey,
   generateVoiceover,
+  getDefaultPythonCommand,
   getVoiceoverOutputPaths,
   normalizeVoiceoverConfig
 };

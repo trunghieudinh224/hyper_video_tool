@@ -1377,6 +1377,35 @@ const AppUI = (() => {
     const val = AppState.getValidation();
     const errorCount = val.errors.length;
     const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
+    const voiceoverLanguages = Array.isArray(VOICEOVER_LANGUAGES) ? VOICEOVER_LANGUAGES : [];
+    const voiceoverVoices = VOICEOVER_VOICES || {};
+    const savedAudio = data.audio || {};
+    const savedVoiceover = savedAudio.voiceover || {};
+    const selectedVoiceLanguage = voiceoverVoices[savedVoiceover.language] ? savedVoiceover.language : "vi-VN";
+    const selectedVoiceList = voiceoverVoices[selectedVoiceLanguage] || [];
+    const selectedVoiceId = selectedVoiceList.some((voice) => voice.id === savedVoiceover.voiceId)
+      ? savedVoiceover.voiceId
+      : (selectedVoiceList[0] && selectedVoiceList[0].id) || "vi-VN-HoaiMyNeural";
+    const buildDefaultVoiceoverScript = () => {
+      const activeFeatures = (data.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
+      const lines = [
+        data.projectName,
+        data.tagline,
+        data.shortSummary,
+        data.problemContext,
+        data.solutionWhat,
+        data.keyHighlight,
+        activeFeatures.map((feature) => [feature.name || feature.title, feature.description, feature.benefit].filter(Boolean).join(". ")).join("\n"),
+        data.resultImpact,
+        data.endingNote
+      ];
+      return lines.filter(Boolean).join("\n");
+    };
+    const escapeTextarea = (value) => String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+    const voiceoverScript = savedVoiceover.script || buildDefaultVoiceoverScript();
 
     let buttonStateHTML = "";
     if (AppRender.isRendering()) {
@@ -1435,6 +1464,43 @@ const AppUI = (() => {
                 <input type="text" id="render-filename" class="form-control" value="${data.projectSlug || 'project'}_video.mp4" ${AppRender.isRendering() ? 'disabled' : ''}>
               </div>
 
+              <div class="render-voiceover-panel">
+                <div class="render-voiceover-header">
+                  <div>
+                    <div class="render-voiceover-title">Voiceover</div>
+                    <div class="render-voiceover-desc">Tạo giọng đọc bằng edge-tts, hỗ trợ Việt / Anh / Nhật.</div>
+                  </div>
+                  <label class="render-voiceover-toggle">
+                    <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""} ${AppRender.isRendering() ? "disabled" : ""}>
+                    <span>Bật</span>
+                  </label>
+                </div>
+
+                <div class="render-voiceover-grid">
+                  <div class="form-group">
+                    <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
+                    <select id="render-voiceover-language" class="form-control" ${AppRender.isRendering() ? "disabled" : ""}>
+                      ${voiceoverLanguages.map((language) => `
+                        <option value="${language.id}" ${language.id === selectedVoiceLanguage ? "selected" : ""}>${language.label}</option>
+                      `).join("")}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="render-voiceover-voice">Giọng đọc</label>
+                    <select id="render-voiceover-voice" class="form-control" ${AppRender.isRendering() ? "disabled" : ""}>
+                      ${selectedVoiceList.map((voice) => `
+                        <option value="${voice.id}" ${voice.id === selectedVoiceId ? "selected" : ""}>${voice.label}</option>
+                      `).join("")}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="render-voiceover-script">Kịch bản đọc</label>
+                  <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="6" ${AppRender.isRendering() ? "disabled" : ""}>${escapeTextarea(voiceoverScript)}</textarea>
+                </div>
+              </div>
+
               <div style="border-top:1px solid var(--color-border); padding-top: var(--space-4); margin-top: var(--space-2); display:flex; justify-content:space-between; align-items:center;">
                 <span>Trạng thái:</span>
                 <span id="render-status-pill" class="status-pill status-info">Chờ bắt đầu</span>
@@ -1482,6 +1548,45 @@ const AppUI = (() => {
     const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
     const renderLogDetails = document.getElementById("render-log-details");
     const renderInlineResult = document.getElementById("render-inline-result");
+    const voiceoverEnabledInput = document.getElementById("render-voiceover-enabled");
+    const voiceoverLanguageInput = document.getElementById("render-voiceover-language");
+    const voiceoverVoiceInput = document.getElementById("render-voiceover-voice");
+    const voiceoverScriptInput = document.getElementById("render-voiceover-script");
+
+    const getVoiceOptionsHTML = (language) => {
+      return (voiceoverVoices[language] || voiceoverVoices["vi-VN"] || []).map((voice) => {
+        return `<option value="${voice.id}">${voice.label}</option>`;
+      }).join("");
+    };
+
+    const saveVoiceoverSettings = () => {
+      const audio = {
+        ...(AppState.getProjectData().audio || {}),
+        voiceover: {
+          enabled: Boolean(voiceoverEnabledInput && voiceoverEnabledInput.checked),
+          provider: "edge-tts",
+          language: voiceoverLanguageInput ? voiceoverLanguageInput.value : "vi-VN",
+          voiceId: voiceoverVoiceInput ? voiceoverVoiceInput.value : "vi-VN-HoaiMyNeural",
+          script: voiceoverScriptInput ? voiceoverScriptInput.value.trim() : "",
+          outputPath: ""
+        }
+      };
+      AppState.updateProjectField("audio", audio);
+    };
+
+    if (voiceoverLanguageInput && voiceoverVoiceInput) {
+      voiceoverLanguageInput.addEventListener("change", () => {
+        voiceoverVoiceInput.innerHTML = getVoiceOptionsHTML(voiceoverLanguageInput.value);
+        saveVoiceoverSettings();
+      });
+    }
+
+    [voiceoverEnabledInput, voiceoverVoiceInput, voiceoverScriptInput].forEach((input) => {
+      if (!input) {
+        return;
+      }
+      input.addEventListener(input.tagName === "TEXTAREA" ? "input" : "change", saveVoiceoverSettings);
+    });
 
     const getOutputAspectRatio = (output) => {
       if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
@@ -1662,6 +1767,12 @@ const AppUI = (() => {
 
     if (startBtn) {
       startBtn.addEventListener("click", () => {
+        saveVoiceoverSettings();
+        if (voiceoverEnabledInput && voiceoverEnabledInput.checked && voiceoverScriptInput && !voiceoverScriptInput.value.trim()) {
+          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc.", "error");
+          return;
+        }
+
         const formatId = document.getElementById("render-format").value;
         const fps = parseInt(document.getElementById("render-fps").value);
         const filename = document.getElementById("render-filename").value.trim() || "output.mp4";

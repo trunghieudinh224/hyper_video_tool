@@ -23,26 +23,38 @@ Test report:
 
 ## Phase 2 - Render MP4 With Voiceover
 
-Status: next
+Status: done
 
 Scope:
 - Khi `audio.voiceover.enabled=true`, backend generate voice MP3 trước khi render.
 - Gắn voice MP3 vào output MP4 sau render bằng FFmpeg.
 - Lưu metadata voiceover vào job/output manifest.
 - Verify output MP4 có audio stream bằng FFprobe.
+- Thêm retry cho `edge-tts` vì service đôi khi trả audio rỗng transient.
 
 Risks:
 - `edge-tts` cần Python package và network; phải fail rõ nếu chưa cài.
 - FFmpeg/FFprobe ưu tiên dùng runner cache thay vì yêu cầu global binary.
 
+Test report:
+- `npm --prefix backend run audio:setup` - passed
+- `HVT_SMOKE_BASE_URL=http://127.0.0.1:3026 HVT_SMOKE_PAYLOAD_PATH=/private/tmp/hvt-voiceover-payload.json HVT_SMOKE_TIMEOUT_MS=180000 npm --prefix backend run smoke:render-api` - passed
+- FFprobe output audio stream: `aac`
+
 ## Phase 3 - Voiceover UI
 
-Status: pending
+Status: done
 
 Scope:
-- Thêm section audio trên màn Render hoặc Settings.
+- Thêm section voiceover trên màn Render.
 - Cho chọn language/voice, nhập script, bật/tắt voiceover.
-- Preview/generate voice sample nếu backend sẵn sàng.
+- Lưu state vào payload render.
+
+Out of scope:
+- Chưa làm nút preview voice riêng.
+
+Test report:
+- Playwright smoke bằng Chrome hệ thống: desktop 1440px và mobile 390px không overflow, payload voiceover cập nhật đúng.
 
 ## Phase 4 - Background Music
 

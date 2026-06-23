@@ -18,6 +18,8 @@ const AppRender = (() => {
     const videos = selectedAssets.filter((asset) => asset.type === "video" && asset.useInVideo);
     const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
     const milestones = (projectData.milestones || []).slice(0, 5);
+    const audio = projectData.audio || {};
+    const voiceover = audio.voiceover || {};
 
     return {
       version: "1.0.0",
@@ -52,12 +54,12 @@ const AppRender = (() => {
       },
       audio: {
         voiceover: {
-          enabled: false,
-          provider: "edge-tts",
-          language: "vi-VN",
-          voiceId: "vi-VN-HoaiMyNeural",
-          script: "",
-          outputPath: ""
+          enabled: Boolean(voiceover.enabled),
+          provider: voiceover.provider || "edge-tts",
+          language: voiceover.language || "vi-VN",
+          voiceId: voiceover.voiceId || "vi-VN-HoaiMyNeural",
+          script: voiceover.script || "",
+          outputPath: voiceover.outputPath || ""
         },
         backgroundMusic: {
           enabled: false,
@@ -258,6 +260,7 @@ const AppRender = (() => {
       size: formatBytes(job.outputSize),
       outputSize: job.outputSize,
       durationMs: job.durationMs,
+      audio: job.audio || null,
       dateCreated: completedAt.toISOString().replace("T", " ").substring(0, 19),
       status: job.status,
       source: "backend"
@@ -276,6 +279,7 @@ const AppRender = (() => {
     size: formatBytes(output.outputSize),
     outputSize: output.outputSize,
     durationMs: output.durationMs,
+    audio: output.audio || null,
     dateCreated: output.dateCreated || (output.completedAt || output.createdAt || "").replace("T", " ").substring(0, 19),
     status: output.status || "succeeded",
     source: "backend"
