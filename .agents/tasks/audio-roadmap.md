@@ -56,6 +56,25 @@ Out of scope:
 Test report:
 - Playwright smoke bằng Chrome hệ thống: desktop 1440px và mobile 390px không overflow, payload voiceover cập nhật đúng.
 
+## Phase 3.1 - Scene-Level Voiceover Scripts
+
+Status: done
+
+Scope:
+- Thêm `scene.voiceover.script`, `estimatedDuration`, `fits` vào render payload.
+- Content page cho nhập voice script theo scene: intro, problem, solution, features, impact, outro.
+- Timeline modal cho nhập voice script theo từng cột mốc; render lấy 5 mốc đầu đúng giới hạn template hiện tại.
+- Render page chuyển sang review script tổng hợp và cảnh báo estimated seconds/duration cho từng scene.
+- Backend ưu tiên scene script khi build voiceover audio.
+
+Out of scope:
+- Chưa tự co giãn duration video theo audio.
+- Chưa generate audio tách từng scene để canh silence tuyệt đối theo timeline.
+
+Test report:
+- `npm --prefix backend run check` - passed
+- Browser smoke bằng Chrome hệ thống: Content scene script, Timeline milestone script, Render review/payload scene voiceover - passed
+
 ## Phase 4 - Background Music
 
 Status: pending

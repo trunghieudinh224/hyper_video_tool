@@ -110,6 +110,11 @@
         "tagline": "Bản điều khiển giúp team theo dõi hiệu suất dự án theo thời gian thực.",
         "ownerTeam": "Platform Team",
         "summary": "Hệ thống tổng hợp và trực quan hóa dữ liệu hiệu suất của các dự án đang chạy trong công ty."
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     },
     {
@@ -121,6 +126,11 @@
         "problem": "Dữ liệu tiến độ nằm rải rác nhiều nguồn, khó nhìn tổng quan khiến việc đưa ra quyết định chậm trễ.",
         "targetUsers": "Quản lý dự án, team lead và các thành viên vận hành nội bộ.",
         "useCase": "Sử dụng trong các buổi họp tiến độ hàng tuần và báo cáo tháng của các bộ phận."
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     },
     {
@@ -131,6 +141,11 @@
       "content": {
         "solution": "Gom dữ liệu vào dashboard nội bộ có biểu đồ trực quan, hệ thống cảnh báo tự động và báo cáo nhanh.",
         "keyHighlight": "Tự động gửi cảnh báo qua Slack/Email khi có task trễ hạn quá 2 ngày."
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     },
     {
@@ -165,6 +180,11 @@
             "benefit": "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần."
           }
         ]
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     },
     {
@@ -179,37 +199,47 @@
             "title": "Khảo sát nhu cầu nội bộ",
             "date": "Tháng 01/2026",
             "description": "Phỏng vấn 15 PM và Team Lead để xác định các chỉ số quan trọng cần theo dõi.",
-            "status": "completed"
+            "status": "completed",
+            "voiceoverScript": ""
           },
           {
             "id": "ms_2",
             "title": "Xây dựng bản MVP",
             "date": "Tháng 02/2026",
             "description": "Thiết kế database, tích hợp API từ Jira/Github và dựng các biểu đồ cốt lõi.",
-            "status": "completed"
+            "status": "completed",
+            "voiceoverScript": ""
           },
           {
             "id": "ms_3",
             "title": "Thử nghiệm nội bộ (Alpha Test)",
             "date": "Tháng 03/2026",
             "description": "Triển khai thử nghiệm cho Platform Team để tìm và sửa lỗi phát sinh.",
-            "status": "completed"
+            "status": "completed",
+            "voiceoverScript": ""
           },
           {
             "id": "ms_4",
             "title": "Mở rộng thử nghiệm (Beta Test)",
             "date": "Tháng 04/2026",
             "description": "Mở quyền truy cập cho 5 team dự án khác chạy thử và thu thập feedback.",
-            "status": "active"
+            "status": "active",
+            "voiceoverScript": ""
           },
           {
             "id": "ms_5",
             "title": "Ra mắt chính thức bản V1.0",
             "date": "Tháng 05/2026",
             "description": "Hoàn thiện các tính năng báo cáo tự động và triển khai diện rộng toàn công ty.",
-            "status": "upcoming"
+            "status": "upcoming",
+            "voiceoverScript": ""
           }
         ]
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     },
     {
@@ -220,6 +250,11 @@
       "content": {
         "resultImpact": "Giảm 70% thời gian tổng hợp báo cáo thủ công và tăng 25% hiệu suất xử lý công việc quá hạn.",
         "highlight": "Tự động gửi cảnh báo qua Slack/Email khi có task trễ hạn quá 2 ngày."
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     },
     {
@@ -230,6 +265,11 @@
       "content": {
         "endingNote": "Hãy truy cập dashboard tại internal.analytics và gửi phản hồi cho Platform Team nhé!",
         "ownerTeam": "Platform Team"
+      },
+      "voiceover": {
+        "script": "",
+        "estimatedDuration": 0,
+        "fits": true
       }
     }
   ]

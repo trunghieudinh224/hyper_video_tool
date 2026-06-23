@@ -63,6 +63,36 @@
   resize: vertical;
 }
 
+.render-voiceover-script[readonly] {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.render-voiceover-scenes {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.render-voiceover-scene {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 28px;
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+}
+
+.render-voiceover-scene strong {
+  flex-shrink: 0;
+  color: var(--color-text);
+}
+
+.render-voiceover-scene.is-warning strong {
+  color: var(--color-warning);
+}
+
 .render-log-details summary {
   min-height: 40px;
   display: flex;

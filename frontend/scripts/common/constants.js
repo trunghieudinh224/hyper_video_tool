@@ -33,6 +33,17 @@ const INITIAL_PROJECT_DATA = {
       script: "",
       outputPath: ""
     }
+  },
+  voiceover: {
+    sceneScripts: {
+      intro: "",
+      problem: "",
+      solution: "",
+      features: "",
+      timeline: "",
+      impact: "",
+      outro: ""
+    }
   }
 };
 

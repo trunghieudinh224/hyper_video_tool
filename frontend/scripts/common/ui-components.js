@@ -235,6 +235,8 @@ const AppUI = (() => {
 
   // 2. Content Form View
   const renderContentScreen = (container, data) => {
+    const sceneScripts = (data.voiceover && data.voiceover.sceneScripts) || {};
+
     container.innerHTML = `
       <div class="workspace-header">
         <h1>Nội dung cốt lõi của video</h1>
@@ -279,17 +281,32 @@ const AppUI = (() => {
           <textarea id="field-shortSummary" class="form-control" rows="3" placeholder="Tóm tắt bối cảnh tổng quát...">${data.shortSummary || ''}</textarea>
           <span class="char-counter"><span id="count-shortSummary">0</span>/200 ký tự</span>
         </div>
+        <div class="form-group voice-script-field">
+          <label class="form-label" for="voice-script-intro">Voice intro</label>
+          <textarea id="voice-script-intro" class="form-control" rows="2" placeholder="Kịch bản giọng đọc cho cảnh mở đầu...">${sceneScripts.intro || ''}</textarea>
+          <span class="char-counter"><span id="voice-count-intro">0</span>/6s</span>
+        </div>
 
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label" for="field-problemContext">Vấn đề / Nỗi đau khách hàng *</label>
             <textarea id="field-problemContext" class="form-control" rows="4" placeholder="Khách hàng đang gặp khó khăn gì?">${data.problemContext || ''}</textarea>
             <span class="char-counter"><span id="count-problemContext">0</span>/300 ký tự</span>
+            <div class="voice-script-field is-nested">
+              <label class="form-label" for="voice-script-problem">Voice vấn đề</label>
+              <textarea id="voice-script-problem" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh vấn đề...">${sceneScripts.problem || ''}</textarea>
+              <span class="char-counter"><span id="voice-count-problem">0</span>/10s</span>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="field-solutionWhat">Giải pháp đã xây dựng *</label>
             <textarea id="field-solutionWhat" class="form-control" rows="4" placeholder="Sản phẩm giải quyết nỗi đau đó như thế nào?">${data.solutionWhat || ''}</textarea>
             <span class="char-counter"><span id="count-solutionWhat">0</span>/300 ký tự</span>
+            <div class="voice-script-field is-nested">
+              <label class="form-label" for="voice-script-solution">Voice giải pháp</label>
+              <textarea id="voice-script-solution" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh giải pháp...">${sceneScripts.solution || ''}</textarea>
+              <span class="char-counter"><span id="voice-count-solution">0</span>/10s</span>
+            </div>
           </div>
         </div>
 
@@ -308,16 +325,31 @@ const AppUI = (() => {
           <div class="form-group">
             <label class="form-label" for="field-keyHighlight">Điểm nổi bật nhất</label>
             <textarea id="field-keyHighlight" class="form-control" rows="2" placeholder="ví dụ: Tự động cảnh báo Slack">${data.keyHighlight || ''}</textarea>
+            <div class="voice-script-field is-nested">
+              <label class="form-label" for="voice-script-features">Voice tính năng</label>
+              <textarea id="voice-script-features" class="form-control" rows="2" placeholder="Kịch bản đọc cho cảnh tính năng nổi bật...">${sceneScripts.features || ''}</textarea>
+              <span class="char-counter"><span id="voice-count-features">0</span>/18s</span>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="field-resultImpact">Kết quả / Tác động đạt được</label>
             <textarea id="field-resultImpact" class="form-control" rows="2" placeholder="ví dụ: Tiết kiệm 70% thời gian báo cáo">${data.resultImpact || ''}</textarea>
+            <div class="voice-script-field is-nested">
+              <label class="form-label" for="voice-script-impact">Voice tác động</label>
+              <textarea id="voice-script-impact" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết quả...">${sceneScripts.impact || ''}</textarea>
+              <span class="char-counter"><span id="voice-count-impact">0</span>/10s</span>
+            </div>
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="field-endingNote">Lời kết thúc video</label>
           <textarea id="field-endingNote" class="form-control" rows="2" placeholder="Lời cảm ơn hoặc lời kêu gọi hành động...">${data.endingNote || ''}</textarea>
+          <div class="voice-script-field is-nested">
+            <label class="form-label" for="voice-script-outro">Voice kết thúc</label>
+            <textarea id="voice-script-outro" class="form-control" rows="2" placeholder="Kịch bản đọc riêng cho cảnh kết thúc...">${sceneScripts.outro || ''}</textarea>
+            <span class="char-counter"><span id="voice-count-outro">0</span>/6s</span>
+          </div>
         </div>
       </form>
     `;
@@ -363,6 +395,47 @@ const AppUI = (() => {
     ["projectName", "projectSlug", "ownerTeam", "presenterRole", "targetUsers", "useCase", "keyHighlight", "resultImpact", "endingNote"].forEach(id => {
       bindSimpleInput(id);
     });
+
+    const estimateVoiceSeconds = (value) => {
+      const text = String(value || "").replace(/\s+/g, " ").trim();
+      if (!text) return 0;
+      return Math.max(1, Math.ceil((text.split(/\s+/).filter(Boolean).length / 145) * 60));
+    };
+
+    const bindVoiceScript = (type, duration) => {
+      const input = document.getElementById(`voice-script-${type}`);
+      const counter = document.getElementById(`voice-count-${type}`);
+      if (!input || !counter) return;
+
+      const update = () => {
+        const estimated = estimateVoiceSeconds(input.value);
+        counter.textContent = `${estimated}s`;
+        counter.style.color = estimated > duration ? "var(--color-warning)" : "var(--color-text-subtle)";
+      };
+
+      input.addEventListener("input", () => {
+        const projectData = AppState.getProjectData();
+        const voiceover = projectData.voiceover || {};
+        AppState.updateProjectField("voiceover", {
+          ...voiceover,
+          sceneScripts: {
+            ...(voiceover.sceneScripts || {}),
+            [type]: input.value
+          }
+        });
+        update();
+      });
+      update();
+    };
+
+    [
+      ["intro", 6],
+      ["problem", 10],
+      ["solution", 10],
+      ["features", 18],
+      ["impact", 10],
+      ["outro", 6]
+    ].forEach(([type, duration]) => bindVoiceScript(type, duration));
 
     // Action buttons click handler
     document.getElementById("content-fill-btn").addEventListener("click", async () => {
@@ -640,6 +713,7 @@ const AppUI = (() => {
                   <div style="display:flex; flex-direction:column;">
                     <span style="font-weight:600;">${item.name}</span>
                     <span class="text-muted" style="font-size: var(--font-xs);">${item.description || ''}</span>
+                    ${item.voiceoverScript ? `<span class="text-subtle" style="font-size: var(--font-xs);">Voice: ${item.voiceoverScript}</span>` : ''}
                   </div>
                   <div>${statusPill}</div>
                 </div>
@@ -681,6 +755,10 @@ const AppUI = (() => {
           <label class="form-label" for="modal-ms-desc">Mô tả chi tiết</label>
           <input type="text" id="modal-ms-desc" class="form-control" value="${isEdit ? (ms.description || '') : ''}">
         </div>
+        <div class="form-group voice-script-field">
+          <label class="form-label" for="modal-ms-voice">Voice cho cột mốc này</label>
+          <textarea id="modal-ms-voice" class="form-control" rows="3" placeholder="Kịch bản đọc khi tới mốc timeline này...">${isEdit ? (ms.voiceoverScript || '') : ''}</textarea>
+        </div>
         <div class="form-group">
           <label class="form-label" for="modal-ms-status">Trạng thái</label>
           <select id="modal-ms-status" class="form-control">
@@ -703,6 +781,7 @@ const AppUI = (() => {
               const date = document.getElementById("modal-ms-date").value.trim();
               const name = document.getElementById("modal-ms-name").value.trim();
               const description = document.getElementById("modal-ms-desc").value.trim();
+              const voiceoverScript = document.getElementById("modal-ms-voice").value.trim();
               const status = document.getElementById("modal-ms-status").value;
 
               if (!date || !name) {
@@ -714,7 +793,7 @@ const AppUI = (() => {
               if (isEdit) {
                 const idx = milestones.findIndex(m => m.id === ms.id);
                 if (idx !== -1) {
-                  milestones[idx] = { ...ms, date, name, description, status };
+                  milestones[idx] = { ...ms, date, name, description, voiceoverScript, status };
                 }
               } else {
                 milestones.push({
@@ -722,6 +801,7 @@ const AppUI = (() => {
                   date,
                   name,
                   description,
+                  voiceoverScript,
                   status
                 });
               }
@@ -1386,26 +1466,20 @@ const AppUI = (() => {
     const selectedVoiceId = selectedVoiceList.some((voice) => voice.id === savedVoiceover.voiceId)
       ? savedVoiceover.voiceId
       : (selectedVoiceList[0] && selectedVoiceList[0].id) || "vi-VN-HoaiMyNeural";
-    const buildDefaultVoiceoverScript = () => {
-      const activeFeatures = (data.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
-      const lines = [
-        data.projectName,
-        data.tagline,
-        data.shortSummary,
-        data.problemContext,
-        data.solutionWhat,
-        data.keyHighlight,
-        activeFeatures.map((feature) => [feature.name || feature.title, feature.description, feature.benefit].filter(Boolean).join(". ")).join("\n"),
-        data.resultImpact,
-        data.endingNote
-      ];
-      return lines.filter(Boolean).join("\n");
-    };
     const escapeTextarea = (value) => String(value || "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
-    const voiceoverScript = savedVoiceover.script || buildDefaultVoiceoverScript();
+    const previewPayload = AppRender.buildRenderPayload(data, { formatId: (renderFormats[0] && renderFormats[0].id) || "landscape-16x9" });
+    const voiceoverScript = previewPayload.audio.voiceover.script;
+    const voiceoverSceneReports = previewPayload.scenes.map((scene) => ({
+      id: scene.id,
+      title: scene.title,
+      duration: scene.duration,
+      estimatedDuration: scene.voiceover ? scene.voiceover.estimatedDuration : 0,
+      script: scene.voiceover ? scene.voiceover.script : "",
+      fits: scene.voiceover ? scene.voiceover.fits : true
+    }));
 
     let buttonStateHTML = "";
     if (AppRender.isRendering()) {
@@ -1496,8 +1570,16 @@ const AppUI = (() => {
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label" for="render-voiceover-script">Kịch bản đọc</label>
-                  <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="6" ${AppRender.isRendering() ? "disabled" : ""}>${escapeTextarea(voiceoverScript)}</textarea>
+                  <label class="form-label" for="render-voiceover-script">Kịch bản đọc tổng hợp</label>
+                  <textarea id="render-voiceover-script" class="form-control render-voiceover-script" rows="6" readonly>${escapeTextarea(voiceoverScript)}</textarea>
+                  <div class="render-voiceover-scenes">
+                    ${voiceoverSceneReports.map((scene) => `
+                      <div class="render-voiceover-scene ${scene.script && !scene.fits ? "is-warning" : ""}">
+                        <span>${scene.title}</span>
+                        <strong>${scene.estimatedDuration}s / ${scene.duration}s</strong>
+                      </div>
+                    `).join("")}
+                  </div>
                 </div>
               </div>
 

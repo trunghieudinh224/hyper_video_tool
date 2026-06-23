@@ -88,6 +88,20 @@ function validateScene(errors, scene, index) {
   if (!isPlainObject(scene.content)) {
     pushError(errors, `${basePath}.content`, "Scene content object is required.");
   }
+
+  if (scene.voiceover !== undefined) {
+    if (!isPlainObject(scene.voiceover)) {
+      pushError(errors, `${basePath}.voiceover`, "Scene voiceover must be an object.");
+    } else {
+      validateStringField(errors, scene, "voiceover.script", false);
+      if (scene.voiceover.estimatedDuration !== undefined && !Number.isFinite(scene.voiceover.estimatedDuration)) {
+        pushError(errors, `${basePath}.voiceover.estimatedDuration`, "Scene voiceover estimatedDuration must be a number.");
+      }
+      if (scene.voiceover.fits !== undefined && typeof scene.voiceover.fits !== "boolean") {
+        pushError(errors, `${basePath}.voiceover.fits`, "Scene voiceover fits must be a boolean.");
+      }
+    }
+  }
 }
 
 function validateBooleanField(errors, target, fieldPath, required = true) {

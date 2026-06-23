@@ -68,7 +68,8 @@ function mapMilestone(milestone, index) {
     title: text(milestone.name, `Cột mốc ${index + 1}`),
     date: text(milestone.date, ""),
     description: text(milestone.description, "Chưa có mô tả cột mốc."),
-    status: text(milestone.status, "unknown")
+    status: text(milestone.status, "unknown"),
+    voiceoverScript: text(milestone.voiceoverScript, "")
   };
 }
 
@@ -86,13 +87,31 @@ function findFirstAsset(assets, type) {
   return assets.find((asset) => asset.type === type && asset.useInVideo && asset.url) || null;
 }
 
-function createScene(type, title, content) {
+function estimateSpeechDurationSeconds(value) {
+  const normalized = text(value, "");
+  if (!normalized) {
+    return 0;
+  }
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil((wordCount / 145) * 60));
+}
+
+function createScene(type, title, content, voiceoverScript = "") {
+  const script = text(voiceoverScript, "");
+  const estimatedDuration = estimateSpeechDurationSeconds(script);
+  const duration = SCENE_DURATIONS[type];
+
   return {
     id: `scene-${type}`,
     type,
     title,
-    duration: SCENE_DURATIONS[type],
-    content
+    duration,
+    content,
+    voiceover: {
+      script,
+      estimatedDuration,
+      fits: !script || estimatedDuration <= duration
+    }
   };
 }
 
@@ -178,6 +197,12 @@ function projectToRenderPayload(project = {}, options = {}) {
   const logo = findFirstAsset(assets, "logo");
   const screenshots = assets.filter((asset) => asset.type === "screenshot" && asset.useInVideo && asset.url).slice(0, 3);
   const videos = assets.filter((asset) => asset.type === "video" && asset.useInVideo && asset.url).slice(0, 2);
+  const voiceover = project.voiceover && typeof project.voiceover === "object" ? project.voiceover : {};
+  const sceneScripts = voiceover.sceneScripts && typeof voiceover.sceneScripts === "object" ? voiceover.sceneScripts : {};
+  const timelineScript = milestones
+    .map((milestone) => milestone.voiceoverScript)
+    .filter(Boolean)
+    .join("\n");
 
   const payload = {
     version: RENDER_PAYLOAD_VERSION,
@@ -217,30 +242,30 @@ function projectToRenderPayload(project = {}, options = {}) {
         tagline: text(project.tagline, "Giới thiệu ngắn về dự án."),
         ownerTeam: text(project.ownerTeam, "Team phụ trách"),
         summary: text(project.shortSummary, "")
-      }),
+      }, sceneScripts.intro),
       createScene("problem", "Bối cảnh và vấn đề", {
         problem: text(project.problemContext, "Chưa có mô tả vấn đề."),
         targetUsers: text(project.targetUsers, "Chưa xác định người dùng mục tiêu."),
         useCase: text(project.useCase, "Chưa có use case.")
-      }),
+      }, sceneScripts.problem),
       createScene("solution", "Giải pháp", {
         solution: text(project.solutionWhat, "Chưa có mô tả giải pháp."),
         keyHighlight: text(project.keyHighlight, "")
-      }),
+      }, sceneScripts.solution),
       createScene("features", "Tính năng nổi bật", {
         items: features
-      }),
+      }, sceneScripts.features),
       createScene("timeline", "Timeline phát triển", {
         milestones
-      }),
+      }, sceneScripts.timeline || timelineScript),
       createScene("impact", "Kết quả và tác động", {
         resultImpact: text(project.resultImpact, "Chưa có số liệu tác động."),
         highlight: text(project.keyHighlight, "")
-      }),
+      }, sceneScripts.impact),
       createScene("outro", "Kết thúc", {
         endingNote: text(project.endingNote, "Cảm ơn đã theo dõi."),
         ownerTeam: text(project.ownerTeam, "Team phụ trách")
-      })
+      }, sceneScripts.outro)
     ]
   };
 
@@ -257,6 +282,7 @@ module.exports = {
   DEFAULT_AUDIO,
   DEFAULT_VIDEO,
   SCENE_DURATIONS,
+  estimateSpeechDurationSeconds,
   getVideoPreset,
   mapAudioConfig,
   projectToRenderPayload

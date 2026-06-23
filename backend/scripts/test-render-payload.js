@@ -31,6 +31,7 @@ assert.deepEqual(
 
 assert.equal(generatedPayload.scenes.find((scene) => scene.type === "features").content.items.length, 4);
 assert.equal(generatedPayload.scenes.find((scene) => scene.type === "timeline").content.milestones.length, 5);
+assert.equal(generatedPayload.scenes.every((scene) => scene.voiceover && typeof scene.voiceover.script === "string"), true);
 assert.equal(generatedPayload.video.estimatedDuration, 74);
 assert.equal(generatedPayload.video.aspectRatio, "16:9");
 assert.equal(generatedPayload.video.width, 1920);
@@ -60,5 +61,25 @@ assert.equal(mismatchedValidation.valid, false, "Vertical payload with horizonta
 const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");
 assert.equal(fallbackPayload.source.projectSlug, "untitled-project");
+
+const sceneVoicePayload = projectToRenderPayload({
+  ...project,
+  voiceover: {
+    sceneScripts: {
+      intro: "Đây là phần đọc mở đầu.",
+      timeline: ""
+    }
+  },
+  milestones: project.milestones.map((milestone, index) => ({
+    ...milestone,
+    voiceoverScript: index === 0 ? "Đây là phần đọc cho cột mốc đầu tiên." : ""
+  }))
+});
+assert.equal(sceneVoicePayload.scenes.find((scene) => scene.type === "intro").voiceover.script, "Đây là phần đọc mở đầu.");
+assert.match(
+  sceneVoicePayload.scenes.find((scene) => scene.type === "timeline").voiceover.script,
+  /cột mốc đầu tiên/
+);
+assert.equal(validateRenderPayload(sceneVoicePayload).valid, true, "Scene-level voiceover payload should validate.");
 
 console.log("Render payload tests passed.");

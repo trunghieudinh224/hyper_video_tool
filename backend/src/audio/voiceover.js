@@ -29,6 +29,16 @@ function normalizeText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function estimateSpeechDurationSeconds(value) {
+  const text = normalizeText(value);
+  if (!text) {
+    return 0;
+  }
+
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil((wordCount / 145) * 60));
+}
+
 function ensureDirectory(directoryPath) {
   fs.mkdirSync(directoryPath, { recursive: true });
 }
@@ -56,6 +66,12 @@ function normalizeVoiceoverConfig(input = {}) {
 
 function createScriptLine(scene) {
   const content = scene && scene.content && typeof scene.content === "object" ? scene.content : {};
+  const voiceover = scene && scene.voiceover && typeof scene.voiceover === "object" ? scene.voiceover : {};
+  const configuredScript = normalizeText(voiceover.script);
+  if (configuredScript) {
+    return configuredScript;
+  }
+
   const parts = [
     scene && scene.title,
     content.projectName,
@@ -83,6 +99,25 @@ function buildVoiceoverScript(payload = {}) {
 
   const scenes = Array.isArray(payload.scenes) ? payload.scenes : [];
   return scenes.map(createScriptLine).filter(Boolean).join("\n");
+}
+
+function getVoiceoverSceneReports(payload = {}) {
+  const scenes = Array.isArray(payload.scenes) ? payload.scenes : [];
+  return scenes.map((scene) => {
+    const script = createScriptLine(scene);
+    const estimatedDuration = estimateSpeechDurationSeconds(script);
+    const duration = Number.isFinite(scene.duration) ? scene.duration : 0;
+
+    return {
+      sceneId: scene.id || "",
+      type: scene.type || "",
+      title: scene.title || "",
+      duration,
+      estimatedDuration,
+      script,
+      fits: !script || estimatedDuration <= duration
+    };
+  });
 }
 
 function createVoiceoverCacheKey({ provider, language, voiceId, script }) {
@@ -266,8 +301,10 @@ module.exports = {
   buildVoiceoverScript,
   createEdgeTtsArgs,
   createVoiceoverCacheKey,
+  estimateSpeechDurationSeconds,
   generateVoiceover,
   getDefaultPythonCommand,
+  getVoiceoverSceneReports,
   getVoiceoverOutputPaths,
   normalizeVoiceoverConfig
 };

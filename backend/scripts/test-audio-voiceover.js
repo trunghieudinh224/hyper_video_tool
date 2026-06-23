@@ -7,6 +7,8 @@ const {
   buildVoiceoverScript,
   createEdgeTtsArgs,
   createVoiceoverCacheKey,
+  estimateSpeechDurationSeconds,
+  getVoiceoverSceneReports,
   normalizeVoiceoverConfig,
   VOICEOVER_VOICES
 } = require("../src/audio/voiceover");
@@ -62,6 +64,43 @@ const generatedScript = buildVoiceoverScript(defaultPayload);
 assert.match(generatedScript, /Internal Analytics Dashboard/);
 assert.match(generatedScript, /Dữ liệu tiến độ nằm rải rác nhiều nguồn/);
 assert.match(generatedScript, /Giảm 70% thời gian/);
+
+const sceneScriptPayload = {
+  ...defaultPayload,
+  scenes: defaultPayload.scenes.map((scene) => {
+    if (scene.type === "problem") {
+      return {
+        ...scene,
+        voiceover: {
+          script: "Đây là voice riêng cho cảnh vấn đề.",
+          estimatedDuration: 3,
+          fits: true
+        }
+      };
+    }
+    return scene;
+  })
+};
+assert.match(buildVoiceoverScript(sceneScriptPayload), /Đây là voice riêng cho cảnh vấn đề/);
+assert.doesNotMatch(buildVoiceoverScript(sceneScriptPayload), /Dữ liệu tiến độ nằm rải rác nhiều nguồn/);
+
+const longSceneScript = Array.from({ length: 80 }, () => "nội dung").join(" ");
+const reports = getVoiceoverSceneReports({
+  scenes: [
+    {
+      id: "scene-problem",
+      type: "problem",
+      title: "Bối cảnh và vấn đề",
+      duration: 10,
+      content: {},
+      voiceover: {
+        script: longSceneScript
+      }
+    }
+  ]
+});
+assert.equal(reports[0].fits, false, "Long scene voiceover should be flagged as too long.");
+assert.equal(estimateSpeechDurationSeconds("Xin chào"), 1);
 
 const invalidLanguagePayload = {
   ...defaultPayload,

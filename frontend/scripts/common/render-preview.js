@@ -10,6 +10,34 @@ const AppRender = (() => {
       || formats[0];
   };
 
+  const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
+
+  const estimateSpeechDurationSeconds = (value) => {
+    const text = normalizeText(value);
+    if (!text) {
+      return 0;
+    }
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.ceil((wordCount / 145) * 60));
+  };
+
+  const createSceneVoiceover = (type, duration, script) => {
+    const normalizedScript = normalizeText(script);
+    const estimatedDuration = estimateSpeechDurationSeconds(normalizedScript);
+    return {
+      script: normalizedScript,
+      estimatedDuration,
+      fits: !normalizedScript || estimatedDuration <= duration
+    };
+  };
+
+  const buildVoiceoverScriptFromScenes = (scenes) => {
+    return scenes
+      .map((scene) => scene.voiceover && scene.voiceover.script)
+      .filter(Boolean)
+      .join("\n");
+  };
+
   const buildRenderPayload = (projectData, renderConfig = {}) => {
     const renderFormat = getRenderFormat(renderConfig);
     const selectedAssets = projectData.assets || [];
@@ -20,6 +48,105 @@ const AppRender = (() => {
     const milestones = (projectData.milestones || []).slice(0, 5);
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
+    const voiceoverState = projectData.voiceover || {};
+    const sceneScripts = voiceoverState.sceneScripts || {};
+    const timelineMilestoneScript = milestones
+      .map((milestone) => milestone.voiceoverScript || "")
+      .filter(Boolean)
+      .join("\n");
+    const scenes = [
+      {
+        id: "scene-intro",
+        type: "intro",
+        title: "Giới thiệu dự án",
+        duration: 6,
+        content: {
+          projectName: projectData.projectName || "Untitled Project",
+          tagline: projectData.tagline || "Video giới thiệu dự án nội bộ.",
+          ownerTeam: projectData.ownerTeam || "Team phát triển",
+          summary: projectData.shortSummary || "Tóm tắt ngắn về giá trị dự án."
+        },
+        voiceover: createSceneVoiceover("intro", 6, sceneScripts.intro)
+      },
+      {
+        id: "scene-problem",
+        type: "problem",
+        title: "Bối cảnh và vấn đề",
+        duration: 10,
+        content: {
+          problem: projectData.problemContext || "Chưa có mô tả vấn đề.",
+          targetUsers: projectData.targetUsers || "Người dùng nội bộ.",
+          useCase: projectData.useCase || "Use case chính của dự án."
+        },
+        voiceover: createSceneVoiceover("problem", 10, sceneScripts.problem)
+      },
+      {
+        id: "scene-solution",
+        type: "solution",
+        title: "Giải pháp",
+        duration: 10,
+        content: {
+          solution: projectData.solutionWhat || "Chưa có mô tả giải pháp.",
+          keyHighlight: projectData.keyHighlight || "Chưa có điểm nhấn chính."
+        },
+        voiceover: createSceneVoiceover("solution", 10, sceneScripts.solution)
+      },
+      {
+        id: "scene-features",
+        type: "features",
+        title: "Tính năng nổi bật",
+        duration: 18,
+        content: {
+          items: activeFeatures.map((feature, index) => ({
+            id: feature.id || `feature_${index + 1}`,
+            title: feature.name || feature.title || "Tính năng chưa đặt tên",
+            description: feature.description || "",
+            benefit: feature.benefit || ""
+          }))
+        },
+        voiceover: createSceneVoiceover("features", 18, sceneScripts.features)
+      },
+      {
+        id: "scene-timeline",
+        type: "timeline",
+        title: "Timeline phát triển",
+        duration: 14,
+        content: {
+          milestones: milestones.map((milestone, index) => ({
+            id: milestone.id || `milestone_${index + 1}`,
+            title: milestone.name || milestone.title || "Cột mốc chưa đặt tên",
+            date: milestone.date || "",
+            description: milestone.description || "",
+            status: milestone.status || "upcoming",
+            voiceoverScript: milestone.voiceoverScript || ""
+          }))
+        },
+        voiceover: createSceneVoiceover("timeline", 14, sceneScripts.timeline || timelineMilestoneScript)
+      },
+      {
+        id: "scene-impact",
+        type: "impact",
+        title: "Kết quả và tác động",
+        duration: 10,
+        content: {
+          resultImpact: projectData.resultImpact || "Chưa có mô tả kết quả đạt được.",
+          highlight: projectData.keyHighlight || "Chưa có điểm nhấn tác động."
+        },
+        voiceover: createSceneVoiceover("impact", 10, sceneScripts.impact)
+      },
+      {
+        id: "scene-outro",
+        type: "outro",
+        title: "Kết thúc",
+        duration: 6,
+        content: {
+          endingNote: projectData.endingNote || "Cảm ơn đã theo dõi!",
+          ownerTeam: projectData.ownerTeam || "Team phát triển"
+        },
+        voiceover: createSceneVoiceover("outro", 6, sceneScripts.outro)
+      }
+    ];
+    const sceneVoiceoverScript = buildVoiceoverScriptFromScenes(scenes);
 
     return {
       version: "1.0.0",
@@ -58,7 +185,7 @@ const AppRender = (() => {
           provider: voiceover.provider || "edge-tts",
           language: voiceover.language || "vi-VN",
           voiceId: voiceover.voiceId || "vi-VN-HoaiMyNeural",
-          script: voiceover.script || "",
+          script: voiceover.script || sceneVoiceoverScript,
           outputPath: voiceover.outputPath || ""
         },
         backgroundMusic: {
@@ -72,90 +199,7 @@ const AppRender = (() => {
           items: []
         }
       },
-      scenes: [
-        {
-          id: "scene-intro",
-          type: "intro",
-          title: "Giới thiệu dự án",
-          duration: 6,
-          content: {
-            projectName: projectData.projectName || "Untitled Project",
-            tagline: projectData.tagline || "Video giới thiệu dự án nội bộ.",
-            ownerTeam: projectData.ownerTeam || "Team phát triển",
-            summary: projectData.shortSummary || "Tóm tắt ngắn về giá trị dự án."
-          }
-        },
-        {
-          id: "scene-problem",
-          type: "problem",
-          title: "Bối cảnh và vấn đề",
-          duration: 10,
-          content: {
-            problem: projectData.problemContext || "Chưa có mô tả vấn đề.",
-            targetUsers: projectData.targetUsers || "Người dùng nội bộ.",
-            useCase: projectData.useCase || "Use case chính của dự án."
-          }
-        },
-        {
-          id: "scene-solution",
-          type: "solution",
-          title: "Giải pháp",
-          duration: 10,
-          content: {
-            solution: projectData.solutionWhat || "Chưa có mô tả giải pháp.",
-            keyHighlight: projectData.keyHighlight || "Chưa có điểm nhấn chính."
-          }
-        },
-        {
-          id: "scene-features",
-          type: "features",
-          title: "Tính năng nổi bật",
-          duration: 18,
-          content: {
-            items: activeFeatures.map((feature, index) => ({
-              id: feature.id || `feature_${index + 1}`,
-              title: feature.name || feature.title || "Tính năng chưa đặt tên",
-              description: feature.description || "",
-              benefit: feature.benefit || ""
-            }))
-          }
-        },
-        {
-          id: "scene-timeline",
-          type: "timeline",
-          title: "Timeline phát triển",
-          duration: 14,
-          content: {
-            milestones: milestones.map((milestone, index) => ({
-              id: milestone.id || `milestone_${index + 1}`,
-              title: milestone.name || milestone.title || "Cột mốc chưa đặt tên",
-              date: milestone.date || "",
-              description: milestone.description || "",
-              status: milestone.status || "upcoming"
-            }))
-          }
-        },
-        {
-          id: "scene-impact",
-          type: "impact",
-          title: "Kết quả và tác động",
-          duration: 10,
-          content: {
-            resultImpact: projectData.resultImpact || "Chưa có mô tả kết quả đạt được.",
-            highlight: projectData.keyHighlight || "Chưa có điểm nhấn tác động."
-          }
-        },
-        {
-          id: "scene-outro",
-          type: "outro",
-          title: "Kết thúc",
-          duration: 6,
-          content: {
-            endingNote: projectData.endingNote || "Cảm ơn đã theo dõi!",
-            ownerTeam: projectData.ownerTeam || "Team phát triển"
-          }
-        }
-      ]
+      scenes
     };
   };
 
