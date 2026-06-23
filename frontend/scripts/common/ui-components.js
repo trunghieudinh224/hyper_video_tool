@@ -1444,7 +1444,6 @@ const AppUI = (() => {
               ${buttonStateHTML}
             </div>
           </div>
-          <div id="render-result-panel" class="render-result-panel d-none"></div>
         </div>
 
         <!-- Right: Progress bar & Live terminal logs emulator -->
@@ -1459,9 +1458,14 @@ const AppUI = (() => {
                 <div id="render-progress-bar" class="render-progress-bar"></div>
               </div>
 
-              <div style="font-size: var(--font-xs); font-weight:600; color: var(--color-text-muted);">Hộp thoại Log (Terminal Logs):</div>
-              <div id="render-console" class="console-box">
-                <span class="console-line text-subtle">&gt; Nhấn "Bắt đầu Render" để gửi job thật sang backend HyperFrames local...</span>
+              <details id="render-log-details" class="render-log-details">
+                <summary>Hộp thoại Log (Terminal Logs)</summary>
+                <div id="render-console" class="console-box">
+                  <span class="console-line text-subtle">&gt; Nhấn "Bắt đầu Render" để gửi job thật sang backend HyperFrames local...</span>
+                </div>
+              </details>
+              <div id="render-inline-result" class="render-inline-result">
+                <span class="render-inline-status">Chưa render</span>
               </div>
             </div>
           </div>
@@ -1476,7 +1480,8 @@ const AppUI = (() => {
     const renderConsole = document.getElementById("render-console");
     const preflightPanel = document.getElementById("render-preflight-panel");
     const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
-    const renderResultPanel = document.getElementById("render-result-panel");
+    const renderLogDetails = document.getElementById("render-log-details");
+    const renderInlineResult = document.getElementById("render-inline-result");
 
     const getOutputAspectRatio = (output) => {
       if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
@@ -1521,46 +1526,25 @@ const AppUI = (() => {
       );
     };
 
-    const renderResultPanelContent = (output) => {
+    const renderInlineResultContent = (output) => {
       const filename = getOutputFilename(output);
       const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
       const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
 
-      renderResultPanel.classList.remove("d-none");
-      renderResultPanel.innerHTML = `
-        <div class="render-result-header">
-          <div>
-            <h3>Video đã sẵn sàng</h3>
-            <p>${output.outputPath || filename || "File MP4 đã được tạo trong thư mục outputs/."}</p>
-          </div>
-          <span class="status-pill status-success">Hoàn tất</span>
+      renderInlineResult.className = "render-inline-result is-success";
+      renderInlineResult.innerHTML = `
+        <div class="render-inline-copy">
+          <span class="render-inline-status">Hoàn tất</span>
+          <span class="render-inline-path">${output.outputPath || filename || "MP4 đã được tạo."}</span>
         </div>
-        <div class="render-result-meta">
-          <div>
-            <span>Template</span>
-            <strong>${output.template || output.templateId || "Không rõ"}</strong>
-          </div>
-          <div>
-            <span>Độ phân giải</span>
-            <strong>${output.resolution || "Không rõ"}</strong>
-          </div>
-          <div>
-            <span>Dung lượng</span>
-            <strong>${output.size || "Không rõ"}</strong>
-          </div>
-        </div>
-        <div class="render-result-actions">
-          <button id="render-result-preview-btn" class="btn btn-primary">Xem video</button>
-          ${downloadUrl ? `<a class="btn btn-secondary" href="${downloadUrl}" download>Tải MP4</a>` : ""}
-          <button id="render-result-outputs-btn" class="btn btn-secondary">Video đã xuất</button>
+        <div class="render-inline-actions">
+          <button id="render-result-preview-btn" class="btn btn-primary btn-sm">Xem video</button>
+          ${downloadUrl ? `<a class="btn btn-secondary btn-sm" href="${downloadUrl}" download>Tải xuống</a>` : ""}
         </div>
       `;
 
       document.getElementById("render-result-preview-btn").addEventListener("click", () => {
         renderOutputPreviewModal(output);
-      });
-      document.getElementById("render-result-outputs-btn").addEventListener("click", () => {
-        AppState.setTab("outputs");
       });
     };
 
@@ -1637,7 +1621,7 @@ const AppUI = (() => {
       statusPill.textContent = "Hoàn tất";
       startBtn.disabled = false;
       startBtn.textContent = "Render lại";
-      renderResultPanelContent(outputObj);
+      renderInlineResultContent(outputObj);
       showToast(`Đã xuất video thành công: ${outputObj.outputPath || outputObj.filename}`);
     };
 
@@ -1646,6 +1630,13 @@ const AppUI = (() => {
       statusPill.textContent = "Lỗi render";
       startBtn.disabled = false;
       startBtn.textContent = "Thử render lại";
+      renderInlineResult.className = "render-inline-result is-error";
+      renderInlineResult.innerHTML = `
+        <div class="render-inline-copy">
+          <span class="render-inline-status">Lỗi render</span>
+          <span class="render-inline-path">${error.message || "Render thất bại."}</span>
+        </div>
+      `;
       showToast(error.message || "Render thất bại.", "error");
     };
 
@@ -1676,8 +1667,9 @@ const AppUI = (() => {
         const filename = document.getElementById("render-filename").value.trim() || "output.mp4";
 
         renderConsole.innerHTML = "";
-        renderResultPanel.classList.add("d-none");
-        renderResultPanel.innerHTML = "";
+        renderLogDetails.open = false;
+        renderInlineResult.className = "render-inline-result is-running";
+        renderInlineResult.innerHTML = `<span class="render-inline-status">Đang render</span>`;
         statusPill.className = "status-pill status-warning";
         statusPill.textContent = "Đang render";
         startBtn.disabled = true;
