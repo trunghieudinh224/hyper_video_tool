@@ -2,6 +2,7 @@
 
 const AppRender = (() => {
   let isRendering = false;
+  const EDGE_TTS_BASE_WORDS_PER_MINUTE = 185;
 
   const getRenderFormat = (renderConfig = {}) => {
     const formats = Array.isArray(window.RENDER_FORMATS) ? window.RENDER_FORMATS : RENDER_FORMATS;
@@ -26,7 +27,7 @@ const AppRender = (() => {
       return 0;
     }
     const wordCount = text.split(/\s+/).filter(Boolean).length;
-    return Math.max(1, Math.ceil((wordCount / 145) * 60));
+    return Math.max(1, Math.ceil((wordCount / EDGE_TTS_BASE_WORDS_PER_MINUTE) * 60));
   };
 
   const createSceneVoiceover = (type, duration, script) => {

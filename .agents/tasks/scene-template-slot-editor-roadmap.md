@@ -172,9 +172,65 @@ Không làm:
 - Có summary rõ: hiện field nào đại diện cho video template, field nào cần đổi thành scene template.
 - Không cần test runtime vì chỉ audit.
 
+### Audit Summary
+
+Flow Template hiện tại:
+
+```text
+Template page
+-> user chọn `templateId` từ `TEMPLATES_LIST`
+-> user chỉnh `templateConfig`
+-> Render page chọn `video.formatId`
+-> `RENDER_FORMATS` quyết định HyperFrames template thật
+-> `AppRender.buildRenderPayload()` tạo payload theo render format
+```
+
+Field hiện có:
+
+- `projectData.templateId`: template toàn video dạng cũ, ví dụ `project-showcase-90s`.
+- `projectData.templateConfig`: config visual đơn giản gồm `theme`, `accentColor`, `fontSize`, `logoPosition`.
+- `projectData.video.formatId`: format render thật đang được ưu tiên, ví dụ `dynamic-story-vertical`.
+- `TEMPLATES_LIST`: list template cũ, mỗi item chứa scenes cố định để UI preview.
+- `RENDER_FORMATS`: map format render sang `templateId` HyperFrames thật.
+- `features[]`: segment/kịch bản hiện chỉ có `type`, `name`, `description`, `benefit`, `voiceoverScript`, `durationSec`, `useInVideo`; chưa có `sceneTemplateId` hoặc `slots`.
+
+Mapping hiện tại:
+
+- Template page chọn `templateId`, nhưng Render page có thể override bằng `video.formatId`.
+- Preview page dùng `TEMPLATES_LIST.scenes` để hiển thị scene danh nghĩa, chưa dùng scene template/slot.
+- Dynamic render mapper trong `frontend/scripts/common/render-preview.js` tự dựng scene generic `title/text/media/cards/steps/outro` từ brief, features, milestones và asset.
+- Legacy render mapper vẫn dựng scene cố định `intro/problem/solution/features/timeline/impact/outro`.
+- Nội dung hiển thị hiện vẫn được suy luận từ `projectName`, `shortSummary`, `mainMessage`, `features`, `milestones`; chưa có slot cụ thể như `logo/header/title/media/gridItem`.
+
+Gap cần xử lý ở phase sau:
+
+- Cần tách `templateId` video cũ khỏi `sceneTemplateId` từng segment.
+- Cần thêm `videoStyleId` thay cho `templateConfig.theme/accentColor` rời rạc.
+- Cần thêm `SCENE_TEMPLATES` và slot definitions trong constants.
+- Cần migration/fallback cho segment cũ khi chưa có `sceneTemplateId/slots`.
+- Cần Preview page đọc slot data thay vì chỉ đọc scene list từ `TEMPLATES_LIST`.
+- Cần Render payload mapper nhận `sceneTemplateId + slots + slot delay`.
+
+Phát hiện và xử lý trong audit:
+
+- `frontend/scripts/common/render-preview.js` còn dùng estimator `145 WPM` cho scene voiceover trong payload builder, lệch với calibration `185 WPM` đã áp dụng ở UI/backend. Đã sửa đồng bộ trong Phase 0 để tránh payload estimate tiếp tục sai.
+
 ### Status
 
-Pending.
+Completed.
+
+### Test Report
+
+Status: passed
+
+- Đã đọc `frontend/pages/template.html`.
+- Đã đọc `frontend/scripts/common/constants.js`.
+- Đã đọc `frontend/scripts/common/ui-components.js` phần Template/Preview.
+- Đã đọc `frontend/scripts/common/render-preview.js` mapper dynamic/legacy.
+- Đã đọc `frontend/scripts/common/state.js` và `frontend/scripts/common/validation.js`.
+- `node --check frontend/scripts/common/render-preview.js` pass.
+- `npm --prefix backend run check` pass.
+- `git diff --check` pass.
 
 ## Phase 1 - Scene Template Và Video Style Contract
 

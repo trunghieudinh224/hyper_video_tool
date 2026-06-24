@@ -4,6 +4,29 @@
 
 in_progress
 
+## Roadmap Phase 0 - Scene Template Audit
+
+### Objective
+
+Audit trang Template và data/render mapping hiện tại trước khi tách Video Style, Scene Template và Slot Editor.
+
+### Summary
+
+- Template page hiện chọn `templateId` từ `TEMPLATES_LIST` và chỉnh `templateConfig`.
+- Render page ưu tiên `video.formatId`; `RENDER_FORMATS` mới là nơi map sang HyperFrames template thật.
+- Preview page dùng `TEMPLATES_LIST.scenes` làm scene danh nghĩa, chưa có scene template/slot.
+- Kịch bản hiện chỉ có segment fields cũ: `type`, `name`, `description`, `benefit`, `voiceoverScript`, `durationSec`, `useInVideo`.
+- Dynamic mapper đang tự suy luận scene từ brief/features/assets; chưa dùng slot contract.
+- Audit phát hiện frontend render payload voice estimator còn `145 WPM`; đã đồng bộ sang `185 WPM`.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/render-preview.js` pass.
+- `npm --prefix backend run check` pass.
+- `git diff --check` pass.
+
 ## Feature - Audio Preview Cache Cleanup
 
 ### Objective
