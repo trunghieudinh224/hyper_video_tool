@@ -8,6 +8,68 @@ const AppUI = (() => {
   let templateRatioFilter = "all";
   let selectedScriptSegmentId = null;
 
+  const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
+
+  const parseVoiceRatePercent = (value) => {
+    const parsed = Number.parseInt(String(value || "0").replace("%", ""), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const countVoiceWords = (value) => {
+    const text = normalizeText(value);
+    if (!text) {
+      return 0;
+    }
+
+    return (text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
+  };
+
+  const estimateVoiceDurationSeconds = (script, rateValue) => {
+    const words = countVoiceWords(script);
+    if (words === 0) {
+      return 0;
+    }
+
+    const ratePercent = parseVoiceRatePercent(rateValue);
+    const wordsPerMinute = Math.max(80, 155 * (1 + ratePercent / 100));
+    return Math.round((words / wordsPerMinute) * 60 * 10) / 10;
+  };
+
+  const getVoiceFitStatus = (voiceSeconds, sceneSeconds) => {
+    if (voiceSeconds === 0) {
+      return {
+        className: "is-short",
+        label: "Chưa có lời đọc",
+        message: "Nhập voice script để ước lượng thời lượng đọc cho scene này."
+      };
+    }
+
+    const minUsefulSeconds = Math.max(2, sceneSeconds * 0.45);
+    const maxUsefulSeconds = sceneSeconds + 1;
+
+    if (voiceSeconds > maxUsefulSeconds) {
+      return {
+        className: "is-long",
+        label: "Quá dài",
+        message: "Lời đọc đang dài hơn thời lượng scene. Nên rút gọn hoặc tăng thời lượng scene."
+      };
+    }
+
+    if (voiceSeconds < minUsefulSeconds) {
+      return {
+        className: "is-short",
+        label: "Hơi ngắn",
+        message: "Lời đọc khá ngắn so với scene. Có thể thêm ý hoặc giảm thời lượng scene."
+      };
+    }
+
+    return {
+      className: "is-fit",
+      label: "Vừa",
+      message: "Lời đọc đang khớp ổn với thời lượng scene."
+    };
+  };
+
   const initDOM = () => {
     DOM.themeToggle = document.getElementById("theme-toggle");
     DOM.saveStatus = document.getElementById("save-status");
@@ -597,6 +659,8 @@ const AppUI = (() => {
     const enabledCount = list.filter((item) => item.useInVideo).length;
     const voiceCount = list.filter((item) => String(item.voiceoverScript || "").trim()).length;
     const scriptDisplayMode = data.scriptDisplayMode === "stack" ? "stack" : "sequence";
+    const currentVoiceover = (data.audio && data.audio.voiceover) || {};
+    const currentVoiceRate = currentVoiceover.rate || "+0%";
     const estimatedDuration = list
       .filter((item) => item.useInVideo)
       .reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
@@ -866,6 +930,7 @@ const AppUI = (() => {
         <div class="form-group">
           <label class="form-label" for="modal-feat-voice">Voice script</label>
           <textarea id="modal-feat-voice" class="form-control" rows="3" placeholder="Câu đọc riêng cho đoạn này...">${isEdit ? escapeText(feature.voiceoverScript) : ''}</textarea>
+          <div id="modal-feat-voice-estimate" class="script-voice-estimate" aria-live="polite"></div>
         </div>
         <div class="form-group">
           <label class="script-switch script-switch-modal" for="modal-feat-use">
@@ -925,6 +990,40 @@ const AppUI = (() => {
           }
         ]
       );
+
+      const voiceInput = document.getElementById("modal-feat-voice");
+      const durationInput = document.getElementById("modal-feat-duration");
+      const estimateBox = document.getElementById("modal-feat-voice-estimate");
+
+      const updateVoiceEstimate = () => {
+        if (!voiceInput || !durationInput || !estimateBox) {
+          return;
+        }
+
+        const voiceText = voiceInput.value;
+        const wordCount = countVoiceWords(voiceText);
+        const sceneSeconds = Math.min(30, Math.max(3, Number.parseInt(durationInput.value, 10) || 8));
+        const voiceSeconds = estimateVoiceDurationSeconds(voiceText, currentVoiceRate);
+        const fitStatus = getVoiceFitStatus(voiceSeconds, sceneSeconds);
+
+        estimateBox.className = `script-voice-estimate ${fitStatus.className}`;
+        estimateBox.innerHTML = `
+          <div>
+            <strong>${fitStatus.label}</strong>
+            <span>${wordCount} từ · khoảng ${voiceSeconds}s đọc · scene ${sceneSeconds}s</span>
+          </div>
+          <p>${fitStatus.message} Tốc độ đọc hiện tại: ${escapeText(currentVoiceRate)}.</p>
+        `;
+      };
+
+      if (voiceInput) {
+        voiceInput.addEventListener("input", updateVoiceEstimate);
+      }
+      if (durationInput) {
+        durationInput.addEventListener("input", updateVoiceEstimate);
+        durationInput.addEventListener("change", updateVoiceEstimate);
+      }
+      updateVoiceEstimate();
     };
 
     // Attach Event Listeners

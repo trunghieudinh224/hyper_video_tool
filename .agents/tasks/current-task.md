@@ -4,6 +4,38 @@
 
 in_progress
 
+## Feature - Voice Script Duration Estimate
+
+### Objective
+
+Thêm ước lượng thời lượng đọc voice ngay trong modal thêm/sửa scene ở trang Kịch bản, dựa trên nội dung voice script, thời lượng scene và setting tốc độ đọc hiện tại.
+
+### Scope
+
+Sẽ làm:
+
+- Tính số từ và giây ước lượng khi người dùng nhập voice script.
+- Tính theo rate voice hiện tại trong `audio.voiceover.rate`.
+- Hiển thị trạng thái `Vừa`, `Hơi ngắn`, hoặc `Quá dài` so với thời lượng scene.
+- Cập nhật realtime khi đổi voice script hoặc thời lượng scene.
+
+Không làm:
+
+- Không generate audio thử để đo duration thật.
+- Không đổi payload/schema render.
+- Không đổi model scene/template.
+
+### Test Report
+
+Status: passed
+
+- Web review phát hiện CSS/task note đã có nhưng JS modal chưa render estimate; đã nối lại UI + realtime update trước khi commit.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/features.css` không còn hit.
+- `npm --prefix backend run check` pass.
+- `git diff --check` pass.
+- Browser/manual UI check: chưa chạy trong task này; cần mở modal thêm/sửa scene để xác nhận estimate hiển thị đúng trên giao diện thật.
+
 ## Polish - Dynamic Motion Quality
 
 ### Symptom

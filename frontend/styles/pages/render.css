@@ -29,14 +29,10 @@
 
 .render-preflight-body {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .render-preflight-list {
-  flex: 1;
-  overflow-y: auto;
   display: grid;
   gap: var(--space-2);
   padding-right: var(--space-1);
