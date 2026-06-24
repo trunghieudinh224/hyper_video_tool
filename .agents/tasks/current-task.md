@@ -4,6 +4,37 @@
 
 in_progress
 
+## Roadmap Phase 2 - Template Page Video Style Và Scene Template Library
+
+### Objective
+
+Đổi trang Template thành nơi chọn Video Style toàn video và xem thư viện Scene Template cho từng phân đoạn.
+
+### Summary
+
+- Trang Template có `Video Style` cards: `Dark Tech`, `Clean Report`, `Product Demo`.
+- Trang Template có `Scene Template Library` render từ `SCENE_TEMPLATES`.
+- Mỗi scene template card hiển thị wireframe slot, mô tả, category, duration đề xuất và số slot.
+- Sidebar bên phải hiển thị style đang chọn, scene template mặc định, render template legacy hiện tại và danh sách slot/delay.
+- Chọn style lưu `videoStyleId` và sync `templateConfig` cũ để không phá preview/render legacy.
+- Chọn scene template lưu `defaultSceneTemplateId`.
+- Thêm default `videoStyleId` và `defaultSceneTemplateId` vào project data/sample data.
+- Chưa nhập nội dung slot trong phase này; phần đó thuộc Phase 3.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/constants.js frontend/scripts/common/storage.js frontend/scripts/common/ui-components.js frontend/styles/pages/template.css` không có hit.
+- `git diff --check` pass.
+- `npm --prefix backend run check` pass.
+- `curl -I http://127.0.0.1:3028/pages/template.html` trả `200`.
+- Chrome headless DOM dump render đủ Video Style, Scene Templates và Slots panel.
+- Desktop screenshot: `/private/tmp/hvt-template-phase2-desktop.png`.
+
 ## Roadmap Phase 1 - Scene Template Và Video Style Contract
 
 ### Objective

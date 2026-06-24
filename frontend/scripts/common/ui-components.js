@@ -1582,119 +1582,186 @@ const AppUI = (() => {
 
   // 6. Template & Theme Picker View
   const renderTemplateScreen = (container, data) => {
-    const filteredTemplates = templateRatioFilter === "all"
-      ? TEMPLATES_LIST
-      : TEMPLATES_LIST.filter(t => t.ratio === templateRatioFilter);
+    const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
+    const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
+    const selectedVideoStyle = videoStyles.find((style) => style.id === data.videoStyleId) || videoStyles[0];
+    const selectedSceneTemplate = sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId) || sceneTemplates[0];
+    const filteredSceneTemplates = templateRatioFilter === "all"
+      ? sceneTemplates
+      : sceneTemplates.filter((template) => template.aspectRatios.includes(templateRatioFilter));
+    const escapeText = (value) => String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+    const getSlotTypeLabel = (typeId) => {
+      const slotType = slotTypes.find((type) => type.id === typeId);
+      return slotType ? slotType.label : typeId;
+    };
+    const getLegacyTemplate = () => TEMPLATES_LIST.find((template) => template.id === data.templateId) || TEMPLATES_LIST[0];
+    const getStyleTemplateConfig = (styleId) => {
+      if (styleId === "clean-report") {
+        return { theme: "light", accentColor: "blue", fontSize: "default", logoPosition: "top-left" };
+      }
+      if (styleId === "product-demo") {
+        return { theme: "dark", accentColor: "green", fontSize: "default", logoPosition: "top-left" };
+      }
+      return { theme: "dark", accentColor: "blue", fontSize: "default", logoPosition: "top-left" };
+    };
+    const renderSceneWireframe = (template) => `
+      <div class="scene-wireframe" aria-hidden="true">
+        ${template.slots.slice(0, 7).map((slot) => `
+          <span class="scene-wire-slot slot-${slot.type} ${slot.required ? "is-required" : ""}">
+            ${escapeText(slot.label)}
+          </span>
+        `).join("")}
+      </div>
+    `;
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Chọn Template & Tùy chỉnh Video</h1>
+      <div class="workspace-header template-workspace-header">
+        <div>
+          <h1>Template</h1>
+          <p class="workspace-subtitle">Chọn style chung của video và xem thư viện layout cho từng phân đoạn.</p>
+        </div>
       </div>
 
-      <div class="preview-layout">
-        <!-- Templates List -->
-        <div class="card">
-          <div class="card-header">
-            <h3>1. Templates có sẵn</h3>
-          </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Định dạng video</label>
-              <div class="filter-group template-ratio-filter">
+      <div class="template-workspace-grid">
+        <div class="template-main-column">
+          <section class="template-panel">
+            <div class="template-panel-header">
+              <div>
+                <span class="template-section-eyebrow">Video Style</span>
+                <h2>Style chung toàn video</h2>
+              </div>
+              <span class="template-helper-text">Áp dụng cho màu, font, motion và nền.</span>
+            </div>
+            <div class="video-style-grid">
+              ${videoStyles.map((style) => `
+                <button class="video-style-card style-${style.id} ${selectedVideoStyle && selectedVideoStyle.id === style.id ? "active" : ""}" type="button" data-style-id="${style.id}">
+                  <span class="video-style-preview">
+                    <span class="video-style-preview-surface"></span>
+                    <span class="video-style-preview-line is-strong"></span>
+                    <span class="video-style-preview-line"></span>
+                    <span class="video-style-preview-accent"></span>
+                  </span>
+                  <span class="video-style-copy">
+                    <strong>${escapeText(style.name)}</strong>
+                    <small>${escapeText(style.description)}</small>
+                  </span>
+                  <span class="video-style-meta">${escapeText(style.motionStyle)} · ${escapeText(style.backgroundStyle)}</span>
+                </button>
+              `).join("")}
+            </div>
+          </section>
+
+          <section class="template-panel">
+            <div class="template-panel-header">
+              <div>
+                <span class="template-section-eyebrow">Scene Templates</span>
+                <h2>Layout cho từng phân đoạn</h2>
+              </div>
+              <div class="filter-group template-ratio-filter" role="group" aria-label="Lọc scene template theo tỉ lệ">
                 <button class="filter-btn ratio-filter-btn ${templateRatioFilter === 'all' ? 'active' : ''}" data-ratio="all">Tất cả</button>
                 <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '16:9' ? 'active' : ''}" data-ratio="16:9">Ngang 16:9</button>
                 <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '9:16' ? 'active' : ''}" data-ratio="9:16">Dọc 9:16</button>
               </div>
             </div>
 
-            <div class="templates-grid">
-              ${filteredTemplates.length === 0 ? `
-                <div class="empty-state" style="grid-column: 1 / -1; padding: var(--space-8);">
-                  <div class="empty-state-title" style="font-size: var(--font-base);">Không tìm thấy template nào</div>
-                </div>
-              ` : filteredTemplates.map(tmpl => `
-                <div class="template-card ${data.templateId === tmpl.id ? 'active' : ''}" data-id="${tmpl.id}">
-                  <div class="template-preview-thumb">
-                    <div class="template-preview-aspect ${tmpl.ratio === '9:16' ? 'ratio-9-16' : 'ratio-16-9'}">
-                      ${tmpl.ratio}
-                    </div>
-                  </div>
-                  <div class="template-details">
-                    <div class="template-title">${tmpl.name}</div>
-                    <div class="template-desc">${tmpl.desc}</div>
-                    <div class="template-meta-row">
-                      <span>Thời lượng: ~${tmpl.duration}</span>
-                      <span>Số Scene: ${tmpl.scenes.length}</span>
-                    </div>
-                  </div>
+            <div class="scene-template-grid">
+              ${filteredSceneTemplates.length === 0 ? `
+                <div class="template-empty-state">Không có scene template phù hợp tỉ lệ này.</div>
+              ` : filteredSceneTemplates.map((template) => `
+                <button class="scene-template-card ${selectedSceneTemplate && selectedSceneTemplate.id === template.id ? "active" : ""}" type="button" data-template-id="${template.id}">
+                  ${renderSceneWireframe(template)}
+                  <span class="scene-template-copy">
+                    <strong>${escapeText(template.name)}</strong>
+                    <small>${escapeText(template.description)}</small>
+                  </span>
+                  <span class="scene-template-meta">
+                    <span>${escapeText(template.category)}</span>
+                    <span>${template.recommendedDurationSec}s</span>
+                    <span>${template.slots.length} slot</span>
+                  </span>
+                </button>
+              `).join("")}
+            </div>
+          </section>
+        </div>
+
+        <aside class="template-side-panel">
+          <section class="template-panel is-compact">
+            <div class="template-panel-header">
+              <div>
+                <span class="template-section-eyebrow">Đang chọn</span>
+                <h2>${escapeText(selectedVideoStyle ? selectedVideoStyle.name : "Chưa có style")}</h2>
+              </div>
+            </div>
+            <div class="template-summary-list">
+              <div>
+                <span>Scene template mặc định</span>
+                <strong>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn")}</strong>
+              </div>
+              <div>
+                <span>Render template hiện tại</span>
+                <strong>${escapeText(getLegacyTemplate().name)}</strong>
+              </div>
+              <div>
+                <span>Tỉ lệ hỗ trợ</span>
+                <strong>${escapeText((selectedVideoStyle && selectedVideoStyle.aspectRatios || []).join(", "))}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="template-panel is-compact">
+            <div class="template-panel-header">
+              <div>
+                <span class="template-section-eyebrow">Slots</span>
+                <h2>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Scene template")}</h2>
+              </div>
+            </div>
+            <div class="slot-definition-list">
+              ${(selectedSceneTemplate ? selectedSceneTemplate.slots : []).map((slot) => `
+                <div class="slot-definition-item">
+                  <span>
+                    <strong>${escapeText(slot.label)}</strong>
+                    <small>${escapeText(getSlotTypeLabel(slot.type))}${slot.required ? " · bắt buộc" : " · tùy chọn"}</small>
+                  </span>
+                  <span>${slot.defaultDelay}s</span>
                 </div>
               `).join("")}
             </div>
-          </div>
-        </div>
+          </section>
 
-        <!-- Theme customizer panel -->
-        <div class="card">
-          <div class="card-header">
-            <h3>2. Thiết lập video</h3>
-          </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Theme màu video</label>
-              <div class="filter-group theme-choice-wrapper">
-                <button class="filter-btn btn-theme-choice ${data.templateConfig.theme === 'light' ? 'active' : ''}" data-val="light">Sáng</button>
-                <button class="filter-btn btn-theme-choice ${data.templateConfig.theme === 'dark' ? 'active' : ''}" data-val="dark">Tối</button>
-              </div>
+          <section class="template-panel is-compact">
+            <div class="template-note">
+              <strong>Ghi chú</strong>
+              <p>Nội dung slot sẽ được nhập ở trang Kịch bản. Trang này chỉ chọn style và xem thư viện layout.</p>
             </div>
-
-            <div class="form-group">
-              <div class="accent-color-header">
-                <label class="form-label">Màu nhấn chủ đạo (Accent Color)</label>
-                <span class="selected-color-name" id="active-accent-color-name">
-                  ${THEME_ACCENT_COLORS.find(c => c.id === data.templateConfig.accentColor)?.name || 'Mặc định'}
-                </span>
-              </div>
-              <div class="color-swatches-group">
-                ${THEME_ACCENT_COLORS.map(color => `
-                  <button class="color-swatch-btn btn-color-choice ${data.templateConfig.accentColor === color.id ? 'active' : ''}"
-                    data-color="${color.id}"
-                    title="${color.name}"
-                    style="--swatch-color: ${color.value};">
-                  </button>
-                `).join("")}
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="font-scale-choice">Cỡ chữ chữ đề</label>
-              <select id="font-scale-choice" class="form-control">
-                <option value="compact" ${data.templateConfig.fontSize === 'compact' ? 'selected' : ''}>Gọn gàng (Compact)</option>
-                <option value="default" ${data.templateConfig.fontSize === 'default' ? 'selected' : ''}>Mặc định (Default)</option>
-                <option value="large" ${data.templateConfig.fontSize === 'large' ? 'selected' : ''}>Cỡ lớn (Large)</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="logo-position-choice">Vị trí hiển thị Logo</label>
-              <select id="logo-position-choice" class="form-control">
-                <option value="none" ${data.templateConfig.logoPosition === 'none' ? 'selected' : ''}>Không hiển thị</option>
-                <option value="top-left" ${data.templateConfig.logoPosition === 'top-left' ? 'selected' : ''}>Góc trên cùng bên trái</option>
-                <option value="outro" ${data.templateConfig.logoPosition === 'outro' ? 'selected' : ''}>Chỉ ở slide kết thúc</option>
-              </select>
-            </div>
-          </div>
-        </div>
+          </section>
+        </aside>
       </div>
     `;
 
-    // Template selection clicks
-    container.querySelectorAll(".template-card").forEach(card => {
+    container.querySelectorAll(".video-style-card").forEach((card) => {
       card.addEventListener("click", () => {
-        const id = card.getAttribute("data-id");
-        if (id !== data.templateId) {
-          AppState.updateProjectField("templateId", id);
-          renderTemplateScreen(container, AppState.getProjectData());
-        }
+        const id = card.getAttribute("data-style-id");
+        const nextData = {
+          ...AppState.getProjectData(),
+          videoStyleId: id,
+          templateConfig: getStyleTemplateConfig(id)
+        };
+        AppState.setProjectData(nextData);
+        renderTemplateScreen(container, nextData);
+      });
+    });
+
+    container.querySelectorAll(".scene-template-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const id = card.getAttribute("data-template-id");
+        AppState.updateProjectField("defaultSceneTemplateId", id);
+        renderTemplateScreen(container, AppState.getProjectData());
       });
     });
 
@@ -1704,37 +1771,6 @@ const AppUI = (() => {
         templateRatioFilter = btn.getAttribute("data-ratio");
         renderTemplateScreen(container, AppState.getProjectData());
       });
-    });
-
-    // Theme Choice Buttons
-    container.querySelectorAll(".btn-theme-choice").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const themeVal = btn.getAttribute("data-val");
-        const config = { ...data.templateConfig, theme: themeVal };
-        AppState.updateProjectField("templateConfig", config);
-        renderTemplateScreen(container, AppState.getProjectData());
-      });
-    });
-
-    // Accent Color Choices
-    container.querySelectorAll(".btn-color-choice").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const colorVal = btn.getAttribute("data-color");
-        const config = { ...data.templateConfig, accentColor: colorVal };
-        AppState.updateProjectField("templateConfig", config);
-        renderTemplateScreen(container, AppState.getProjectData());
-      });
-    });
-
-    // Logo & Font Select change binds
-    document.getElementById("font-scale-choice").addEventListener("change", (e) => {
-      const config = { ...data.templateConfig, fontSize: e.target.value };
-      AppState.updateProjectField("templateConfig", config);
-    });
-
-    document.getElementById("logo-position-choice").addEventListener("change", (e) => {
-      const config = { ...data.templateConfig, logoPosition: e.target.value };
-      AppState.updateProjectField("templateConfig", config);
     });
   };
 

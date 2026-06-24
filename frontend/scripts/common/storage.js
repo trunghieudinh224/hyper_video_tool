@@ -136,6 +136,8 @@ const AppStorage = (() => {
         useInVideo: true
       }
     ],
+    videoStyleId: "dark-tech",
+    defaultSceneTemplateId: "intro-stack",
     templateId: "project-showcase-90s",
     templateConfig: {
       theme: "dark",

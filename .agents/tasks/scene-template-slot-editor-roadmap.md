@@ -91,6 +91,74 @@ text2 delay 4s
 - Slot Delay chỉ là input số/preset đơn giản, ví dụ `0`, `0.5`, `1`, `2`, `4`.
 - Render dọc ưu tiên trước, nhưng contract không khóa chết vào `9:16`.
 
+## Quyết Định Sản Phẩm Cho MVP
+
+### Template Page Là Gì
+
+Trang Template không phải nơi nhập nội dung thật của video.
+
+Trang này chỉ có 2 trách nhiệm:
+
+- Chọn `Video Style` cho toàn video.
+- Browse/chọn `Scene Template` mẫu để hiểu mỗi phân đoạn có layout và slot nào.
+
+Nội dung thật như header, title, ảnh, logo, grid item, description sẽ nằm ở trang Kịch bản theo từng phân đoạn.
+
+### Scene Template Là Gì
+
+Scene Template là layout cho một phân đoạn/screen, không phải template của cả video.
+
+Ví dụ video 5 phân đoạn có thể dùng:
+
+```text
+Scene 1 -> intro-stack
+Scene 2 -> media-showcase
+Scene 3 -> grid-feature
+Scene 4 -> step-flow
+Scene 5 -> outro-cta
+```
+
+Mỗi scene có slot riêng. User fill nội dung vào slot của scene đó.
+
+### Delay Là Gì
+
+Delay là thời điểm slot bắt đầu xuất hiện tính từ đầu scene.
+
+Ví dụ scene có 4 slot:
+
+```text
+logo delay 0s     -> hiện ngay
+header delay 0s   -> hiện ngay
+text1 delay 2s    -> sau 2 giây mới hiện
+text2 delay 4s    -> sau 4 giây mới hiện
+```
+
+Delay không chỉnh duration tổng của scene. Duration scene vẫn do `durationSec` hoặc voice timing quyết định.
+
+### Video Style Là Gì
+
+Video Style là một bộ quy tắc nhìn chung, không phải một màu đơn.
+
+Một style gồm:
+
+- Color theme: background, surface, text, muted text, accent, border, glow.
+- Font style: font chính/phụ, weight, scale.
+- Motion style: nhịp chuyển động chung.
+- Background style: kiểu nền.
+
+Trong MVP, style chỉ là preset. Chưa làm editor tự pha màu/font/motion chi tiết.
+
+### Ranh Giới MVP
+
+MVP chỉ làm để user trả lời được 4 câu:
+
+- Scene này dùng layout nào?
+- Slot nào sẽ hiện trên video?
+- Slot đó chứa nội dung/asset gì?
+- Slot đó xuất hiện sau bao nhiêu giây và bằng animation nào?
+
+Những thứ như kéo thả layout, resize slot, custom keyframe, timeline waveform, split text tự động sẽ để sau.
+
 ## Kiến Trúc Mục Tiêu
 
 ```text
@@ -383,7 +451,35 @@ Không làm:
 
 ### Status
 
-Pending.
+Completed.
+
+### Implementation Summary
+
+Đã làm lại trang Template theo mô hình mới:
+
+- Thêm `Video Style` cards: `Dark Tech`, `Clean Report`, `Product Demo`.
+- Thêm `Scene Template Library` dùng data từ `SCENE_TEMPLATES`.
+- Mỗi scene template card có wireframe slot, mô tả, category, duration đề xuất và số slot.
+- Sidebar bên phải hiển thị style đang chọn, scene template mặc định, render template legacy hiện tại và danh sách slot/delay.
+- Chọn style lưu `videoStyleId` và vẫn sync `templateConfig` cũ để không phá preview/render legacy.
+- Chọn scene template lưu `defaultSceneTemplateId`.
+- Thêm default `videoStyleId` và `defaultSceneTemplateId` cho project data/sample data.
+- Giữ trang Template chỉ là nơi chọn style/layout; chưa nhập nội dung slot trong phase này.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/constants.js frontend/scripts/common/storage.js frontend/scripts/common/ui-components.js frontend/styles/pages/template.css` không có hit.
+- `git diff --check` pass.
+- `npm --prefix backend run check` pass.
+- `curl -I http://127.0.0.1:3028/pages/template.html` trả `200`.
+- Chrome headless DOM dump `/pages/template.html` render đủ Video Style, Scene Templates và Slots panel.
+- Desktop screenshot: `/private/tmp/hvt-template-phase2-desktop.png`.
+- Mobile không dùng làm gate theo yêu cầu user hiện tại; có fix scoped để giảm overflow nhưng chưa coi là tiêu chí bàn giao phase này.
 
 ## Phase 3 - Slot Editor Trong Trang Kịch Bản
 
@@ -663,3 +759,51 @@ Phase 5 -> Phase 6
 - Auto-split text dài thành nhiều scene.
 - Import/export scene template pack.
 - AI đề xuất scene template từ voice script hoặc brief.
+
+## Definition Of Done Theo Từng Giai Đoạn
+
+### Done Phase 2
+
+- Trang Template hiển thị rõ `Video Style`.
+- Trang Template hiển thị rõ `Scene Template Library`.
+- Mỗi scene template có wireframe slot dễ nhìn.
+- Chọn style/template lưu được vào project data.
+- Reload không mất lựa chọn.
+- Mobile/desktop không vỡ layout.
+- Render hiện tại chưa bị ảnh hưởng.
+
+### Done Phase 3
+
+- Mỗi phân đoạn chọn được `sceneTemplateId`.
+- Slot editor sinh đúng slot theo template.
+- User nhập text/tag/list được.
+- User chọn asset/media đã upload được.
+- User chỉnh `delay` và `animation` theo từng slot được.
+- Reload vẫn giữ slot data.
+- Segment cũ chưa có slot vẫn mở/sửa được bằng fallback.
+
+### Done Phase 4
+
+- Trang Preview hiển thị đúng layout theo scene template.
+- Preview dùng nội dung thật từ slots.
+- Delay `0s/2s/4s` nhìn thấy khác nhau khi play/scrub.
+- Video Style đổi màu/font/nền preview.
+- Segment cũ vẫn có preview fallback.
+
+### Done Phase 5
+
+- Render payload có `videoStyleId`, `sceneTemplateId`, `slots`, `delay`, `animation`.
+- Payload cũ vẫn render được.
+- Validation bắt lỗi slot required thiếu dữ liệu.
+- Sample payload parse/pass check.
+
+### Done Phase 6
+
+- HyperFrames vertical render được tối thiểu:
+  - `intro-stack`
+  - `media-showcase`
+  - `grid-feature`
+- Slot delay ảnh hưởng thật tới thời điểm xuất hiện trong video.
+- Animation preset render thật, không chỉ preview UI.
+- Smoke render có frame check ở các mốc delay.
+- Nếu horizontal chưa hoàn chỉnh thì phải fallback sạch, không còn frame dọc nằm giữa video ngang.

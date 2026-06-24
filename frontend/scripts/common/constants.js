@@ -23,6 +23,8 @@ const INITIAL_PROJECT_DATA = {
   features: [],
   milestones: [],
   assets: [],
+  videoStyleId: "dark-tech",
+  defaultSceneTemplateId: "intro-stack",
   templateId: "project-showcase-90s",
   templateConfig: {
     theme: "dark",
