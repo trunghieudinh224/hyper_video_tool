@@ -3,6 +3,7 @@
 const AppUI = (() => {
   // DOM Cache
   const DOM = {};
+  const VOICE_ESTIMATE_BASE_WPM = 185;
 
   // Internal view states
   let templateRatioFilter = "all";
@@ -31,7 +32,7 @@ const AppUI = (() => {
     }
 
     const ratePercent = parseVoiceRatePercent(rateValue);
-    const wordsPerMinute = Math.max(80, 155 * (1 + ratePercent / 100));
+    const wordsPerMinute = Math.max(80, VOICE_ESTIMATE_BASE_WPM * (1 + ratePercent / 100));
     return Math.round((words / wordsPerMinute) * 60 * 10) / 10;
   };
 
@@ -1033,7 +1034,7 @@ const AppUI = (() => {
         }
       };
 
-      const updateVoiceEstimate = () => {
+      const renderVoiceEstimate = (override = {}) => {
         if (!voiceInput || !durationInput || !estimateBox) {
           return;
         }
@@ -1041,18 +1042,24 @@ const AppUI = (() => {
         const voiceText = voiceInput.value;
         const wordCount = countVoiceWords(voiceText);
         const sceneSeconds = Math.min(30, Math.max(3, Number.parseInt(durationInput.value, 10) || 8));
-        const voiceSeconds = estimateVoiceDurationSeconds(voiceText, currentVoiceRate);
+        const estimatedSeconds = estimateVoiceDurationSeconds(voiceText, currentVoiceRate);
+        const voiceSeconds = Number.isFinite(override.actualSeconds) ? override.actualSeconds : estimatedSeconds;
         const fitStatus = getVoiceFitStatus(voiceSeconds, sceneSeconds);
+        const durationLabel = Number.isFinite(override.actualSeconds)
+          ? `audio thật ${voiceSeconds.toFixed(1)}s`
+          : `khoảng ${estimatedSeconds}s đọc`;
 
         estimateBox.className = `script-voice-estimate ${fitStatus.className}`;
         estimateBox.innerHTML = `
           <div>
             <strong>${fitStatus.label}</strong>
-            <span>${wordCount} từ · khoảng ${voiceSeconds}s đọc · scene ${sceneSeconds}s</span>
+            <span>${wordCount} từ · ${durationLabel} · scene ${sceneSeconds}s</span>
           </div>
           <p>${fitStatus.message} Tốc độ đọc hiện tại: ${escapeText(currentVoiceRate)}.</p>
         `;
       };
+
+      const updateVoiceEstimate = () => renderVoiceEstimate();
 
       if (voiceInput) {
         voiceInput.addEventListener("input", () => {
@@ -1068,8 +1075,11 @@ const AppUI = (() => {
 
       if (previewAudio && previewStatus) {
         previewAudio.addEventListener("loadedmetadata", () => {
-          const duration = Number.isFinite(previewAudio.duration) ? `${previewAudio.duration.toFixed(1)}s` : "không rõ";
-          previewStatus.textContent = `Audio thật: ${duration}. Có thể nghe để kiểm tra nhịp đọc.`;
+          const duration = Number.isFinite(previewAudio.duration) ? previewAudio.duration : null;
+          if (Number.isFinite(duration)) {
+            renderVoiceEstimate({ actualSeconds: duration });
+          }
+          previewStatus.textContent = `Audio thật: ${Number.isFinite(duration) ? `${duration.toFixed(1)}s` : "không rõ"}. Có thể nghe để kiểm tra nhịp đọc.`;
         });
       }
 

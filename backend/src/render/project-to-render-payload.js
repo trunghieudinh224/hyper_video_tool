@@ -10,6 +10,8 @@ const DEFAULT_VIDEO = {
   format: "mp4"
 };
 
+const EDGE_TTS_BASE_WORDS_PER_MINUTE = 185;
+
 const SCENE_DURATIONS = {
   intro: 6,
   problem: 10,
@@ -107,7 +109,7 @@ function estimateSpeechDurationSeconds(value) {
     return 0;
   }
   const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil((wordCount / 145) * 60));
+  return Math.max(1, Math.ceil((wordCount / EDGE_TTS_BASE_WORDS_PER_MINUTE) * 60));
 }
 
 function createScene(type, title, content, voiceoverScript = "") {

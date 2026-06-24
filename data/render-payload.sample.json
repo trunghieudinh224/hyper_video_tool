@@ -198,7 +198,7 @@
       },
       "voiceover": {
         "script": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy.\nBiểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên.\nKhi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng.\nCuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần.",
-        "estimatedDuration": 31,
+        "estimatedDuration": 24,
         "fits": false
       }
     },

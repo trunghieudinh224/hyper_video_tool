@@ -4,6 +4,32 @@
 
 in_progress
 
+## Fix - Voice Duration Estimate Calibration
+
+### Symptom
+
+User nghe thử thấy estimate hiển thị `6.7s` nhưng audio thật chỉ `5.6s` với đoạn 19 từ, scene 8s, rate `+10%`.
+
+### Root Cause
+
+Ước lượng frontend đang dùng tốc độ nền `155 WPM`, trong khi giọng `edge-tts` tiếng Việt thực tế ở mẫu này gần `185 WPM` trước khi cộng rate. Backend audio report và render payload cũng còn dùng estimate cũ `145 WPM`, làm các con số có thể lệch nhau.
+
+### Fix
+
+- Calibrate frontend estimate sang `185 WPM`.
+- Đồng bộ estimate trong backend voiceover và render payload mapper sang `185 WPM`.
+- Khi audio preview load metadata, cập nhật lại box estimate bằng `audio thật` thay vì chỉ hiện ở dòng status bên dưới.
+- Cập nhật fixture `data/render-payload.sample.json` theo estimatedDuration mới.
+
+### Test Report
+
+Status: passed
+
+- Case user: `19` từ, rate `+10%` tính ra `5.6s`.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `npm --prefix backend run check` pass.
+- `git diff --check` pass.
+
 ## Feature - Voiceover Audio Preview
 
 ### Objective

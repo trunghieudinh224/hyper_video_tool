@@ -26,6 +26,7 @@ const DEFAULT_PROVIDER = "edge-tts";
 const DEFAULT_RATE = "+0%";
 const DEFAULT_VOLUME = "+0%";
 const EDGE_TTS_VENV_DIR = path.join(config.projectRoot, ".cache", "edge-tts-venv");
+const EDGE_TTS_BASE_WORDS_PER_MINUTE = 185;
 
 function normalizeText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -51,7 +52,7 @@ function estimateSpeechDurationSeconds(value) {
   }
 
   const wordCount = text.split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil((wordCount / 145) * 60));
+  return Math.max(1, Math.ceil((wordCount / EDGE_TTS_BASE_WORDS_PER_MINUTE) * 60));
 }
 
 function ensureDirectory(directoryPath) {
