@@ -201,7 +201,8 @@ function registerTimeline(payload) {
   }
   const timeline = window.gsap.timeline({ paused: true });
   const sceneNodes = MotionCore.dom.queryAll(document, ".scene");
-  timeline.set(sceneNodes, { opacity: 0, pointerEvents: "none" }, 0);
+  const hiddenSceneNodes = sceneNodes.slice(1);
+  timeline.set(hiddenSceneNodes, { opacity: 0, pointerEvents: "none" }, 0);
 
   const progressFill = document.getElementById("progress-fill");
   if (progressFill) {

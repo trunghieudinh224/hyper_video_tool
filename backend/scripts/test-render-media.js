@@ -3,13 +3,14 @@
 const assert = require("node:assert/strict");
 const { createMuxVoiceoverArgs } = require("../src/render/media");
 
-const args = createMuxVoiceoverArgs({
+const shortestArgs = createMuxVoiceoverArgs({
   videoPath: "/tmp/input.mp4",
   audioPath: "/tmp/voice.mp3",
-  outputPath: "/tmp/output.mp4"
+  outputPath: "/tmp/output.mp4",
+  useShortest: true
 });
 
-assert.deepEqual(args, [
+assert.deepEqual(shortestArgs, [
   "-y",
   "-i",
   "/tmp/input.mp4",
@@ -28,5 +29,15 @@ assert.deepEqual(args, [
   "+faststart",
   "/tmp/output.mp4"
 ]);
+
+const fullVideoArgs = createMuxVoiceoverArgs({
+  videoPath: "/tmp/input.mp4",
+  audioPath: "/tmp/voice.mp3",
+  outputPath: "/tmp/output.mp4",
+  useShortest: false
+});
+
+assert(!fullVideoArgs.includes("-shortest"));
+assert.deepEqual(fullVideoArgs.slice(-3), ["-movflags", "+faststart", "/tmp/output.mp4"]);
 
 console.log("Render media tests passed.");

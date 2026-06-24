@@ -2080,7 +2080,7 @@ const AppUI = (() => {
           </div>
           <span class="status-pill ${statusClass}">${statusText}</span>
         </div>
-        <div style="display:grid; gap: var(--space-2);">
+        <div class="render-preflight-list">
           ${preflight.checks.map((check) => {
             const checkClass = check.status === "ok" ? "status-success" : check.status === "warning" ? "status-warning" : "status-danger";
             return `

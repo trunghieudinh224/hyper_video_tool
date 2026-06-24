@@ -46,6 +46,33 @@ const AppRender = (() => {
       .join("\n");
   };
 
+  const buildVoiceoverScriptFromProject = (projectData = {}) => {
+    const scripts = [];
+    const appendScript = (value) => {
+      const normalized = normalizeText(value);
+      if (normalized) {
+        scripts.push(normalized);
+      }
+    };
+
+    const sceneScripts = projectData.voiceover && projectData.voiceover.sceneScripts
+      ? projectData.voiceover.sceneScripts
+      : {};
+    ["intro", "problem", "solution", "features", "timeline", "impact", "outro"].forEach((key) => {
+      appendScript(sceneScripts[key]);
+    });
+
+    (projectData.features || [])
+      .filter((feature) => feature.useInVideo !== false)
+      .forEach((feature) => appendScript(feature.voiceoverScript));
+
+    (projectData.milestones || []).forEach((milestone) => {
+      appendScript(milestone.voiceoverScript);
+    });
+
+    return scripts.join("\n");
+  };
+
   const getUsableAssetUrl = (asset) => {
     const url = normalizeText(asset && asset.url);
     if (!url || url.startsWith("blob:")) {
@@ -221,6 +248,7 @@ const AppRender = (() => {
     const milestones = (projectData.milestones || []).slice(0, 5);
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
+    const voiceoverScript = normalizeText(voiceover.script) || buildVoiceoverScriptFromProject(projectData);
 
     return {
       version: "dynamic-motion-1.0.0",
@@ -255,7 +283,7 @@ const AppRender = (() => {
           voiceId: voiceover.voiceId || "vi-VN-HoaiMyNeural",
           rate: normalizePercent(voiceover.rate, "+0%"),
           volume: normalizePercent(voiceover.volume, "+0%"),
-          script: voiceover.script || "",
+          script: voiceoverScript,
           outputPath: voiceover.outputPath || ""
         },
         backgroundMusic: {

@@ -60,8 +60,8 @@ function runProcess(command, args, options = {}) {
   });
 }
 
-function createMuxVoiceoverArgs({ videoPath, audioPath, outputPath }) {
-  return [
+function createMuxVoiceoverArgs({ videoPath, audioPath, outputPath, useShortest = true }) {
+  const args = [
     "-y",
     "-i",
     videoPath,
@@ -74,12 +74,33 @@ function createMuxVoiceoverArgs({ videoPath, audioPath, outputPath }) {
     "-c:v",
     "copy",
     "-c:a",
-    "aac",
-    "-shortest",
+    "aac"
+  ];
+
+  if (useShortest) {
+    args.push("-shortest");
+  }
+
+  return [
+    ...args,
     "-movflags",
     "+faststart",
     outputPath
   ];
+}
+
+async function getMediaDurationSeconds(filePath, options = {}) {
+  const result = await runProcess(options.ffprobePath || getFfprobePath(), [
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    filePath
+  ], options);
+  const duration = Number.parseFloat(result.stdout.trim());
+  return Number.isFinite(duration) ? duration : 0;
 }
 
 async function muxVoiceoverIntoVideo({ videoPath, audioPath, outputPath }, options = {}) {
@@ -93,10 +114,17 @@ async function muxVoiceoverIntoVideo({ videoPath, audioPath, outputPath }, optio
 
   const tempOutputPath = `${outputPath}.voiceover.tmp.mp4`;
   fs.rmSync(tempOutputPath, { force: true });
+  const ffprobePath = options.ffprobePath || getFfprobePath();
+  const [videoDuration, audioDuration] = await Promise.all([
+    getMediaDurationSeconds(videoPath, { ...options, ffprobePath }),
+    getMediaDurationSeconds(audioPath, { ...options, ffprobePath })
+  ]);
+  const useShortest = audioDuration > 0 && videoDuration > 0 && audioDuration >= videoDuration;
   await runProcess(options.ffmpegPath || getFfmpegPath(), createMuxVoiceoverArgs({
     videoPath,
     audioPath,
-    outputPath: tempOutputPath
+    outputPath: tempOutputPath,
+    useShortest
   }), options);
   fs.renameSync(tempOutputPath, outputPath);
 
@@ -121,6 +149,7 @@ async function hasAudioStream(filePath, options = {}) {
 
 module.exports = {
   createMuxVoiceoverArgs,
+  getMediaDurationSeconds,
   getFfmpegPath,
   getFfprobePath,
   hasAudioStream,
