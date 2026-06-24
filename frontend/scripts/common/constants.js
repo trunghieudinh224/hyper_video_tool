@@ -94,6 +94,169 @@ const VIDEO_SEGMENT_TYPES = [
   { id: "custom", label: "Custom" }
 ];
 
+const VIDEO_STYLES = [
+  {
+    id: "dark-tech",
+    name: "Dark Tech",
+    description: "Nền tối, chữ sáng, accent cyan cho video kỹ thuật hoặc demo nội bộ.",
+    aspectRatios: ["9:16", "16:9"],
+    colorTheme: {
+      background: "#05070A",
+      surface: "#101722",
+      surfaceAlt: "#162033",
+      text: "#F8FAFC",
+      mutedText: "#94A3B8",
+      accent: "#22D3EE",
+      accentSoft: "#164E63",
+      border: "#1E3A5F",
+      glow: "rgba(34, 211, 238, 0.28)"
+    },
+    fontStyle: {
+      heading: "system-bold",
+      body: "system"
+    },
+    motionStyle: "dynamic",
+    backgroundStyle: "dark-grid"
+  },
+  {
+    id: "clean-report",
+    name: "Clean Report",
+    description: "Nền sáng, border nhẹ, phù hợp báo cáo nội bộ hoặc handoff ngắn.",
+    aspectRatios: ["9:16", "16:9"],
+    colorTheme: {
+      background: "#F8FAFC",
+      surface: "#FFFFFF",
+      surfaceAlt: "#EEF2F7",
+      text: "#111827",
+      mutedText: "#64748B",
+      accent: "#1F4FD8",
+      accentSoft: "#E8EEFC",
+      border: "#D9DEE7",
+      glow: "rgba(31, 79, 216, 0.16)"
+    },
+    fontStyle: {
+      heading: "system-bold",
+      body: "system"
+    },
+    motionStyle: "minimal",
+    backgroundStyle: "clean-surface"
+  },
+  {
+    id: "product-demo",
+    name: "Product Demo",
+    description: "Nền tối trung tính, media nổi bật, dùng tốt cho ảnh chụp màn hình hoặc demo UI.",
+    aspectRatios: ["9:16", "16:9"],
+    colorTheme: {
+      background: "#0E1116",
+      surface: "#171B22",
+      surfaceAlt: "#202630",
+      text: "#F5F7FA",
+      mutedText: "#A7B0BE",
+      accent: "#7DD3A8",
+      accentSoft: "#183B2A",
+      border: "#334155",
+      glow: "rgba(125, 211, 168, 0.22)"
+    },
+    fontStyle: {
+      heading: "system-bold",
+      body: "system"
+    },
+    motionStyle: "soft",
+    backgroundStyle: "media-focus"
+  }
+];
+
+const SCENE_SLOT_TYPES = [
+  { id: "text", label: "Text", valueField: "text" },
+  { id: "asset", label: "Asset", valueField: "assetId" },
+  { id: "media", label: "Image / Video", valueField: "assetId" },
+  { id: "list", label: "List / Grid", valueField: "items" },
+  { id: "tag", label: "Tag / Label", valueField: "text" }
+];
+
+const SCENE_SLOT_ANIMATIONS = [
+  { id: "none", label: "Không animation" },
+  { id: "fade-up", label: "Fade up" },
+  { id: "slide-left", label: "Slide left" },
+  { id: "scale-in", label: "Scale in" },
+  { id: "pop", label: "Pop" },
+  { id: "typewriter", label: "Typewriter" }
+];
+
+const SCENE_TEMPLATES = [
+  {
+    id: "intro-stack",
+    name: "Intro Stack",
+    description: "Mở đầu có logo, kicker, title, description và tag.",
+    category: "intro",
+    aspectRatios: ["9:16", "16:9"],
+    recommendedDurationSec: 8,
+    slots: [
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in", "fade-up"] },
+      { id: "kicker", label: "Kicker", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.4, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 1.5, allowedAnimations: ["fade-up"] },
+      { id: "tag", label: "Tag / Label", type: "tag", required: false, defaultDelay: 2.5, allowedAnimations: ["pop", "fade-up"] }
+    ]
+  },
+  {
+    id: "media-showcase",
+    name: "Media Showcase",
+    description: "Title và image/video lớn để demo UI, screenshot hoặc clip ngắn.",
+    category: "media",
+    aspectRatios: ["9:16", "16:9"],
+    recommendedDurationSec: 10,
+    slots: [
+      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.6, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "media", label: "Image / Video", type: "media", required: true, defaultDelay: 1.4, allowedAnimations: ["scale-in", "fade-up"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 3, allowedAnimations: ["fade-up"] }
+    ]
+  },
+  {
+    id: "grid-feature",
+    name: "Grid Feature",
+    description: "Grid nhiều item cho danh sách tính năng, điểm nổi bật hoặc module.",
+    category: "cards",
+    aspectRatios: ["9:16", "16:9"],
+    recommendedDurationSec: 12,
+    slots: [
+      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.5, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "grid", label: "Grid Items", type: "list", required: true, defaultDelay: 1.2, allowedAnimations: ["pop", "fade-up"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 4, allowedAnimations: ["fade-up"] }
+    ]
+  },
+  {
+    id: "step-flow",
+    name: "Step Flow",
+    description: "Các bước xuất hiện lần lượt cho workflow, pipeline hoặc hướng dẫn.",
+    category: "steps",
+    aspectRatios: ["9:16", "16:9"],
+    recommendedDurationSec: 12,
+    slots: [
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "steps", label: "Steps", type: "list", required: true, defaultDelay: 1, allowedAnimations: ["slide-left", "fade-up"] },
+      { id: "note", label: "Note", type: "text", required: false, defaultDelay: 4, allowedAnimations: ["fade-up"] }
+    ]
+  },
+  {
+    id: "outro-cta",
+    name: "Outro CTA",
+    description: "Kết thúc video với logo, thông điệp chính và CTA.",
+    category: "outro",
+    aspectRatios: ["9:16", "16:9"],
+    recommendedDurationSec: 6,
+    slots: [
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.4, allowedAnimations: ["fade-up"] },
+      { id: "cta", label: "Call to action", type: "text", required: false, defaultDelay: 1.5, allowedAnimations: ["pop", "fade-up"] },
+      { id: "tag", label: "Tag / Label", type: "tag", required: false, defaultDelay: 2.5, allowedAnimations: ["fade-up"] }
+    ]
+  }
+];
+
 const TEMPLATES_LIST = [
   {
     id: "project-showcase-90s",

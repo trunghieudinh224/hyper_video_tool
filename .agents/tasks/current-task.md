@@ -4,6 +4,28 @@
 
 in_progress
 
+## Roadmap Phase 1 - Scene Template Và Video Style Contract
+
+### Objective
+
+Thêm contract dữ liệu MVP cho Video Style, Scene Template, Slot Type và Slot Animation để chuẩn bị làm lại trang Template.
+
+### Summary
+
+- Thêm `VIDEO_STYLES`: `dark-tech`, `clean-report`, `product-demo`.
+- Thêm `SCENE_SLOT_TYPES`: `text`, `asset`, `media`, `list`, `tag`.
+- Thêm `SCENE_SLOT_ANIMATIONS`: `none`, `fade-up`, `slide-left`, `scale-in`, `pop`, `typewriter`.
+- Thêm `SCENE_TEMPLATES`: `intro-stack`, `media-showcase`, `grid-feature`, `step-flow`, `outro-cta`.
+- Chưa đổi UI/state/render trong phase này.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `git diff --check` pass.
+- `rg -n "VIDEO_STYLES|SCENE_TEMPLATES|SCENE_SLOT_TYPES|SCENE_SLOT_ANIMATIONS" frontend/scripts/common/constants.js` pass.
+
 ## Roadmap Phase 0 - Scene Template Audit
 
 ### Objective

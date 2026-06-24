@@ -284,7 +284,45 @@ Không làm:
 
 ### Status
 
-Pending.
+Completed.
+
+### Implementation Summary
+
+Đã thêm contract MVP trong `frontend/scripts/common/constants.js`:
+
+- `VIDEO_STYLES`:
+  - `dark-tech`
+  - `clean-report`
+  - `product-demo`
+- `SCENE_SLOT_TYPES`:
+  - `text`
+  - `asset`
+  - `media`
+  - `list`
+  - `tag`
+- `SCENE_SLOT_ANIMATIONS`:
+  - `none`
+  - `fade-up`
+  - `slide-left`
+  - `scale-in`
+  - `pop`
+  - `typewriter`
+- `SCENE_TEMPLATES`:
+  - `intro-stack`
+  - `media-showcase`
+  - `grid-feature`
+  - `step-flow`
+  - `outro-cta`
+
+Chưa đổi UI, state, validation hoặc render mapper trong phase này để giữ slice nhỏ và rollback dễ.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `git diff --check` pass.
+- `rg -n "VIDEO_STYLES|SCENE_TEMPLATES|SCENE_SLOT_TYPES|SCENE_SLOT_ANIMATIONS" frontend/scripts/common/constants.js` xác nhận đủ constants.
 
 ## Phase 2 - Làm Lại Trang Template Thành Video Style + Scene Template Library
 
