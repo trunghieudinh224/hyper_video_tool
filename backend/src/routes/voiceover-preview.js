@@ -7,7 +7,7 @@ const { config } = require("../config");
 
 const MAX_BODY_BYTES = 1024 * 128;
 const MAX_SCRIPT_CHARS = 3000;
-const AUDIO_FILENAME_PATTERN = /^[a-f0-9]{16}\.mp3$/;
+const CACHE_FILE_PATTERN = /^[a-f0-9]{16}\.(mp3|srt)$/;
 
 function createHttpError(statusCode, message, errors = null) {
   const error = new Error(message);
@@ -77,7 +77,7 @@ function normalizePreviewInput(input = {}) {
 }
 
 function getAudioFilePath(filename) {
-  if (!AUDIO_FILENAME_PATTERN.test(filename)) {
+  if (!/^[a-f0-9]{16}\.mp3$/.test(filename)) {
     return null;
   }
 
@@ -89,6 +89,83 @@ function getAudioFilePath(filename) {
   }
 
   return filePath;
+}
+
+function cleanupAudioCache(audioDir, options = {}) {
+  if (!fs.existsSync(audioDir)) {
+    return {
+      deletedFiles: 0,
+      deletedBytes: 0,
+      remainingBytes: 0
+    };
+  }
+
+  const now = Number.isFinite(options.now) ? options.now : Date.now();
+  const maxAgeMs = Number.isFinite(options.maxAgeMs) ? options.maxAgeMs : config.audioCacheMaxAgeDays * 24 * 60 * 60 * 1000;
+  const maxBytes = Number.isFinite(options.maxBytes) ? options.maxBytes : config.audioCacheMaxBytes;
+  const excludePaths = new Set((options.excludePaths || []).map((filePath) => path.resolve(filePath)));
+  let deletedFiles = 0;
+  let deletedBytes = 0;
+
+  const cacheFiles = fs.readdirSync(audioDir)
+    .filter((filename) => CACHE_FILE_PATTERN.test(filename))
+    .map((filename) => {
+      const filePath = path.resolve(audioDir, filename);
+      const stats = fs.statSync(filePath);
+      return {
+        filename,
+        filePath,
+        isFile: stats.isFile(),
+        mtimeMs: stats.mtimeMs,
+        size: stats.size
+      };
+    })
+    .filter((entry) => entry.isFile)
+    .filter((entry) => !excludePaths.has(entry.filePath));
+
+  const deleteEntry = (entry) => {
+    fs.rmSync(entry.filePath, { force: true });
+    deletedFiles += 1;
+    deletedBytes += entry.size;
+  };
+
+  cacheFiles
+    .filter((entry) => maxAgeMs > 0 && now - entry.mtimeMs > maxAgeMs)
+    .forEach(deleteEntry);
+
+  const remainingFiles = fs.readdirSync(audioDir)
+    .filter((filename) => CACHE_FILE_PATTERN.test(filename))
+    .map((filename) => {
+      const filePath = path.resolve(audioDir, filename);
+      const stats = fs.statSync(filePath);
+      return {
+        filename,
+        filePath,
+        isFile: stats.isFile(),
+        mtimeMs: stats.mtimeMs,
+        size: stats.size
+      };
+    })
+    .filter((entry) => entry.isFile)
+    .filter((entry) => !excludePaths.has(entry.filePath))
+    .sort((a, b) => a.mtimeMs - b.mtimeMs);
+
+  let remainingBytes = remainingFiles.reduce((total, entry) => total + entry.size, 0);
+  if (maxBytes > 0) {
+    for (const entry of remainingFiles) {
+      if (remainingBytes <= maxBytes) {
+        break;
+      }
+      deleteEntry(entry);
+      remainingBytes -= entry.size;
+    }
+  }
+
+  return {
+    deletedFiles,
+    deletedBytes,
+    remainingBytes
+  };
 }
 
 function sendJsonError(response, statusCode, message, errors = null) {
@@ -151,6 +228,9 @@ async function createPreview(request, response, sendJson) {
       scenes: []
     });
     const filename = path.basename(result.mediaPath);
+    const cleanup = cleanupAudioCache(path.dirname(result.mediaPath), {
+      excludePaths: [result.mediaPath, result.subtitlePath].filter(Boolean)
+    });
 
     sendJson(response, 200, {
       success: true,
@@ -165,7 +245,8 @@ async function createPreview(request, response, sendJson) {
           voiceId: result.voiceId,
           rate: result.rate,
           volume: result.volume,
-          estimatedDuration: estimateSpeechDurationSeconds(result.script)
+          estimatedDuration: estimateSpeechDurationSeconds(result.script),
+          cacheCleanup: cleanup
         }
       }
     });
@@ -193,6 +274,7 @@ async function handleVoiceoverPreview(request, response, requestUrl, sendJson) {
 }
 
 module.exports = {
+  cleanupAudioCache,
   handleVoiceoverPreview,
   normalizePreviewInput
 };

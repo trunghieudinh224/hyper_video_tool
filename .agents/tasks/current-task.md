@@ -4,6 +4,32 @@
 
 in_progress
 
+## Feature - Audio Preview Cache Cleanup
+
+### Objective
+
+Giữ tính năng `Nghe thử` không làm `outputs/audio` phình vô hạn khi người dùng thử nhiều script/voice/rate khác nhau.
+
+### Scope
+
+- Tự dọn cache audio preview sau khi tạo/lấy audio preview.
+- Mặc định xóa file cache quá `7` ngày.
+- Mặc định giới hạn cache preview `200MB`; nếu vượt, xóa file cũ nhất trước.
+- Không xóa file audio/subtitle vừa tạo cho request hiện tại.
+- Cho phép chỉnh bằng env:
+  - `HVT_AUDIO_CACHE_MAX_MB`
+  - `HVT_AUDIO_CACHE_MAX_AGE_DAYS`
+
+### Test Report
+
+Status: passed
+
+- `npm --prefix backend run voiceover:preview:test` pass.
+- `node --check backend/src/routes/voiceover-preview.js` pass.
+- `node --check backend/src/config.js` pass.
+- `git diff --check` pass.
+- `npm --prefix backend run check` pass.
+
 ## Fix - Voice Duration Estimate Calibration
 
 ### Symptom
