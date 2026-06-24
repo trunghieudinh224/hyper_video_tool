@@ -662,14 +662,81 @@ const AppUI = (() => {
     const scriptDisplayMode = data.scriptDisplayMode === "stack" ? "stack" : "sequence";
     const currentVoiceover = (data.audio && data.audio.voiceover) || {};
     const currentVoiceRate = currentVoiceover.rate || "+0%";
+    const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
+    const slotAnimations = Array.isArray(SCENE_SLOT_ANIMATIONS) ? SCENE_SLOT_ANIMATIONS : [];
     const estimatedDuration = list
       .filter((item) => item.useInVideo)
       .reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
-    const escapeText = (value) => String(value || "")
+    const escapeText = (value) => String(value == null ? "" : value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
+    const getSceneTemplate = (templateId) => sceneTemplates.find((template) => template.id === templateId)
+      || sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId)
+      || sceneTemplates[0]
+      || null;
+    const getSlotTypeLabel = (typeId) => {
+      const slotType = slotTypes.find((type) => type.id === typeId);
+      return slotType ? slotType.label : typeId;
+    };
+    const getAnimationLabel = (animationId) => {
+      const animation = slotAnimations.find((item) => item.id === animationId);
+      return animation ? animation.label : animationId;
+    };
+    const getDefaultSlotValue = (slot, feature = {}) => {
+      const primaryAssetId = data.primaryAssetId || ((data.assets || [])[0] && (data.assets || [])[0].id) || "";
+      const base = {
+        type: slot.type,
+        delay: Number.isFinite(slot.defaultDelay) ? slot.defaultDelay : 0,
+        animation: (slot.allowedAnimations && slot.allowedAnimations[0]) || "fade-up",
+        enabled: slot.required ? true : true
+      };
+
+      if (slot.type === "asset" || slot.type === "media") {
+        return { ...base, assetId: primaryAssetId };
+      }
+      if (slot.type === "list") {
+        const fallbackItems = [feature.name, feature.description, feature.benefit]
+          .map((value) => String(value || "").trim())
+          .filter(Boolean)
+          .slice(0, 4);
+        return { ...base, items: fallbackItems };
+      }
+      if (slot.id === "title") {
+        return { ...base, text: feature.name || "" };
+      }
+      if (slot.id === "description") {
+        return { ...base, text: feature.description || "" };
+      }
+      if (slot.id === "tag" || slot.id === "kicker" || slot.id === "header" || slot.id === "cta") {
+        return { ...base, text: feature.benefit || feature.type || "" };
+      }
+      return { ...base, text: "" };
+    };
+    const normalizeSegmentSlots = (feature = {}, templateId) => {
+      const template = getSceneTemplate(templateId);
+      if (!template) {
+        return {};
+      }
+
+      return template.slots.reduce((normalized, slot) => {
+        const existing = feature.slots && feature.slots[slot.id] ? feature.slots[slot.id] : {};
+        const fallback = getDefaultSlotValue(slot, feature);
+        const delay = Number.parseFloat(existing.delay);
+
+        normalized[slot.id] = {
+          ...fallback,
+          ...existing,
+          type: slot.type,
+          delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
+          animation: existing.animation || fallback.animation,
+          enabled: slot.required ? true : existing.enabled !== false
+        };
+        return normalized;
+      }, {});
+    };
     const selectedItem = list.find((item) => item.id === selectedScriptSegmentId) || list[0] || null;
     if (selectedItem) {
       selectedScriptSegmentId = selectedItem.id;
@@ -691,6 +758,7 @@ const AppUI = (() => {
         <div class="script-list" id="script-sortable-list">
           ${list.map((item, index) => {
             const segmentType = getSegmentType(item.type);
+            const sceneTemplate = getSceneTemplate(item.sceneTemplateId);
             const durationSec = Number.parseInt(item.durationSec, 10) || 8;
             const voiceScript = String(item.voiceoverScript || "").trim();
             return `
@@ -713,6 +781,7 @@ const AppUI = (() => {
                   <span class="script-title">${escapeText(item.name || "Đoạn chưa đặt tên")}</span>
                   <span class="script-duration">${durationSec}s</span>
                 </h3>
+                <div class="script-layout-chip">${escapeText(sceneTemplate ? sceneTemplate.name : "Chưa chọn layout")}</div>
                 <p class="script-body">${escapeText(item.description || "Chưa có nội dung chính.")}</p>
                 ${(item.benefit || voiceScript) ? `
                   <div class="script-meta-group">
@@ -765,6 +834,7 @@ const AppUI = (() => {
     }
 
     const selectedType = selectedItem ? getSegmentType(selectedItem.type) : null;
+    const selectedSceneTemplate = selectedItem ? getSceneTemplate(selectedItem.sceneTemplateId) : null;
     const selectedIndex = selectedItem ? list.findIndex((item) => item.id === selectedItem.id) : -1;
     const selectedDuration = selectedItem ? (Number.parseInt(selectedItem.durationSec, 10) || 8) : 0;
     const selectedVoice = selectedItem ? String(selectedItem.voiceoverScript || "").trim() : "";
@@ -791,6 +861,11 @@ const AppUI = (() => {
             <span>Voice</span>
             <strong>${selectedVoice ? "Có" : "Chưa có"}</strong>
           </div>
+        </div>
+
+        <div class="script-detail-section">
+          <h3>Scene template</h3>
+          <p>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn layout cho đoạn này.")}</p>
         </div>
 
         <div class="script-detail-section">
@@ -900,6 +975,139 @@ const AppUI = (() => {
     // Modal Form for Add/Edit
     const showFeatureFormModal = (feature = null) => {
       const isEdit = feature !== null;
+      let activeSceneTemplateId = (isEdit && feature.sceneTemplateId)
+        || data.defaultSceneTemplateId
+        || (sceneTemplates[0] && sceneTemplates[0].id)
+        || "";
+      let activeSlotValues = normalizeSegmentSlots(feature || {}, activeSceneTemplateId);
+      const renderAssetOptions = (selectedAssetId = "") => (data.assets || []).map((asset) => `
+        <option value="${escapeText(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
+      `).join("");
+
+      const collectSlotEditorValues = () => {
+        const editor = document.getElementById("modal-scene-slot-editor");
+        const template = getSceneTemplate(activeSceneTemplateId);
+        if (!editor || !template) {
+          return activeSlotValues;
+        }
+
+        return template.slots.reduce((values, slot) => {
+          const item = editor.querySelector(`[data-slot-id="${slot.id}"]`);
+          const current = activeSlotValues[slot.id] || getDefaultSlotValue(slot, feature || {});
+          if (!item) {
+            values[slot.id] = current;
+            return values;
+          }
+
+          const delayInput = item.querySelector("[data-slot-field='delay']");
+          const animationInput = item.querySelector("[data-slot-field='animation']");
+          const enabledInput = item.querySelector("[data-slot-field='enabled']");
+          const delay = Number.parseFloat(delayInput ? delayInput.value : current.delay);
+          const next = {
+            ...current,
+            type: slot.type,
+            delay: Number.isFinite(delay) ? Math.max(0, delay) : current.delay,
+            animation: animationInput ? animationInput.value : current.animation,
+            enabled: slot.required ? true : !(enabledInput && !enabledInput.checked)
+          };
+
+          if (slot.type === "asset" || slot.type === "media") {
+            const assetInput = item.querySelector("[data-slot-field='assetId']");
+            next.assetId = assetInput ? assetInput.value : (current.assetId || "");
+          } else if (slot.type === "list") {
+            const listInput = item.querySelector("[data-slot-field='items']");
+            next.items = listInput
+              ? listInput.value.split("\n").map((line) => line.trim()).filter(Boolean)
+              : (Array.isArray(current.items) ? current.items : []);
+          } else {
+            const textInput = item.querySelector("[data-slot-field='text']");
+            next.text = textInput ? textInput.value.trim() : (current.text || "");
+          }
+
+          values[slot.id] = next;
+          return values;
+        }, {});
+      };
+
+      const renderSlotInputHTML = (slot, value) => {
+        if (slot.type === "asset" || slot.type === "media") {
+          return `
+            <select class="form-control" data-slot-field="assetId">
+              <option value="">Chưa chọn tài nguyên</option>
+              ${renderAssetOptions(value.assetId || "")}
+            </select>
+          `;
+        }
+
+        if (slot.type === "list") {
+          const items = Array.isArray(value.items) ? value.items.join("\n") : "";
+          return `
+            <textarea class="form-control" rows="4" data-slot-field="items" placeholder="Mỗi dòng là một item">${escapeText(items)}</textarea>
+          `;
+        }
+
+        if (slot.id === "description") {
+          return `
+            <textarea class="form-control" rows="3" data-slot-field="text" placeholder="Nội dung hiển thị trong slot">${escapeText(value.text || "")}</textarea>
+          `;
+        }
+
+        return `
+          <input type="text" class="form-control" data-slot-field="text" value="${escapeText(value.text || "")}" placeholder="Nội dung hiển thị trong slot">
+        `;
+      };
+
+      const renderSlotEditorHTML = () => {
+        const template = getSceneTemplate(activeSceneTemplateId);
+        if (!template) {
+          return `<div class="slot-editor-empty">Chưa có scene template để tạo slot.</div>`;
+        }
+
+        return `
+          <div class="scene-slot-editor-grid">
+            ${template.slots.map((slot) => {
+              const value = activeSlotValues[slot.id] || getDefaultSlotValue(slot, feature || {});
+              const allowedAnimations = (slot.allowedAnimations || []).length ? slot.allowedAnimations : slotAnimations.map((item) => item.id);
+              return `
+                <section class="scene-slot-editor-item" data-slot-id="${slot.id}">
+                  <div class="scene-slot-editor-head">
+                    <div>
+                      <strong>${escapeText(slot.label)}</strong>
+                      <span>${escapeText(getSlotTypeLabel(slot.type))}${slot.required ? " · bắt buộc" : " · tùy chọn"}</span>
+                    </div>
+                    ${slot.required ? `
+                      <span class="scene-slot-required">Required</span>
+                    ` : `
+                      <label class="script-switch scene-slot-toggle">
+                        <input type="checkbox" data-slot-field="enabled" ${value.enabled !== false ? "checked" : ""}>
+                        <span class="script-switch-track" aria-hidden="true"></span>
+                      </label>
+                    `}
+                  </div>
+
+                  ${renderSlotInputHTML(slot, value)}
+
+                  <div class="scene-slot-controls">
+                    <label>
+                      <span>Delay</span>
+                      <input type="number" class="form-control" data-slot-field="delay" min="0" max="30" step="0.1" value="${escapeText(value.delay)}">
+                    </label>
+                    <label>
+                      <span>Animation</span>
+                      <select class="form-control" data-slot-field="animation">
+                        ${allowedAnimations.map((animationId) => `
+                          <option value="${escapeText(animationId)}" ${animationId === value.animation ? "selected" : ""}>${escapeText(getAnimationLabel(animationId))}</option>
+                        `).join("")}
+                      </select>
+                    </label>
+                  </div>
+                </section>
+              `;
+            }).join("")}
+          </div>
+        `;
+      };
+
       const modalBody = document.createElement("div");
       modalBody.innerHTML = `
         <div class="grid-2">
@@ -927,6 +1135,22 @@ const AppUI = (() => {
         <div class="form-group">
           <label class="form-label" for="modal-feat-benefit">Điểm nhấn</label>
           <input type="text" id="modal-feat-benefit" class="form-control" value="${isEdit ? escapeText(feature.benefit) : ''}" placeholder="Ý quan trọng nhất của đoạn này...">
+        </div>
+        <div class="scene-slot-editor-panel">
+          <div class="scene-slot-editor-title">
+            <div>
+              <span class="script-flow-eyebrow">Scene Template</span>
+              <h3>Layout và slot hiển thị</h3>
+            </div>
+            <select id="modal-feat-scene-template" class="form-control">
+              ${sceneTemplates.map((template) => `
+                <option value="${template.id}" ${template.id === activeSceneTemplateId ? "selected" : ""}>${template.name}</option>
+              `).join("")}
+            </select>
+          </div>
+          <div id="modal-scene-slot-editor">
+            ${renderSlotEditorHTML()}
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="modal-feat-voice">Voice script</label>
@@ -966,6 +1190,9 @@ const AppUI = (() => {
               const voiceoverScript = document.getElementById("modal-feat-voice").value.trim();
               const durationSec = Math.min(30, Math.max(3, Number.parseInt(document.getElementById("modal-feat-duration").value, 10) || 8));
               const useInVideo = document.getElementById("modal-feat-use").checked;
+              const sceneTemplateId = document.getElementById("modal-feat-scene-template").value;
+              activeSceneTemplateId = sceneTemplateId;
+              const slots = collectSlotEditorValues();
 
               if (!name || !description) {
                 showToast("Cần nhập tiêu đề và nội dung chính của đoạn.", "error");
@@ -976,7 +1203,7 @@ const AppUI = (() => {
               if (isEdit) {
                 const idx = features.findIndex(f => f.id === feature.id);
                 if (idx !== -1) {
-                  features[idx] = { ...feature, type, name, description, benefit, voiceoverScript, durationSec, useInVideo };
+                  features[idx] = { ...feature, type, name, description, benefit, voiceoverScript, durationSec, useInVideo, sceneTemplateId, slots };
                 }
               } else {
                 features.push({
@@ -987,7 +1214,9 @@ const AppUI = (() => {
                   benefit,
                   voiceoverScript,
                   durationSec,
-                  useInVideo
+                  useInVideo,
+                  sceneTemplateId,
+                  slots
                 });
               }
 
@@ -1002,6 +1231,8 @@ const AppUI = (() => {
 
       const voiceInput = document.getElementById("modal-feat-voice");
       const durationInput = document.getElementById("modal-feat-duration");
+      const sceneTemplateInput = document.getElementById("modal-feat-scene-template");
+      const slotEditor = document.getElementById("modal-scene-slot-editor");
       const estimateBox = document.getElementById("modal-feat-voice-estimate");
       const previewButton = document.getElementById("modal-feat-voice-preview-btn");
       const previewStatus = document.getElementById("modal-feat-voice-preview-status");
@@ -1072,6 +1303,15 @@ const AppUI = (() => {
         durationInput.addEventListener("change", updateVoiceEstimate);
       }
       updateVoiceEstimate();
+
+      if (sceneTemplateInput && slotEditor) {
+        sceneTemplateInput.addEventListener("change", () => {
+          activeSlotValues = collectSlotEditorValues();
+          activeSceneTemplateId = sceneTemplateInput.value;
+          activeSlotValues = normalizeSegmentSlots({ ...(feature || {}), slots: activeSlotValues }, activeSceneTemplateId);
+          slotEditor.innerHTML = renderSlotEditorHTML();
+        });
+      }
 
       if (previewAudio && previewStatus) {
         previewAudio.addEventListener("loadedmetadata", () => {

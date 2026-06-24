@@ -547,7 +547,53 @@ Không làm:
 
 ### Status
 
-Pending.
+In progress.
+
+### Slice 1 - Modal Slot Editor MVP
+
+Status: completed
+
+Đã làm:
+
+- Segment modal có dropdown `Scene Template`.
+- Khi đổi template, slot editor đổi theo đúng slot của template mới.
+- Segment cũ chưa có `sceneTemplateId/slots` được fallback từ `defaultSceneTemplateId` và field cũ.
+- Slot type `text/tag` dùng input/textarea.
+- Slot type `asset/media` chọn từ tài nguyên đã upload.
+- Slot type `list` nhập mỗi dòng một item.
+- Mỗi slot có `delay` và `animation`.
+- Slot optional có toggle bật/tắt; slot required luôn bật.
+- Khi lưu segment, data có thêm:
+  - `sceneTemplateId`
+  - `slots`
+- List/detail Kịch bản hiển thị scene template đang dùng.
+
+Chưa làm trong slice này:
+
+- Chưa có preview wireframe tương tác/click slot trong detail panel.
+- Chưa validate required slot thiếu dữ liệu.
+- Chưa nối slot data sang Preview/Render.
+
+### Slice 1 Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/features.css` không có hit.
+- `curl -I http://127.0.0.1:3028/pages/features.html` trả `200`.
+- `npm --prefix backend run check` pass.
+- CDP desktop smoke trên Chrome headless:
+  - mở `/pages/features.html`.
+  - bấm thêm đoạn.
+  - modal có `#modal-feat-scene-template`.
+  - slot ban đầu của `intro-stack`: `logo`, `kicker`, `title`, `description`, `tag`.
+  - đổi sang `grid-feature`, slot đổi thành `header`, `title`, `grid`, `description`.
+  - lưu segment mới với `sceneTemplateId = grid-feature`.
+  - localStorage lưu `slots.grid.items = ["Item 1", "Item 2"]`.
+  - localStorage lưu `slots.grid.delay = 2`.
+- Desktop screenshot modal: `/private/tmp/hvt-phase3-slot-editor-modal.png`.
 
 ## Phase 4 - Preview Theo Scene Template Và Slot Delay
 

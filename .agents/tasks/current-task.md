@@ -4,6 +4,38 @@
 
 in_progress
 
+## Roadmap Phase 3 Slice 1 - Segment Slot Editor MVP
+
+### Objective
+
+Thêm slot editor MVP vào modal thêm/sửa đoạn Kịch bản để mỗi segment lưu được `sceneTemplateId` và `slots`.
+
+### Summary
+
+- Modal Kịch bản có dropdown `Scene Template`.
+- Đổi template sẽ render lại slot editor theo slot của template đó.
+- Segment cũ chưa có slot được fallback từ `defaultSceneTemplateId` và field cũ.
+- Slot `text/tag` dùng input/textarea.
+- Slot `asset/media` chọn từ tài nguyên đã upload.
+- Slot `list` nhập mỗi dòng một item.
+- Mỗi slot có `delay`, `animation` và toggle nếu optional.
+- Khi lưu segment, data có thêm `sceneTemplateId` và `slots`.
+- List/detail Kịch bản hiển thị scene template đang dùng.
+- Chưa nối Preview/Render trong slice này.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/features.css` không có hit.
+- `curl -I http://127.0.0.1:3028/pages/features.html` trả `200`.
+- `npm --prefix backend run check` pass.
+- CDP desktop smoke pass: mở modal, đổi `intro-stack` sang `grid-feature`, lưu segment mới, localStorage có `sceneTemplateId`, `slots.grid.items`, `slots.grid.delay`.
+- Desktop screenshot modal: `/private/tmp/hvt-phase3-slot-editor-modal.png`.
+
 ## Roadmap Phase 2 - Template Page Video Style Và Scene Template Library
 
 ### Objective
