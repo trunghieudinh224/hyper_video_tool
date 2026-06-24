@@ -37,6 +37,9 @@ const HyperVideoPage = (() => {
     const valResults = AppValidation.validate(AppState.getProjectData());
     AppState.setValidation(valResults);
     AppUI.renderScreen(currentPage);
+    if (typeof AppOnboarding !== "undefined") {
+      AppOnboarding.mount(currentPage);
+    }
 
     const checkMobileDisplay = () => {
       const isMobile = window.innerWidth <= 768;
