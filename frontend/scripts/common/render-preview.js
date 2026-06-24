@@ -79,50 +79,50 @@ const AppRender = (() => {
     const mainMessage = normalizeText(projectData.mainMessage)
       || normalizeText(projectData.keyHighlight)
       || normalizeText(projectData.shortSummary)
-      || "Video co motion theo tung phan noi dung.";
+      || "Video có motion theo từng phần nội dung.";
     const introBody = normalizeText(projectData.shortSummary)
       || normalizeText(projectData.videoGoal)
-      || "Noi dung duoc chia thanh cac scene co nhip reveal rieng.";
+      || "Nội dung được chia thành các scene có nhịp reveal riêng.";
     const contextBody = normalizeText(projectData.problemContext)
       || normalizeText(projectData.solutionWhat)
-      || "Dung cho gioi thieu, tutorial, showcase, story hoac report tuy noi dung.";
+      || "Dùng cho giới thiệu, tutorial, showcase, story hoặc report tùy nội dung.";
     const mediaBody = normalizeText(projectData.solutionWhat)
       || normalizeText(projectData.useCase)
-      || "Anh, screenshot hoac video demo duoc dua vao nhu mot phan cua cau chuyen.";
+      || "Ảnh, screenshot hoặc video demo được đưa vào như một phần của câu chuyện.";
     const cardItems = activeFeatures.length > 0
       ? activeFeatures.slice(0, 4).map((feature, index) => ({
         id: feature.id || `card-${index + 1}`,
-        title: feature.name || feature.title || `Diem nhan ${index + 1}`,
-        body: feature.benefit || feature.description || "Noi dung nay se duoc reveal theo tung slot."
+        title: feature.name || feature.title || `Điểm nhấn ${index + 1}`,
+        body: feature.benefit || feature.description || "Nội dung này sẽ được reveal theo từng slot."
       }))
       : [
         {
           id: "card-1",
-          title: normalizeText(projectData.keyHighlight) || "Headline vao truoc",
-          body: "Nguoi xem can thay y chinh truoc khi vao chi tiet."
+          title: normalizeText(projectData.keyHighlight) || "Headline vào trước",
+          body: "Người xem cần thấy ý chính trước khi vào chi tiết."
         },
         {
           id: "card-2",
-          title: "Item vao lan luot",
-          body: "Moi item co khoang thoi gian rieng, tranh hien tat ca cung luc."
+          title: "Item vào lần lượt",
+          body: "Mỗi item có khoảng thời gian riêng, tránh hiện tất cả cùng lúc."
         },
         {
           id: "card-3",
-          title: "Media duoc focus",
-          body: "Anh va demo clip co reveal, caption va pan nhe."
+          title: "Media được focus",
+          body: "Ảnh và demo clip có reveal, caption và pan nhẹ."
         }
       ];
     const stepItems = milestones.length > 0
       ? milestones.slice(0, 5).map((milestone, index) => ({
         id: milestone.id || `step-${index + 1}`,
-        title: milestone.name || milestone.title || `Buoc ${index + 1}`,
-        body: milestone.description || milestone.date || "Cot moc se duoc highlight theo thu tu."
+        title: milestone.name || milestone.title || `Bước ${index + 1}`,
+        body: milestone.description || milestone.date || "Cột mốc sẽ được highlight theo thứ tự."
       }))
       : [
-        { id: "step-1", title: "Doc noi dung", body: "Lay brief, script, asset va cac item dang bat." },
-        { id: "step-2", title: "Tinh duration", body: "Can thoi luong theo text, media va so item." },
-        { id: "step-3", title: "Build motion", body: "Tao timeline reveal tung phan thay vi show het." },
-        { id: "step-4", title: "Render MP4", body: "Gui payload cho HyperFrames qua backend local." }
+        { id: "step-1", title: "Đọc nội dung", body: "Lấy brief, script, asset và các item đang bật." },
+        { id: "step-2", title: "Tính duration", body: "Cân thời lượng theo text, media và số item." },
+        { id: "step-3", title: "Build motion", body: "Tạo timeline reveal từng phần thay vì show hết." },
+        { id: "step-4", title: "Render MP4", body: "Gửi payload cho HyperFrames qua backend local." }
       ];
 
     return [
@@ -146,7 +146,7 @@ const AppRender = (() => {
       {
         id: "scene-context",
         type: "text",
-        headline: normalizeText(projectData.videoGoal) || "Noi dung duoc ke theo mach ro rang",
+        headline: normalizeText(projectData.videoGoal) || "Nội dung được kể theo mạch rõ ràng",
         subtitle: normalizeText(projectData.contentTone) || "Dynamic story",
         body: contextBody,
         motion: { preset: "textBuild", intensity: "low", sequence: "headline-body" },
@@ -155,8 +155,8 @@ const AppRender = (() => {
       {
         id: "scene-media",
         type: "media",
-        headline: normalizeText(projectData.solutionWhat) || "Media la mot phan cua cau chuyen",
-        subtitle: normalizeText(projectData.useCase) || "Khong chi nem anh len man hinh",
+        headline: normalizeText(projectData.solutionWhat) || "Media là một phần của câu chuyện",
+        subtitle: normalizeText(projectData.useCase) || "Không chỉ ném ảnh lên màn hình",
         body: mediaBody,
         media: {
           assetId: mediaAsset.id,
@@ -172,8 +172,8 @@ const AppRender = (() => {
       {
         id: "scene-cards",
         type: "cards",
-        headline: normalizeText(projectData.keyHighlight) || "Moi phan noi dung co nhip rieng",
-        subtitle: "Card khong hien het mot phat",
+        headline: normalizeText(projectData.keyHighlight) || "Mỗi phần nội dung có nhịp riêng",
+        subtitle: "Card không hiện hết một phát",
         items: cardItems,
         motion: { preset: "spotlightCards", intensity: "medium", sequence: "one-by-one" },
         duration: { mode: "auto", min: 7, max: 14, perItem: 2.2 }
@@ -181,7 +181,7 @@ const AppRender = (() => {
       {
         id: "scene-steps",
         type: "steps",
-        headline: "Pipeline render ro rang",
+        headline: "Pipeline render rõ ràng",
         subtitle: "Data -> duration -> motion -> MP4",
         items: stepItems,
         motion: { preset: "stepSequence", intensity: "medium", sequence: "progressive" },
@@ -190,9 +190,9 @@ const AppRender = (() => {
       {
         id: "scene-outro",
         type: "outro",
-        headline: normalizeText(projectData.endingNote) || "Ket thuc gon va co diem roi",
-        subtitle: normalizeText(projectData.ownerTeam) || "Team phu trach",
-        body: normalizeText(projectData.resultImpact) || "Video render theo noi dung, nen do dai va nhip khong bi khoa cung.",
+        headline: normalizeText(projectData.endingNote) || "Kết thúc gọn và có điểm rơi",
+        subtitle: normalizeText(projectData.ownerTeam) || "Team phụ trách",
+        body: normalizeText(projectData.resultImpact) || "Video render theo nội dung, nên độ dài và nhịp không bị khóa cứng.",
         media: {
           assetId: logoAsset ? logoAsset.id : "",
           type: "image",
@@ -244,7 +244,8 @@ const AppRender = (() => {
         height: renderFormat.height,
         fps: Number(renderConfig.fps || 30),
         format: "mp4",
-        durationMode: "content-driven"
+        durationMode: "content-driven",
+        outputFilename: normalizeText(renderConfig.filename || renderConfig.outputFilename || projectData.video && projectData.video.outputFilename)
       },
       audio: {
         voiceover: {
@@ -276,9 +277,13 @@ const AppRender = (() => {
   };
 
   const buildRenderPayload = (projectData, renderConfig = {}) => {
-    const renderFormat = getRenderFormat(renderConfig);
+    const effectiveRenderConfig = {
+      ...(projectData.video || {}),
+      ...renderConfig
+    };
+    const renderFormat = getRenderFormat(effectiveRenderConfig);
     if (renderFormat.payloadType === "dynamic-motion") {
-      return buildDynamicRenderPayload(projectData, renderConfig, renderFormat);
+      return buildDynamicRenderPayload(projectData, effectiveRenderConfig, renderFormat);
     }
 
     const selectedAssets = projectData.assets || [];
@@ -409,7 +414,7 @@ const AppRender = (() => {
         presenterRole: projectData.presenterRole || "Người thuyết trình"
       },
       template: {
-        id: renderConfig.templateId || renderFormat.templateId,
+        id: effectiveRenderConfig.templateId || renderFormat.templateId,
         config: projectData.templateConfig || {
           theme: "dark",
           accentColor: "blue",
@@ -421,9 +426,10 @@ const AppRender = (() => {
         aspectRatio: renderFormat.aspectRatio,
         width: renderFormat.width,
         height: renderFormat.height,
-        fps: Number(renderConfig.fps || 30),
+        fps: Number(effectiveRenderConfig.fps || 30),
         format: "mp4",
-        estimatedDuration: 74
+        estimatedDuration: 74,
+        outputFilename: normalizeText(effectiveRenderConfig.filename || effectiveRenderConfig.outputFilename || projectData.video && projectData.video.outputFilename)
       },
       assets: {
         logo,
@@ -605,8 +611,162 @@ const AppRender = (() => {
     return (responseBody.data.outputs || []).map(normalizeBackendOutput);
   };
 
+  const isActiveJobStatus = (status) => status === "queued" || status === "running" || status === "rendering";
+
+  const hasActiveRenderJob = () => {
+    const active = AppStorage.loadActiveRenderJob ? AppStorage.loadActiveRenderJob() : null;
+    return Boolean(active && active.jobId);
+  };
+
+  const saveActiveRenderJob = (job, normalizedConfig, queuedJob) => {
+    if (!AppStorage.saveActiveRenderJob) {
+      return;
+    }
+
+    AppStorage.saveActiveRenderJob({
+      jobId: job.id,
+      config: normalizedConfig,
+      queuedJob,
+      updatedAt: new Date().toISOString()
+    });
+  };
+
+  const clearActiveRenderJob = () => {
+    if (AppStorage.clearActiveRenderJob) {
+      AppStorage.clearActiveRenderJob();
+    }
+  };
+
+  const syncQueuedJob = (job, normalizedConfig, queuedJob) => {
+    queuedJob.id = job.id;
+    queuedJob.status = job.status;
+    queuedJob.progress = Number.isFinite(job.progress) ? job.progress : queuedJob.progress;
+    queuedJob.resolution = job.resolution || normalizedConfig.resolution || queuedJob.resolution;
+    queuedJob.templateId = job.templateId || normalizedConfig.templateId || queuedJob.templateId;
+    queuedJob.projectName = job.projectName || queuedJob.projectName;
+    AppState.setRenderQueue([queuedJob]);
+    saveActiveRenderJob(job, normalizedConfig, queuedJob);
+  };
+
+  const emitJobLogs = (job, seenLogs, onLog) => {
+    const logs = Array.isArray(job.logs) ? job.logs : [];
+    logs.forEach((entry, index) => {
+      const logKey = typeof entry === "string"
+        ? `${index}:${entry}`
+        : `${entry.timestamp || index}:${entry.type || "INFO"}:${entry.message || ""}`;
+      if (seenLogs.has(logKey)) {
+        return;
+      }
+
+      seenLogs.add(logKey);
+      if (typeof entry === "string") {
+        onLog("INFO", entry);
+        return;
+      }
+
+      onLog(entry.type || "INFO", entry.message || "");
+    });
+  };
+
+  const finishRenderJob = (job, normalizedConfig, onProgress, onLog, onComplete, onFailure) => {
+    if (job.status !== "succeeded") {
+      const error = new Error(job.error || "Render job thất bại.");
+      onProgress(0);
+      onLog("ERROR", error.message);
+      AppState.setRenderQueue([]);
+      clearActiveRenderJob();
+      isRendering = false;
+      if (onFailure) {
+        onFailure(error);
+      }
+      return;
+    }
+
+    onProgress(100);
+    onLog("SUCCESS", `Backend render thành công: ${job.outputPath}`);
+    onLog("SUCCESS", `Thời gian render: ${Math.round((job.durationMs || 0) / 1000)} giây.`);
+
+    const output = createOutputRecord(job, normalizedConfig);
+    const outputs = AppStorage.loadOutputs();
+    AppStorage.saveOutputs([output, ...outputs.filter((item) => item.id !== output.id)]);
+    AppState.setRenderQueue([]);
+    clearActiveRenderJob();
+    isRendering = false;
+    onComplete(output);
+  };
+
+  const pollRenderJob = async (job, normalizedConfig, queuedJob, seenLogs, onProgress, onLog, onComplete, onFailure) => {
+    syncQueuedJob(job, normalizedConfig, queuedJob);
+    onProgress(queuedJob.progress || 0);
+    emitJobLogs(job, seenLogs, onLog);
+
+    while (job.status === "queued" || job.status === "running") {
+      await wait(2000);
+      job = await getRenderJob(job.id);
+      syncQueuedJob(job, normalizedConfig, queuedJob);
+      onProgress(queuedJob.progress || 0);
+      emitJobLogs(job, seenLogs, onLog);
+    }
+
+    finishRenderJob(job, normalizedConfig, onProgress, onLog, onComplete, onFailure);
+  };
+
+  const resumeRender = async (onProgress, onLog, onComplete, onFailure) => {
+    if (isRendering) {
+      return true;
+    }
+
+    const active = AppStorage.loadActiveRenderJob ? AppStorage.loadActiveRenderJob() : null;
+    if (!active || !active.jobId) {
+      return false;
+    }
+
+    const normalizedConfig = active.config || {};
+    const queuedJob = active.queuedJob || {
+      id: active.jobId,
+      filename: `${active.jobId}.mp4`,
+      resolution: normalizedConfig.resolution,
+      fps: normalizedConfig.fps || 30,
+      templateId: normalizedConfig.templateId,
+      status: "running",
+      progress: 0,
+      startTime: new Date().toLocaleTimeString()
+    };
+    const seenLogs = new Set();
+
+    isRendering = true;
+    AppState.setRenderQueue([queuedJob]);
+    onProgress(queuedJob.progress || 0);
+    onLog("INFO", `Khôi phục tiến trình render đang chạy: ${active.jobId}.`);
+
+    try {
+      const job = await getRenderJob(active.jobId);
+      if (!isActiveJobStatus(job.status)) {
+        finishRenderJob(job, normalizedConfig, onProgress, onLog, onComplete, onFailure);
+        return true;
+      }
+
+      await pollRenderJob(job, normalizedConfig, queuedJob, seenLogs, onProgress, onLog, onComplete, onFailure);
+      return true;
+    } catch (error) {
+      onProgress(0);
+      onLog("ERROR", error.message);
+      AppState.setRenderQueue([]);
+      clearActiveRenderJob();
+      isRendering = false;
+      if (onFailure) {
+        onFailure(error);
+      }
+      return false;
+    }
+  };
+
   const startRender = async (config, onProgress, onLog, onComplete, onFailure) => {
     if (isRendering) return;
+    if (hasActiveRenderJob()) {
+      await resumeRender(onProgress, onLog, onComplete, onFailure);
+      return;
+    }
 
     isRendering = true;
     const projectData = AppState.getProjectData();
@@ -643,69 +803,19 @@ const AppRender = (() => {
       const seenLogs = new Set();
       let job = queuedBackendJob;
 
-      queuedJob.id = job.id;
-      queuedJob.status = job.status;
-      queuedJob.progress = job.progress || 8;
-      AppState.setRenderQueue([queuedJob]);
-      onProgress(queuedJob.progress);
+      syncQueuedJob(job, normalizedConfig, queuedJob);
+      onProgress(queuedJob.progress || 0);
       onLog("INFO", `Backend đã nhận job: ${job.id}.`);
-
-      while (job.status === "queued" || job.status === "running") {
-        await wait(2000);
-        job = await getRenderJob(job.id);
-        queuedJob.status = job.status;
-        queuedJob.progress = job.progress || queuedJob.progress;
-        AppState.setRenderQueue([queuedJob]);
-        onProgress(queuedJob.progress);
-
-        const logs = Array.isArray(job.logs) ? job.logs : [];
-        logs.forEach((entry, index) => {
-          const logKey = typeof entry === "string"
-            ? `${index}:${entry}`
-            : `${entry.timestamp || index}:${entry.type || "INFO"}:${entry.message || ""}`;
-          if (seenLogs.has(logKey)) {
-            return;
-          }
-
-          seenLogs.add(logKey);
-          if (typeof entry === "string") {
-            onLog("INFO", entry);
-            return;
-          }
-
-          onLog(entry.type || "INFO", entry.message || "");
-        });
-      }
-
-      if (job.status !== "succeeded") {
-        throw new Error(job.error || "Render job thất bại.");
-      }
-
-      onProgress(100);
-      onLog("SUCCESS", `Backend render thành công: ${job.outputPath}`);
-      onLog("SUCCESS", `Thời gian render: ${Math.round((job.durationMs || 0) / 1000)} giây.`);
-
-      const output = createOutputRecord(job, normalizedConfig);
-      const outputs = AppStorage.loadOutputs();
-      AppStorage.saveOutputs([output, ...outputs.filter((item) => item.id !== output.id)]);
-      AppState.setRenderQueue([]);
-      isRendering = false;
-      onComplete(output);
+      await pollRenderJob(job, normalizedConfig, queuedJob, seenLogs, onProgress, onLog, onComplete, onFailure);
     } catch (error) {
       onProgress(0);
       onLog("ERROR", error.message);
       AppState.setRenderQueue([]);
+      clearActiveRenderJob();
       isRendering = false;
       if (onFailure) {
         onFailure(error);
       }
-    }
-  };
-
-  const cancelRender = (onLog, onCancel) => {
-    onLog("ERROR", "Backend render hiện chạy đồng bộ nên không thể hủy request đang chạy từ UI MVP.");
-    if (onCancel) {
-      onCancel();
     }
   };
 
@@ -715,7 +825,8 @@ const AppRender = (() => {
     getRenderJob,
     listBackendOutputs,
     startRender,
-    cancelRender,
-    isRendering: () => isRendering
+    resumeRender,
+    isRendering: () => isRendering,
+    hasActiveRenderJob
   };
 })();

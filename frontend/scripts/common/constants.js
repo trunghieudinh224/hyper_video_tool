@@ -52,6 +52,11 @@ const INITIAL_PROJECT_DATA = {
       impact: "",
       outro: ""
     }
+  },
+  video: {
+    formatId: "dynamic-story-vertical",
+    fps: 30,
+    outputFilename: ""
   }
 };
 

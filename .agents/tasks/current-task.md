@@ -4,6 +4,46 @@
 
 in_progress
 
+## Polish - Dynamic Motion Quality
+
+### Symptom
+
+User báo output dynamic chưa mượt, tiếng Việt không dấu, animation chưa rõ và spacing giữa các item quá sát.
+
+### Fix
+
+- Đổi fallback/sample dynamic payload sang tiếng Việt có dấu.
+- Đổi fallback text trong UI dynamic payload builder sang tiếng Việt có dấu.
+- Thêm font file NotoSans nội bộ template qua `@font-face` để HyperFrames render tiếng Việt ổn định.
+- Tăng spacing/padding/line-height cho vertical và horizontal dynamic template.
+- Tăng motion primitive trong shared animation core:
+  - text reveal có blur/y/stagger rõ hơn
+  - media reveal chậm và mềm hơn
+  - card/item sequence có enter/exit rõ hơn
+  - steps spotlight hiện theo nhịp rõ hơn
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/render-preview.js` pass.
+- `node --check templates/dynamic-story-vertical/script.js` pass.
+- `node --check templates/dynamic-story-horizontal/script.js` pass.
+- `JSON.parse(data/dynamic-motion-payload.sample.json)` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical lint` pass `0 errors, 0 warnings`.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-horizontal lint` pass `0 errors, 0 warnings`.
+- `npm --prefix backend run check` pass.
+- API smoke dynamic vertical pass:
+  - Job: `287706d2-31ef-40cf-9e82-929c043f2b2f`.
+  - Output: `outputs/287706d2-31ef-40cf-9e82-929c043f2b2f.mp4`.
+  - `ffprobe`: `1080x1920`, `68s`, `size=3812800`.
+  - Manual frame review: tiếng Việt có dấu, scene đổi đúng, card ổn định nét sau transition.
+- API smoke dynamic horizontal pass:
+  - Job: `71473e19-5c52-464f-88da-d77778b58fb4`.
+  - Output: `outputs/71473e19-5c52-464f-88da-d77778b58fb4.mp4`.
+  - `ffprobe`: `1920x1080`, `68s`, `size=3628261`.
+  - Manual frame review: layout ngang không overlap, text có dấu, media/card/steps render đúng.
+
 ## Diagnose - Dynamic Render Đen/Blank
 
 ### Symptom

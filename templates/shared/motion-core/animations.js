@@ -26,14 +26,16 @@
       elements,
       {
         opacity: 0,
-        y: getNumber(options.y, 26)
+        y: getNumber(options.y, 44),
+        filter: options.filter === false ? "none" : "blur(10px)"
       },
       {
         opacity: 1,
         y: 0,
-        duration: getNumber(options.duration, 0.45),
-        stagger: getNumber(options.stagger, 0.08),
-        ease: options.ease || "power2.out",
+        filter: "blur(0px)",
+        duration: getNumber(options.duration, 0.68),
+        stagger: getNumber(options.stagger, 0.12),
+        ease: options.ease || "power3.out",
         immediateRender: false
       },
       getNumber(start, 0)
@@ -51,16 +53,18 @@
       elements,
       {
         opacity: 0,
-        y: getNumber(options.y, 34),
-        scale: getNumber(options.fromScale, 0.98)
+        y: getNumber(options.y, 46),
+        scale: getNumber(options.fromScale, 0.96),
+        filter: options.filter === false ? "none" : "blur(8px)"
       },
       {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: getNumber(options.duration, 0.5),
-        stagger: getNumber(options.stagger, 0.06),
-        ease: options.ease || "power2.out",
+        filter: "blur(0px)",
+        duration: getNumber(options.duration, 0.7),
+        stagger: getNumber(options.stagger, 0.1),
+        ease: options.ease || "power3.out",
         immediateRender: false
       },
       getNumber(start, 0)
@@ -77,20 +81,36 @@
     const sceneStart = getNumber(start, 0);
     const sceneDuration = Math.max(1, getNumber(duration, items.length * 2));
     const padding = getNumber(options.padding, 0.6);
-    const slotDuration = Math.max(0.6, (sceneDuration - padding) / items.length);
+    const slotDuration = Math.max(1.1, (sceneDuration - padding) / items.length);
 
-    timeline.set(items, { opacity: 0, y: getNumber(options.enterY, 30), pointerEvents: "none" }, sceneStart);
+    timeline.set(items, {
+      opacity: 0,
+      x: getNumber(options.enterX, 34),
+      y: getNumber(options.enterY, 54),
+      scale: getNumber(options.fromScale, 0.94),
+      filter: "blur(10px)",
+      pointerEvents: "none"
+    }, sceneStart);
     items.forEach((item, index) => {
       const itemStart = sceneStart + padding + (index * slotDuration);
-      const itemEnd = Math.min(sceneStart + sceneDuration - 0.1, itemStart + slotDuration - 0.12);
+      const itemEnd = Math.min(sceneStart + sceneDuration - 0.18, itemStart + slotDuration - 0.22);
       timeline.fromTo(
         item,
-        { opacity: 0, y: getNumber(options.enterY, 30) },
+        {
+          opacity: 0,
+          x: getNumber(options.enterX, 34),
+          y: getNumber(options.enterY, 54),
+          scale: getNumber(options.fromScale, 0.94),
+          filter: "blur(10px)"
+        },
         {
           opacity: 1,
+          x: 0,
           y: 0,
-          duration: getNumber(options.inDuration, 0.35),
-          ease: options.ease || "power2.out",
+          scale: 1,
+          filter: "blur(0px)",
+          duration: getNumber(options.inDuration, 0.58),
+          ease: options.ease || "power3.out",
           pointerEvents: "auto",
           immediateRender: false
         },
@@ -101,9 +121,12 @@
           item,
           {
             opacity: getNumber(options.exitOpacity, 0),
-            y: getNumber(options.exitY, -18),
-            duration: getNumber(options.outDuration, 0.22),
-            ease: options.exitEase || "power1.in",
+            x: getNumber(options.exitX, -24),
+            y: getNumber(options.exitY, -30),
+            scale: getNumber(options.exitScale, 0.97),
+            filter: "blur(8px)",
+            duration: getNumber(options.outDuration, 0.34),
+            ease: options.exitEase || "power2.in",
             pointerEvents: "none"
           },
           itemEnd
@@ -121,28 +144,38 @@
 
     const sceneStart = getNumber(start, 0);
     const sceneDuration = Math.max(1, getNumber(duration, items.length * 2));
-    const slotDuration = sceneDuration / items.length;
+    const slotDuration = Math.max(1.15, sceneDuration / items.length);
 
-    timeline.set(items, { opacity: getNumber(options.dimOpacity, 0.32), scale: 0.96 }, sceneStart);
+    timeline.set(items, {
+      opacity: 0,
+      x: getNumber(options.enterX, 28),
+      y: getNumber(options.enterY, 24),
+      scale: 0.96,
+      filter: "blur(8px)"
+    }, sceneStart);
     items.forEach((item, index) => {
-      const itemStart = sceneStart + (index * slotDuration);
+      const itemStart = sceneStart + (index * slotDuration) + getNumber(options.padding, 0.25);
       const itemEnd = Math.min(sceneStart + sceneDuration - 0.1, itemStart + slotDuration * 0.82);
       timeline.to(
         item,
         {
           opacity: 1,
+          x: 0,
+          y: 0,
           scale: 1,
-          duration: getNumber(options.focusDuration, 0.32),
-          ease: options.ease || "power2.out"
+          filter: "blur(0px)",
+          duration: getNumber(options.focusDuration, 0.5),
+          ease: options.ease || "power3.out"
         },
         itemStart
       );
       timeline.to(
         item,
         {
-          opacity: getNumber(options.dimOpacity, 0.32),
-          scale: 0.96,
-          duration: getNumber(options.dimDuration, 0.24),
+          opacity: getNumber(options.dimOpacity, 0.46),
+          x: getNumber(options.dimX, -8),
+          scale: 0.98,
+          duration: getNumber(options.dimDuration, 0.32),
           ease: options.exitEase || "power1.out"
         },
         itemEnd
@@ -162,14 +195,16 @@
       {
         opacity: 0,
         scale: getNumber(options.fromScale, 1.04),
-        y: getNumber(options.y, 24)
+        y: getNumber(options.y, 34),
+        filter: options.filter === false ? "none" : "blur(10px)"
       },
       {
         opacity: 1,
         scale: 1,
         y: 0,
-        duration: getNumber(options.duration, 0.65),
-        ease: options.ease || "power2.out",
+        filter: "blur(0px)",
+        duration: getNumber(options.duration, 0.82),
+        ease: options.ease || "power3.out",
         immediateRender: false
       },
       getNumber(start, 0)

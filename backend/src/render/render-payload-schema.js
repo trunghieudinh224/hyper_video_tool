@@ -368,6 +368,7 @@ function validateRenderPayload(payload) {
     if (!Number.isInteger(payload.video.fps) || payload.video.fps <= 0) {
       pushError(errors, "video.fps", "Video fps must be a positive integer.");
     }
+    validateStringField(errors, payload, "video.outputFilename", false);
 
     const preset = TEMPLATE_PRESETS[templateId] || VIDEO_PRESETS[payload.video.aspectRatio];
     if (preset) {

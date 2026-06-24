@@ -30,8 +30,29 @@ function ensureDirectory(directoryPath) {
   fs.mkdirSync(directoryPath, { recursive: true });
 }
 
-function getOutputPath(jobId) {
-  return path.join(config.projectRoot, "outputs", `${jobId}.mp4`);
+function normalizeOutputFilename(value, fallbackId) {
+  const fallback = `${fallbackId}.mp4`;
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  const withoutExtension = raw.replace(/\.mp4$/i, "");
+  const safeName = withoutExtension
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96);
+
+  return safeName ? `${safeName}.mp4` : fallback;
+}
+
+function getPayloadOutputPath(jobId, payload) {
+  const filename = normalizeOutputFilename(payload && payload.video && payload.video.outputFilename, jobId);
+  return path.join(config.projectRoot, "outputs", filename);
 }
 
 function getWorkDir(jobId) {
@@ -81,7 +102,7 @@ function createRelativeAudioResult(voiceoverResult) {
 function createJobRecord(payload) {
   const jobId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const outputPath = getOutputPath(jobId);
+  const outputPath = getPayloadOutputPath(jobId, payload);
 
   return {
     id: jobId,
@@ -188,7 +209,7 @@ function runHyperFramesRender(compositionDir, outputPath, job) {
 }
 
 async function executeRenderJob(job, payload) {
-  const outputPath = getOutputPath(job.id);
+  const outputPath = getPayloadOutputPath(job.id, payload);
   const voiceoverEnabled = Boolean(payload.audio && payload.audio.voiceover && payload.audio.voiceover.enabled);
   const renderOutputPath = voiceoverEnabled ? getVideoOnlyOutputPath(job.id) : outputPath;
   const startedAt = Date.now();

@@ -1,10 +1,10 @@
 {
   "version": "dynamic-motion-1.0.0",
   "source": {
-    "projectName": "Hyper Video Tool",
-    "projectSlug": "hyper-video-tool",
-    "ownerTeam": "Internal Tools",
-    "presenterRole": "Product Builder"
+    "projectName": "CodeGraph trong Migration Agent",
+    "projectSlug": "codegraph-migration-agent",
+    "ownerTeam": "Migration Agent",
+    "presenterRole": "Onboarding Guide"
   },
   "template": {
     "id": "dynamic-story-vertical",
@@ -51,18 +51,18 @@
         "id": "asset-logo",
         "type": "image",
         "role": "logo",
-        "name": "Hyper Video Tool logo",
+        "name": "CodeGraph",
         "url": "",
-        "alt": "Hyper Video Tool logo",
+        "alt": "CodeGraph symbol map",
         "useInVideo": true
       },
       {
         "id": "asset-preview",
         "type": "image",
         "role": "screenshot",
-        "name": "Render page preview",
-        "url": "https://placehold.co/1080x720/101214/eef2f7?text=Render+Preview",
-        "alt": "Render preview screenshot",
+        "name": "CodeGraph map preview",
+        "url": "https://placehold.co/1080x720/101214/eef2f7?text=CodeGraph+Map",
+        "alt": "CodeGraph map preview",
         "useInVideo": true
       }
     ]
@@ -71,9 +71,9 @@
     {
       "id": "scene-title",
       "type": "title",
-      "headline": "Tao can tao video co motion that su",
-      "subtitle": "Khong phai show het item cung mot luc",
-      "body": "Template se tu can thoi luong theo noi dung va reveal tung phan theo nhip.",
+      "headline": "CodeGraph là bản đồ hiểu code",
+      "subtitle": "Symbol, call graph và path được index cục bộ",
+      "body": "Trong Migration Agent, CodeGraph giúp agent hỏi đúng phần code thay vì grep thủ công từng file.",
       "media": {
         "assetId": "asset-logo",
         "type": "image",
@@ -96,9 +96,9 @@
     {
       "id": "scene-context",
       "type": "text",
-      "headline": "No phai phu hop voi nhieu kieu noi dung",
-      "subtitle": "Gioi thieu, tutorial, showcase, story hoac report",
-      "body": "Scene khong bat buoc phai co so lieu hay danh sach. Neu chi co text, motion tap trung vao cach reveal headline, body va background.",
+      "headline": "Vấn đề là G và S rất dễ đọc nhầm",
+      "subtitle": "Java NetBeans có nhiều class trùng tên",
+      "body": "Khi migrate, agent phải phân biệt nguồn G và đích S theo path như MgsV3 và MgsV4. Nếu đọc sai context, logic copy qua sẽ lệch.",
       "motion": {
         "preset": "textBuild",
         "intensity": "low",
@@ -113,16 +113,16 @@
     {
       "id": "scene-media",
       "type": "media",
-      "headline": "Neu co anh thi anh phai la mot phan cua cau chuyen",
-      "subtitle": "Khong chi nem screenshot len man hinh",
-      "body": "Media co caption, fit, focus va motion rieng de tranh bi tinh.",
+      "headline": "CodeGraph biến source thành graph",
+      "subtitle": "Tree-sitter parse node, edge rồi lưu SQLite",
+      "body": "Thay vì mở từng file, agent có thể hỏi symbol, caller, callee hoặc vùng impact trực tiếp qua MCP.",
       "media": {
         "assetId": "asset-preview",
         "type": "image",
         "placement": "focus",
         "fit": "cover",
         "focus": "center",
-        "caption": "Preview render flow"
+        "caption": "Local graph: file -> symbol -> call edge"
       },
       "motion": {
         "preset": "mediaFocus",
@@ -138,25 +138,25 @@
     {
       "id": "scene-cards",
       "type": "cards",
-      "headline": "Moi phan noi dung co nhip rieng",
-      "subtitle": "Card khong nen hien het mot phat",
+      "headline": "Các tool cần dùng đúng mục đích",
+      "subtitle": "Không phải case nào cũng grep",
       "items": [
         {
           "id": "card-1",
-          "title": "Headline vao truoc",
-          "body": "Nguoi xem can biet scene dang noi gi.",
+          "title": "explore",
+          "body": "Đọc một khu vực hoặc luồng chính, thường là lệnh đầu tiên khi cần hiểu feature.",
           "media": null
         },
         {
           "id": "card-2",
-          "title": "Item vao lan luot",
-          "body": "Moi item co slot rieng, item cu co the dim hoac truot ra.",
+          "title": "search + node",
+          "body": "Tìm symbol chính xác rồi mở source đầy đủ khi tên bị trùng hoặc overload.",
           "media": null
         },
         {
           "id": "card-3",
-          "title": "Media duoc focus",
-          "body": "Anh va clip can duoc reveal, pan hoac zoom nhe.",
+          "title": "callers / callees / impact",
+          "body": "Kiểm tra ai gọi ai và đổi một symbol sẽ ảnh hưởng vùng nào.",
           "media": null
         }
       ],
@@ -175,28 +175,28 @@
     {
       "id": "scene-steps",
       "type": "steps",
-      "headline": "Cach render nen di theo pipeline ro",
-      "subtitle": "Data -> duration -> motion -> MP4",
+      "headline": "Flow migrate nên đi theo đường rõ",
+      "subtitle": "Index đúng -> hỏi đúng -> adapt đúng",
       "items": [
         {
           "id": "step-1",
-          "title": "Doc payload",
-          "body": "Template nhan scene generic."
+          "title": "Link workspace",
+          "body": "Symlink hoặc trỏ đúng project để CodeGraph nhìn thấy source cần index."
         },
         {
           "id": "step-2",
-          "title": "Tinh duration",
-          "body": "Thoi luong dua tren text, item, media va voiceover."
+          "title": "Index graph",
+          "body": "Build graph trước khi query; sau khi sửa code phải để ý trạng thái staleness."
         },
         {
           "id": "step-3",
-          "title": "Build timeline",
-          "body": "GSAP reveal tung phan theo timeline plan."
+          "title": "Query đúng path",
+          "body": "Luôn xác nhận MgsV3 hay MgsV4 để không đọc nhầm bản G/S."
         },
         {
           "id": "step-4",
-          "title": "Render MP4",
-          "body": "HyperFrames record thanh video."
+          "title": "Adapt vào S",
+          "body": "Dùng graph để hiểu logic, nhưng code cuối phải theo style và API của S."
         }
       ],
       "motion": {
@@ -214,9 +214,9 @@
     {
       "id": "scene-outro",
       "type": "outro",
-      "headline": "MVP dau tien chi can render mau cho ngon",
-      "subtitle": "UI de sau khi motion da dat",
-      "body": "Neu MP4 mau chua cuon, lam UI truoc la vo nghia.",
+      "headline": "CodeGraph tăng tốc hiểu code, không thay thế review",
+      "subtitle": "Graph giúp định hướng, build/test mới xác nhận đúng",
+      "body": "Quy tắc an toàn là dùng CodeGraph để giảm mù context, rồi vẫn kiểm bằng compiler, test và review migration diff.",
       "media": {
         "assetId": "asset-logo",
         "type": "image",

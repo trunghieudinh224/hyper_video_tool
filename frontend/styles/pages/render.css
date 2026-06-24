@@ -1,44 +1,50 @@
 /* Page-specific styles for Render. */
 
-.render-workflow-stack {
+.render-workflow-grid {
   display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr);
   gap: var(--space-4);
+  align-items: stretch;
 }
 
-.render-config-card,
+.render-preflight-card,
 .render-progress-card {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 480px;
 }
 
-.render-config-body,
 .render-progress-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  flex: 1;
+  overflow-y: auto;
 }
 
-.render-validation-panel {
-  display: grid;
-  gap: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  background: var(--color-surface-alt);
+.render-progress-bar-wrapper {
+  flex: 0 0 auto;
 }
 
-.render-validation-panel.is-ok {
-  border-color: color-mix(in srgb, var(--color-success) 28%, var(--color-border));
-  background: color-mix(in srgb, var(--color-success) 6%, var(--color-surface));
+.render-preflight-body {
+  flex: 1;
+  overflow-y: auto;
 }
 
-.render-validation-panel.is-warning {
-  border-color: color-mix(in srgb, var(--color-warning) 34%, var(--color-border));
-  background: color-mix(in srgb, var(--color-warning) 7%, var(--color-surface));
+.render-progress-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
-.render-validation-panel.is-error {
-  border-color: color-mix(in srgb, var(--color-danger) 34%, var(--color-border));
-  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-surface));
+.render-progress-text {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  text-align: right;
 }
 
 .render-validation-heading {
@@ -109,29 +115,6 @@
   line-height: 1.4;
 }
 
-.render-basic-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.render-basic-grid .form-group {
-  min-width: 0;
-}
-
-.render-filename-field {
-  grid-column: 1 / -1;
-}
-
-.render-config-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
-}
-
 .render-log-details {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -177,6 +160,22 @@
   background: var(--color-surface-alt);
 }
 
+.render-inline-result.is-ready {
+  border-color: color-mix(in srgb, var(--color-success) 24%, var(--color-border));
+  background: color-mix(in srgb, var(--color-success) 5%, var(--color-surface));
+}
+
+.render-inline-result.is-warning {
+  border-color: color-mix(in srgb, var(--color-warning) 32%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
+}
+
+.render-inline-result.is-warning,
+.render-inline-result.is-error {
+  align-items: stretch;
+  flex-direction: column;
+}
+
 .render-inline-result.is-success {
   border-color: color-mix(in srgb, var(--color-success) 32%, var(--color-border));
   background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
@@ -216,6 +215,19 @@
   gap: var(--space-2);
 }
 
+.render-inline-actions .btn-icon-solid {
+  min-width: 36px;
+  color: var(--color-text-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.render-inline-actions .btn-icon-solid:hover {
+  color: var(--color-text-on-primary);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
 .render-result-video {
   display: block;
   width: 100%;
@@ -242,7 +254,7 @@
 }
 
 @media (max-width: 1100px) {
-  .render-basic-grid {
+  .render-workflow-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -261,6 +273,15 @@
   .render-validation-heading,
   .render-validation-item {
     grid-template-columns: 1fr;
+  }
+
+  .render-progress-header-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .render-progress-header-actions .btn {
+    width: 100%;
   }
 
   .render-validation-heading {
@@ -291,4 +312,71 @@
     flex: 1;
     min-height: 44px;
   }
+}
+
+.render-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.render-status-display {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 2px var(--space-2);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.render-status-display.is-success {
+  background: color-mix(in srgb, var(--color-success) 10%, var(--color-surface));
+  color: var(--color-success);
+}
+
+.render-status-display.is-warning {
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  color: var(--color-warning);
+}
+
+.render-status-display.is-error {
+  background: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
+  color: var(--color-danger);
+}
+
+.render-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.render-status-display .render-status-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+}
+
+.render-status-text {
+  white-space: nowrap;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }

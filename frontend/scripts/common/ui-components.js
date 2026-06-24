@@ -248,15 +248,24 @@ const AppUI = (() => {
     };
     const contentTypes = Array.isArray(VIDEO_CONTENT_TYPES) ? VIDEO_CONTENT_TYPES : [];
     const videoTones = Array.isArray(VIDEO_TONES) ? VIDEO_TONES : [];
+    const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
     const projectAssets = Array.isArray(data.assets) ? data.assets : [];
     const selectedContentType = data.contentType || "feature";
     const selectedTone = data.contentTone || "technical";
     const selectedLanguage = data.contentLanguage || (savedVoiceover.language || "vi-VN");
     const selectedPrimaryAssetId = data.primaryAssetId || "";
+    const selectedVideoConfig = data.video || {};
+    const selectedVideoFormat = renderFormats.find((format) => format.id === selectedVideoConfig.formatId)
+      || renderFormats.find((format) => format.templateId === data.templateId)
+      || renderFormats.find((format) => format.id === "dynamic-story-vertical")
+      || renderFormats[0];
+    const selectedVideoFormatId = selectedVideoFormat ? selectedVideoFormat.id : "dynamic-story-vertical";
+    const selectedVideoFps = Number(selectedVideoConfig.fps) === 60 ? 60 : 30;
+    const selectedOutputFilename = selectedVideoConfig.outputFilename || `${data.projectSlug || "project"}_video.mp4`;
 
     container.innerHTML = `
       <div class="workspace-header">
-        <h1>Nội dung video</h1>
+        <h1>Thiết lập video</h1>
         <div style="display:flex; gap: var(--space-2);">
           <button id="content-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu</button>
           <button id="content-clear-btn" class="btn btn-secondary">Xóa form</button>
@@ -335,10 +344,38 @@ const AppUI = (() => {
 
           <div class="grid-2">
             <div class="form-group">
+              <label class="form-label" for="field-videoFormatId">Tỷ lệ video</label>
+              <div class="form-hint">Cấu hình này quyết định template, độ phân giải và bố cục preview/render.</div>
+              <select id="field-videoFormatId" class="form-control">
+                ${renderFormats.map((format) => `
+                  <option value="${format.id}" ${format.id === selectedVideoFormatId ? "selected" : ""}>${format.label}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-videoFps">Số khung hình (FPS)</label>
+              <div class="form-hint">FPS cao mượt hơn nhưng render lâu và nặng máy hơn.</div>
+              <select id="field-videoFps" class="form-control">
+                <option value="30" ${selectedVideoFps === 30 ? "selected" : ""}>30 FPS (Mượt mà, ít tốn tài nguyên)</option>
+                <option value="60" ${selectedVideoFps === 60 ? "selected" : ""}>60 FPS (Mượt hơn, render lâu hơn)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
               <label class="form-label" for="field-projectSlug">Mã video *</label>
               <div class="form-hint">Mã ngắn dùng để đặt tên file và định danh nội dung video.</div>
               <input type="text" id="field-projectSlug" class="form-control" value="${data.projectSlug || ''}" placeholder="ví dụ: internal-analytics-dashboard">
             </div>
+            <div class="form-group">
+              <label class="form-label" for="field-outputFilename">Tên tệp tin đầu ra</label>
+              <div class="form-hint">Tên file MP4 sau khi render thành công.</div>
+              <input type="text" id="field-outputFilename" class="form-control" value="${selectedOutputFilename}">
+            </div>
+          </div>
+
+          <div class="grid-2">
             <div class="form-group">
               <label class="form-label" for="field-contentLanguage">Ngôn ngữ nội dung</label>
               <div class="form-hint">Ngôn ngữ chính của text và voice script.</div>
@@ -468,6 +505,27 @@ const AppUI = (() => {
         syncVoiceoverRangeLabels();
         saveVoiceoverSettings();
       });
+    });
+
+    const videoFormatInput = document.getElementById("field-videoFormatId");
+    const videoFpsInput = document.getElementById("field-videoFps");
+    const outputFilenameInput = document.getElementById("field-outputFilename");
+    const saveVideoSettings = () => {
+      const selectedFormat = renderFormats.find((format) => format.id === (videoFormatInput && videoFormatInput.value)) || renderFormats[0];
+      const fps = Number.parseInt(videoFpsInput ? videoFpsInput.value : "30", 10) === 60 ? 60 : 30;
+      AppState.updateProjectField("video", {
+        formatId: selectedFormat ? selectedFormat.id : "dynamic-story-vertical",
+        fps,
+        outputFilename: outputFilenameInput ? outputFilenameInput.value.trim() : ""
+      });
+      if (selectedFormat) {
+        AppState.updateProjectField("templateId", selectedFormat.templateId);
+      }
+    };
+
+    [videoFormatInput, videoFpsInput, outputFilenameInput].forEach((input) => {
+      if (!input) return;
+      input.addEventListener(input.tagName === "INPUT" ? "input" : "change", saveVideoSettings);
     });
 
     // Other inputs binding
@@ -1177,11 +1235,11 @@ const AppUI = (() => {
         </div>
         <div class="assets-action-buttons">
           <button id="assets-delete-selected-btn" class="btn btn-danger d-none">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: var(--space-2);"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+            <svg class="assets-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
             Xóa đã chọn (<span id="selected-assets-count">0</span>)
           </button>
           <button id="assets-upload-btn" class="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right: var(--space-2);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <svg class="assets-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
             Tải tệp lên
           </button>
         </div>
@@ -1786,10 +1844,18 @@ const AppUI = (() => {
   // 8. Render Engine View
   const renderRenderScreen = (container, data) => {
     const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
+    const selectedVideoConfig = data.video || {};
+    const selectedFormat = renderFormats.find((format) => format.id === selectedVideoConfig.formatId)
+      || renderFormats.find((format) => format.templateId === data.templateId)
+      || renderFormats.find((format) => format.id === "dynamic-story-vertical")
+      || renderFormats[0]
+      || { id: "landscape-16x9", label: "Ngang 16:9 - 1920x1080", resolution: "1920x1080", aspectRatio: "16:9" };
+    const selectedFps = Number(selectedVideoConfig.fps) === 60 ? 60 : 30;
+    const selectedOutputFilename = selectedVideoConfig.outputFilename || `${data.projectSlug || "project"}_video.mp4`;
 
     let buttonStateHTML = "";
-    if (AppRender.isRendering()) {
-      buttonStateHTML = `<button id="btn-trigger-render-cancel" class="btn btn-danger">Hủy bỏ xuất bản</button>`;
+    if (AppRender.isRendering() || (AppRender.hasActiveRenderJob && AppRender.hasActiveRenderJob())) {
+      buttonStateHTML = `<button id="btn-trigger-render-start" class="btn btn-primary" disabled>Đang render...</button>`;
     } else {
       buttonStateHTML = `
         <button id="btn-trigger-render-start" class="btn btn-primary">
@@ -1804,89 +1870,46 @@ const AppUI = (() => {
         <h1>Render xuất bản Video</h1>
       </div>
 
-      <div class="card mb-4">
-        <div class="card-header">
-          <h3>Kiểm tra môi trường render</h3>
-          <button id="btn-refresh-preflight" class="btn btn-secondary btn-sm">Kiểm tra lại</button>
-        </div>
-        <div class="card-body" id="render-preflight-panel">
-          <p class="text-muted">Đang kiểm tra backend, template, payload và HyperFrames runner...</p>
-        </div>
-      </div>
-
-      <div class="render-workflow-stack">
-        <div class="card render-config-card">
+      <div class="render-workflow-grid">
+        <div class="card render-preflight-card">
             <div class="card-header">
-              <h3>Cấu hình render</h3>
+              <h3>Kiểm tra môi trường render</h3>
+              <button id="btn-refresh-preflight" class="btn btn-secondary btn-sm">Kiểm tra lại</button>
             </div>
-            <div class="card-body render-config-body">
-              <div id="render-validation-panel" class="render-validation-panel is-ok">
-                <span class="render-validation-title">Dữ liệu sẽ được kiểm tra khi bắt đầu render.</span>
-              </div>
-
-              <div class="render-basic-grid">
-                <div class="form-group">
-                  <label class="form-label" for="render-format">Tỷ lệ video</label>
-                  <div class="form-hint">Chọn khung hình đầu ra phù hợp nơi đăng video.</div>
-                  <select id="render-format" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
-                    ${renderFormats.map((format, index) => `
-                      <option value="${format.id}" ${index === 0 ? 'selected' : ''}>${format.label}</option>
-                    `).join("")}
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="render-fps">Số khung hình (FPS)</label>
-                  <div class="form-hint">FPS cao mượt hơn nhưng render lâu và nặng máy hơn.</div>
-                  <select id="render-fps" class="form-control" ${AppRender.isRendering() ? 'disabled' : ''}>
-                    <option value="30">30 FPS (Mượt mà, tốn ít tài nguyên)</option>
-                    <option value="60">60 FPS (Chuyển động siêu mượt, render lâu hơn)</option>
-                  </select>
-                </div>
-
-                <div class="form-group render-filename-field">
-                  <label class="form-label" for="render-filename">Tên tệp tin đầu ra</label>
-                  <div class="form-hint">Tên file MP4 sau khi render thành công.</div>
-                  <input type="text" id="render-filename" class="form-control" value="${data.projectSlug || 'project'}_video.mp4" ${AppRender.isRendering() ? 'disabled' : ''}>
-                </div>
-              </div>
-
-              <div class="render-config-status">
-                <span>Trạng thái:</span>
-                <span id="render-status-pill" class="status-pill status-info">Chờ bắt đầu</span>
-              </div>
-            </div>
-            <div class="card-footer">
-              ${buttonStateHTML}
+            <div class="card-body render-preflight-body" id="render-preflight-panel">
+              <p class="text-muted">Đang kiểm tra backend, template, payload và HyperFrames runner...</p>
             </div>
         </div>
 
         <div class="card render-progress-card">
             <div class="card-header">
               <h3>Báo cáo tiến trình render</h3>
-              <span id="render-progress-text" style="font-weight:700;">0%</span>
+              <div class="render-progress-header-actions">
+                ${buttonStateHTML}
+              </div>
             </div>
             <div class="card-body render-progress-body">
               <div class="render-progress-bar-wrapper">
                 <div id="render-progress-bar" class="render-progress-bar"></div>
               </div>
+              <div class="render-progress-info">
+                <div id="render-status-display" class="render-status-display"></div>
+                <div id="render-progress-text" class="render-progress-text">0%</div>
+              </div>
 
-              <details id="render-log-details" class="render-log-details">
+              <details id="render-log-details" class="render-log-details" open>
                 <summary>Hộp thoại Log (Terminal Logs)</summary>
                 <div id="render-console" class="console-box">
                   <span class="console-line text-subtle">&gt; Nhấn "Bắt đầu Render" để gửi job thật sang backend HyperFrames local...</span>
                 </div>
               </details>
-              <div id="render-inline-result" class="render-inline-result">
-                <span class="render-inline-status">Chưa render</span>
-              </div>
+              <div id="render-inline-result" class="render-inline-result d-none"></div>
             </div>
         </div>
       </div>
     `;
 
     // Bind actions
-    const statusPill = document.getElementById("render-status-pill");
     const progressText = document.getElementById("render-progress-text");
     const progressBar = document.getElementById("render-progress-bar");
     const renderConsole = document.getElementById("render-console");
@@ -1894,7 +1917,33 @@ const AppUI = (() => {
     const refreshPreflightBtn = document.getElementById("btn-refresh-preflight");
     const renderLogDetails = document.getElementById("render-log-details");
     const renderInlineResult = document.getElementById("render-inline-result");
-    const renderValidationPanel = document.getElementById("render-validation-panel");
+
+    const updateStatusDisplay = (type, text) => {
+      const statusDisplay = document.getElementById("render-status-display");
+      if (!statusDisplay) return;
+
+      let iconSvg = "";
+      switch (type) {
+        case "idle":
+          iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="render-status-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+          break;
+        case "running":
+          iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="render-status-icon spin"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>`;
+          break;
+        case "success":
+          iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="render-status-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+          break;
+        case "warning":
+          iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="render-status-icon"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+          break;
+        case "error":
+          iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="render-status-icon"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+          break;
+      }
+
+      statusDisplay.className = `render-status-display is-${type}`;
+      statusDisplay.innerHTML = `${iconSvg}<span class="render-status-text">${text}</span>`;
+    };
     const getOutputAspectRatio = (output) => {
       if (output.aspectRatio === "9:16" || output.resolution === "1080x1920") {
         return "9/16";
@@ -1943,15 +1992,15 @@ const AppUI = (() => {
       const warnings = validationResults.warnings || [];
 
       if (errors.length === 0 && warnings.length === 0) {
-        renderValidationPanel.className = "render-validation-panel is-ok";
-        renderValidationPanel.innerHTML = `
-          <span class="render-validation-title">Dữ liệu hợp lệ, có thể render.</span>
-        `;
+        renderInlineResult.className = "render-inline-result is-ready d-none";
+        renderInlineResult.innerHTML = "";
+        updateStatusDisplay("idle", "Chưa render");
         return;
       }
 
-      renderValidationPanel.className = `render-validation-panel ${errors.length > 0 ? "is-error" : "is-warning"}`;
-      renderValidationPanel.innerHTML = `
+      renderInlineResult.className = `render-inline-result ${errors.length > 0 ? "is-error" : "is-warning"}`;
+      renderInlineResult.classList.remove("d-none");
+      renderInlineResult.innerHTML = `
         <div class="render-validation-heading">
           <span class="render-validation-title">${errors.length > 0 ? "Cần sửa dữ liệu trước khi render" : "Có cảnh báo trước khi render"}</span>
           <span class="render-validation-count">${errors.length} lỗi · ${warnings.length} cảnh báo</span>
@@ -1978,7 +2027,13 @@ const AppUI = (() => {
         </div>
       `;
 
-      renderValidationPanel.querySelectorAll(".render-validation-item").forEach((item) => {
+      if (errors.length > 0) {
+        updateStatusDisplay("error", "Cần sửa dữ liệu");
+      } else {
+        updateStatusDisplay("warning", "Có cảnh báo");
+      }
+
+      renderInlineResult.querySelectorAll(".render-validation-item").forEach((item) => {
         item.addEventListener("click", () => {
           focusValidationError(item.getAttribute("data-tab"), item.getAttribute("data-field"));
         });
@@ -1991,14 +2046,20 @@ const AppUI = (() => {
       const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
 
       renderInlineResult.className = "render-inline-result is-success";
+      renderInlineResult.classList.remove("d-none");
       renderInlineResult.innerHTML = `
         <div class="render-inline-copy">
-          <span class="render-inline-status">Hoàn tất</span>
           <span class="render-inline-path">${output.outputPath || filename || "MP4 đã được tạo."}</span>
         </div>
         <div class="render-inline-actions">
-          <button id="render-result-preview-btn" class="btn btn-primary btn-sm">Xem video</button>
-          ${downloadUrl ? `<a class="btn btn-secondary btn-sm" href="${downloadUrl}" download>Tải xuống</a>` : ""}
+          <button id="render-result-preview-btn" class="btn btn-primary btn-icon btn-icon-solid" title="Xem video" aria-label="Xem video">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+          </button>
+          ${downloadUrl ? `
+            <a class="btn btn-primary btn-icon btn-icon-solid" href="${downloadUrl}" download title="Tải xuống" aria-label="Tải xuống">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </a>
+          ` : ""}
         </div>
       `;
 
@@ -2076,54 +2137,68 @@ const AppUI = (() => {
     };
 
     const onComplete = (outputObj) => {
-      statusPill.className = "status-pill status-success";
-      statusPill.textContent = "Hoàn tất";
       startBtn.disabled = false;
       startBtn.textContent = "Render lại";
       renderInlineResultContent(outputObj);
       showToast(`Đã xuất video thành công: ${outputObj.outputPath || outputObj.filename}`);
+      updateStatusDisplay("success", "Hoàn tất");
     };
 
     const onFailure = (error) => {
-      statusPill.className = "status-pill status-danger";
-      statusPill.textContent = "Lỗi render";
       startBtn.disabled = false;
       startBtn.textContent = "Thử render lại";
       renderInlineResult.className = "render-inline-result is-error";
+      renderInlineResult.classList.remove("d-none");
       renderInlineResult.innerHTML = `
         <div class="render-inline-copy">
-          <span class="render-inline-status">Lỗi render</span>
           <span class="render-inline-path">${error.message || "Render thất bại."}</span>
         </div>
       `;
       showToast(error.message || "Render thất bại.", "error");
+      updateStatusDisplay("error", "Lỗi render");
     };
 
-    const onCancel = () => {
-      statusPill.className = "status-pill status-danger";
-      statusPill.textContent = "Bị hủy";
-      progressBar.style.width = "0%";
-      progressText.textContent = "0%";
-      renderRenderScreen(container, AppState.getProjectData());
+    const resumeActiveRender = async () => {
+      if (!AppRender.resumeRender || !AppRender.hasActiveRenderJob || !AppRender.hasActiveRenderJob()) {
+        return;
+      }
+
+      renderConsole.innerHTML = "";
+      renderLogDetails.open = true;
+      renderInlineResult.className = "render-inline-result is-running d-none";
+      renderInlineResult.innerHTML = "";
+      if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.textContent = "Đang render...";
+      }
+      await AppRender.resumeRender(onProgress, onLog, onComplete, onFailure);
     };
 
     // Keep state on re-render
     const queue = AppState.getRenderQueue();
     if (queue.length > 0 && AppRender.isRendering()) {
-      statusPill.className = "status-pill status-warning";
-      statusPill.textContent = "Đang chạy";
+      updateStatusDisplay("running", "Đang render");
       onProgress(queue[0].progress);
+    } else {
+      updateStatusDisplay("idle", "Chưa render");
     }
 
     const startBtn = document.getElementById("btn-trigger-render-start");
     refreshPreflightBtn.addEventListener("click", loadPreflight);
     loadPreflight();
+    resumeActiveRender();
 
     if (startBtn) {
       startBtn.addEventListener("click", () => {
-        const formatId = document.getElementById("render-format").value;
-        const fps = parseInt(document.getElementById("render-fps").value);
-        const filename = document.getElementById("render-filename").value.trim() || "output.mp4";
+        if (AppRender.hasActiveRenderJob && AppRender.hasActiveRenderJob()) {
+          showToast("Đang có render job chạy. UI sẽ khôi phục tiến trình hiện tại thay vì tạo job mới.", "info");
+          resumeActiveRender();
+          return;
+        }
+
+        const formatId = selectedFormat.id;
+        const fps = selectedFps;
+        const filename = selectedOutputFilename.trim() || "output.mp4";
         const currentData = AppState.getProjectData();
         const validationResults = AppValidation.validate(currentData);
         AppState.setValidation(validationResults);
@@ -2134,31 +2209,24 @@ const AppUI = (() => {
         }
 
         const currentVoiceover = (currentData.audio && currentData.audio.voiceover) || {};
-        const currentPayload = AppRender.buildRenderPayload(currentData, { formatId });
+        const currentPayload = AppRender.buildRenderPayload(currentData, { formatId, fps });
         if (currentVoiceover.enabled && !(currentPayload.audio.voiceover.script || "").trim()) {
-          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc ở trang Nội dung video.", "error");
+          showToast("Voiceover đang bật nhưng chưa có kịch bản đọc ở trang Thiết lập video.", "error");
           return;
         }
 
         renderConsole.innerHTML = "";
-        renderLogDetails.open = false;
-        renderInlineResult.className = "render-inline-result is-running";
-        renderInlineResult.innerHTML = `<span class="render-inline-status">Đang render</span>`;
-        statusPill.className = "status-pill status-warning";
-        statusPill.textContent = "Đang render";
+        renderLogDetails.open = true;
+        renderInlineResult.className = "render-inline-result is-running d-none";
+        renderInlineResult.innerHTML = "";
         startBtn.disabled = true;
         startBtn.textContent = "Đang render...";
+        updateStatusDisplay("running", "Đang render");
 
         AppRender.startRender({ formatId, fps, filename }, onProgress, onLog, onComplete, onFailure);
       });
     }
 
-    const cancelBtn = document.getElementById("btn-trigger-render-cancel");
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", () => {
-        AppRender.cancelRender(onLog, onCancel);
-      });
-    }
   };
 
   // 9. Outputs / History View
@@ -2429,7 +2497,7 @@ const AppUI = (() => {
                 renderSettingsScreen(container, parsed);
                 closeModal();
               } catch (e) {
-                alert("Chuỗi JSON không hợp lệ hoặc thiếu thuộc tính cấu trúc bắt buộc: " + e.message);
+                showToast(`Chuỗi JSON không hợp lệ hoặc thiếu thuộc tính cấu trúc bắt buộc: ${e.message}`, "error");
               }
             }
           }

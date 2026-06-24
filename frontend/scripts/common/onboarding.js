@@ -66,6 +66,24 @@ const AppOnboarding = (() => {
         "bottom"
       ),
       createStep(
+        "#field-videoFormatId",
+        "Tỷ lệ video",
+        "Chọn dọc hoặc ngang ngay từ phần nội dung vì lựa chọn này ảnh hưởng template, preview và render.",
+        "bottom"
+      ),
+      createStep(
+        "#field-videoFps",
+        "Số khung hình",
+        "Chọn 30 FPS cho render nhẹ hơn hoặc 60 FPS khi cần chuyển động mượt hơn.",
+        "bottom"
+      ),
+      createStep(
+        "#field-outputFilename",
+        "Tên file đầu ra",
+        "Đặt tên MP4 ngay trong phần thiết lập chung để Render chỉ tập trung chạy job.",
+        "bottom"
+      ),
+      createStep(
         "#field-projectName",
         "Chủ đề video",
         "Đây là tên nội dung được giới thiệu trong video, ví dụ tên tính năng, module, workflow hoặc báo cáo.",
@@ -212,22 +230,16 @@ const AppOnboarding = (() => {
         "bottom"
       ),
       createStep(
-        "#render-validation-panel",
+        ".render-progress-body",
         "Kiểm tra dữ liệu",
         "Trước khi render, app kiểm brief, kịch bản, template và voice. Click lỗi để nhảy tới trang cần sửa.",
         "bottom"
       ),
       createStep(
-        "#render-format",
-        "Tỷ lệ video đầu ra",
-        "Chọn 16:9 hoặc 9:16. Lựa chọn này quyết định template, resolution và file MP4 output.",
+        "#render-status-display",
+        "Cấu hình video",
+        "Render đọc tỷ lệ, FPS và tên file từ trang Thiết lập video. Muốn đổi cấu hình này thì quay lại Thiết lập video.",
         "bottom"
-      ),
-      createStep(
-        "#render-filename",
-        "Tên file MP4",
-        "Đặt tên dễ nhận biết để sau này tìm trong trang Video đã xuất và thư mục outputs.",
-        "top"
       ),
       createStep(
         "#btn-trigger-render-start",
@@ -325,7 +337,7 @@ const AppOnboarding = (() => {
   const getPageLabel = (page) => {
     const labels = {
       overview: "Tổng quan",
-      content: "Nội dung video",
+      content: "Thiết lập video",
       features: "Kịch bản",
       assets: "Tài nguyên",
       template: "Template",

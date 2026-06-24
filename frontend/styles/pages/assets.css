@@ -23,6 +23,10 @@
   align-items: center;
 }
 
+.assets-action-icon {
+  margin-right: var(--space-2);
+}
+
 /* Nút Tải tệp lên */
 #assets-upload-btn {
   height: 38px;

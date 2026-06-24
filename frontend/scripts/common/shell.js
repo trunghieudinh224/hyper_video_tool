@@ -3,7 +3,7 @@
 const AppShell = (() => {
   const navItems = [
     { page: "overview", label: "Tổng quan", icon: "grid", badge: "" },
-    { page: "content", label: "Nội dung video", icon: "file", badge: "badge-content" },
+    { page: "content", label: "Thiết lập video", icon: "file", badge: "badge-content" },
     { page: "features", label: "Kịch bản", icon: "clock", badge: "badge-features" },
     { page: "assets", label: "Tài nguyên", icon: "image", badge: "badge-assets" },
     { page: "template", label: "Template", icon: "layers", badge: "badge-template" },
