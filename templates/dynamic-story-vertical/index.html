@@ -35,12 +35,14 @@
   <script src="../shared/motion-core/dom.js"></script>
   <script src="../shared/motion-core/animations.js"></script>
   <script src="../shared/motion-core/index.js"></script>
+  <script src="script.js"></script>
   <script>
     window.__timelines = window.__timelines || {};
-    const dynamicStoryBootstrapTl = gsap.timeline({ paused: true });
-    dynamicStoryBootstrapTl.to({}, { duration: 68 }, 0);
-    window.__timelines["dynamic-story-vertical"] = dynamicStoryBootstrapTl;
+    if (!window.__timelines["dynamic-story-vertical"]) {
+      const dynamicStoryBootstrapTl = gsap.timeline({ paused: true });
+      dynamicStoryBootstrapTl.to({}, { duration: 68 }, 0);
+      window.__timelines["dynamic-story-vertical"] = dynamicStoryBootstrapTl;
+    }
   </script>
-  <script src="script.js"></script>
 </body>
 </html>

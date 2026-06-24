@@ -4,6 +4,38 @@
 
 in_progress
 
+## Diagnose - Dynamic Render Đen/Blank
+
+### Symptom
+
+User báo dynamic render ra video đen. Kiểm output cũ xác nhận:
+
+- `outputs/5f904c31-50d1-4016-80d0-3057f91368da.mp4`: dynamic vertical, `1080x1920`, `68s`, `174909` bytes, frame chỉ có nền/progress.
+- `outputs/32bbd36d-88e8-414b-bd08-7699e8d4dac4.mp4`: dynamic vertical, `1080x1920`, `68s`, `174909` bytes, frame chỉ có nền/progress.
+
+### Root Cause
+
+- Bug 1 đã fix ở Phase 7: backend copy template vào workdir nhưng không copy `templates/shared`, làm dynamic template thiếu motion core khi render qua API.
+- Bug 2: `templates/dynamic-story-vertical/index.html` register bootstrap timeline rỗng trước `script.js`; output sau bug 1 có nội dung nhưng đứng ở intro.
+
+### Fix
+
+- `backend/src/render/render-runner.js` đã copy `templates/shared` vào `.cache/render-jobs/{jobId}/shared`.
+- `templates/dynamic-story-vertical/index.html` đã đổi sang load `script.js` trước bootstrap fallback, và bootstrap chỉ tạo timeline nếu timeline thật chưa tồn tại.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/dynamic-story-vertical/script.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical lint` pass `0 errors, 0 warnings`.
+- `npm --prefix backend run check` pass.
+- API smoke dynamic vertical pass:
+  - Job: `add5b5bf-148c-4c04-9fa3-a6bccad0ac9f`.
+  - Output: `outputs/add5b5bf-148c-4c04-9fa3-a6bccad0ac9f.mp4`.
+  - `ffprobe`: `width=1080`, `height=1920`, `avg_frame_rate=30/1`, `duration=68.000000`, `size=3630432`.
+  - Manual frame review tại `10s`, `24s`, `36s` pass; scene chuyển `context -> media -> motion`.
+
 ## Dynamic Motion Video - Phase 7 Dynamic Horizontal Template
 
 ### Objective
