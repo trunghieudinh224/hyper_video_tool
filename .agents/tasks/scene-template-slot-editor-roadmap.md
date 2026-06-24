@@ -595,6 +595,46 @@ Status: passed
   - localStorage lưu `slots.grid.delay = 2`.
 - Desktop screenshot modal: `/private/tmp/hvt-phase3-slot-editor-modal.png`.
 
+### Slice 2 - Required Slot Validation Và Detail Slot Summary
+
+Status: completed
+
+Đã làm:
+
+- Khi lưu segment, slot required thiếu dữ liệu sẽ bị chặn.
+- Slot `title` trống tự fallback từ tiêu đề đoạn.
+- Slot `description` trống tự fallback từ nội dung chính.
+- Slot `asset/media` required bắt buộc có asset.
+- Slot `list` required bắt buộc có ít nhất một item.
+- Sau khi thêm/cập nhật segment, detail panel tự chọn đúng segment vừa lưu.
+- Detail panel hiển thị summary từng slot:
+  - label
+  - type
+  - delay
+  - animation
+  - value summary
+
+Chưa làm trong slice này:
+
+- Chưa preview timing/animation trực quan.
+- Chưa nối slot summary sang trang Preview.
+
+### Slice 2 Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/features.css` không có hit.
+- `npm --prefix backend run check` pass.
+- CDP desktop smoke:
+  - chọn `grid-feature`.
+  - để `Grid Items` trống rồi lưu bị chặn.
+  - toast báo `Thiếu slot bắt buộc: Grid Items.`
+  - nhập `Grid Items` rồi lưu thành công.
+  - detail panel chọn đúng segment vừa lưu.
+  - detail slot summary có `Grid Items` và `2 item`.
+
 ## Phase 4 - Preview Theo Scene Template Và Slot Delay
 
 ### Objective

@@ -4,6 +4,32 @@
 
 in_progress
 
+## Roadmap Phase 3 Slice 2 - Required Slot Validation Và Detail Summary
+
+### Objective
+
+Chặn lưu segment nếu slot bắt buộc còn thiếu dữ liệu và làm detail panel hiển thị rõ các slot đã cấu hình.
+
+### Summary
+
+- Slot required thiếu dữ liệu sẽ bị chặn khi lưu.
+- `title` slot trống fallback từ tiêu đề đoạn.
+- `description` slot trống fallback từ nội dung chính.
+- `asset/media` required phải có asset.
+- `list` required phải có ít nhất một item.
+- Sau khi thêm/cập nhật segment, detail panel chọn đúng segment vừa lưu.
+- Detail panel hiển thị slot summary gồm label, type, delay, animation và value summary.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/features.css` không có hit.
+- `npm --prefix backend run check` pass.
+- CDP desktop smoke pass: required `Grid Items` trống bị chặn, nhập item thì lưu được, detail panel chọn đúng segment mới và slot summary có `Grid Items`/`2 item`.
+
 ## Roadmap Phase 3 Slice 1 - Segment Slot Editor MVP
 
 ### Objective

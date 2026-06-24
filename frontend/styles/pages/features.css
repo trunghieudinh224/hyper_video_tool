@@ -757,6 +757,51 @@
   overflow-wrap: anywhere;
 }
 
+.script-slot-summary {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.script-slot-summary-item {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+}
+
+.script-slot-summary-item.is-disabled {
+  opacity: 0.6;
+}
+
+.script-slot-summary-item span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.script-slot-summary-item strong {
+  color: var(--color-text);
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+
+.script-slot-summary-item small,
+.script-slot-summary-item em {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.script-slot-summary-item em {
+  font-style: normal;
+  text-align: right;
+}
+
 .script-detail-actions {
   display: flex;
   gap: var(--space-2);
@@ -873,6 +918,14 @@
   .script-voice-preview {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .script-slot-summary-item {
+    grid-template-columns: 1fr;
+  }
+
+  .script-slot-summary-item em {
+    text-align: left;
   }
 
   .scene-slot-editor-title,

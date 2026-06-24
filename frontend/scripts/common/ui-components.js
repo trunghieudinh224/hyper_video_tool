@@ -737,6 +737,45 @@ const AppUI = (() => {
         return normalized;
       }, {});
     };
+    const getAssetLabel = (assetId) => {
+      const asset = (data.assets || []).find((item) => item.id === assetId);
+      return asset ? (asset.name || asset.id) : assetId;
+    };
+    const getSlotValueSummary = (slot, value = {}) => {
+      if (value.enabled === false) {
+        return "Đang tắt";
+      }
+      if (slot.type === "asset" || slot.type === "media") {
+        return value.assetId ? getAssetLabel(value.assetId) : "Chưa chọn tài nguyên";
+      }
+      if (slot.type === "list") {
+        const items = Array.isArray(value.items) ? value.items.filter(Boolean) : [];
+        return items.length ? `${items.length} item` : "Chưa có item";
+      }
+      return value.text ? value.text : "Chưa có nội dung";
+    };
+    const validateRequiredSlotValues = (template, slots) => {
+      if (!template) {
+        return [];
+      }
+
+      return template.slots.filter((slot) => {
+        if (!slot.required) {
+          return false;
+        }
+        const value = slots[slot.id] || {};
+        if (value.enabled === false) {
+          return true;
+        }
+        if (slot.type === "asset" || slot.type === "media") {
+          return !value.assetId;
+        }
+        if (slot.type === "list") {
+          return !Array.isArray(value.items) || value.items.filter(Boolean).length === 0;
+        }
+        return !String(value.text || "").trim();
+      });
+    };
     const selectedItem = list.find((item) => item.id === selectedScriptSegmentId) || list[0] || null;
     if (selectedItem) {
       selectedScriptSegmentId = selectedItem.id;
@@ -835,6 +874,9 @@ const AppUI = (() => {
 
     const selectedType = selectedItem ? getSegmentType(selectedItem.type) : null;
     const selectedSceneTemplate = selectedItem ? getSceneTemplate(selectedItem.sceneTemplateId) : null;
+    const selectedSlotValues = selectedItem && selectedSceneTemplate
+      ? normalizeSegmentSlots(selectedItem, selectedSceneTemplate.id)
+      : {};
     const selectedIndex = selectedItem ? list.findIndex((item) => item.id === selectedItem.id) : -1;
     const selectedDuration = selectedItem ? (Number.parseInt(selectedItem.durationSec, 10) || 8) : 0;
     const selectedVoice = selectedItem ? String(selectedItem.voiceoverScript || "").trim() : "";
@@ -867,6 +909,26 @@ const AppUI = (() => {
           <h3>Scene template</h3>
           <p>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn layout cho đoạn này.")}</p>
         </div>
+
+        ${selectedSceneTemplate ? `
+          <div class="script-detail-section">
+            <h3>Slots</h3>
+            <div class="script-slot-summary">
+              ${selectedSceneTemplate.slots.map((slot) => {
+                const value = selectedSlotValues[slot.id] || {};
+                return `
+                  <div class="script-slot-summary-item ${value.enabled === false ? "is-disabled" : ""}">
+                    <span>
+                      <strong>${escapeText(slot.label)}</strong>
+                      <small>${escapeText(getSlotTypeLabel(slot.type))} · ${escapeText(value.delay)}s · ${escapeText(value.animation || "none")}</small>
+                    </span>
+                    <em>${escapeText(getSlotValueSummary(slot, value))}</em>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        ` : ""}
 
         <div class="script-detail-section">
           <h3>Nội dung chính</h3>
@@ -1193,13 +1255,28 @@ const AppUI = (() => {
               const sceneTemplateId = document.getElementById("modal-feat-scene-template").value;
               activeSceneTemplateId = sceneTemplateId;
               const slots = collectSlotEditorValues();
+              const activeTemplate = getSceneTemplate(sceneTemplateId);
 
               if (!name || !description) {
                 showToast("Cần nhập tiêu đề và nội dung chính của đoạn.", "error");
                 return;
               }
 
+              if (slots.title && !String(slots.title.text || "").trim()) {
+                slots.title.text = name;
+              }
+              if (slots.description && !String(slots.description.text || "").trim()) {
+                slots.description.text = description;
+              }
+
+              const missingRequiredSlots = validateRequiredSlotValues(activeTemplate, slots);
+              if (missingRequiredSlots.length > 0) {
+                showToast(`Thiếu slot bắt buộc: ${missingRequiredSlots.map((slot) => slot.label).join(", ")}.`, "error");
+                return;
+              }
+
               const features = [...(data.features || [])];
+              const savedFeatureId = isEdit ? feature.id : "feat_" + Date.now();
               if (isEdit) {
                 const idx = features.findIndex(f => f.id === feature.id);
                 if (idx !== -1) {
@@ -1207,7 +1284,7 @@ const AppUI = (() => {
                 }
               } else {
                 features.push({
-                  id: "feat_" + Date.now(),
+                  id: savedFeatureId,
                   type,
                   name,
                   description,
@@ -1220,6 +1297,7 @@ const AppUI = (() => {
                 });
               }
 
+              selectedScriptSegmentId = savedFeatureId;
               AppState.updateProjectField("features", features);
               renderFeaturesScreen(container, AppState.getProjectData());
               closeModal();
