@@ -183,6 +183,7 @@ function getRenderPreflight() {
       "Nếu template lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint",
       "Nếu template dọc lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-vertical-60s lint",
       "Nếu template dynamic lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical lint",
+      "Nếu template dynamic ngang lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-horizontal lint",
       "Nếu outputs/ không ghi được, kiểm tra quyền ghi thư mục project."
     ]
   };

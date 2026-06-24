@@ -639,7 +639,7 @@ Sau khi bản dọc ổn, tạo bản ngang dùng cùng scene contract và share
 
 ### Scope
 
-Sẽ làm:
+Đã làm:
 
 - Tạo `templates/dynamic-story-horizontal/`.
 - Composition metadata:
@@ -651,11 +651,14 @@ Sẽ làm:
   - cards/grid không quá to
   - text không dùng scale dọc
 - Render smoke ngang.
+- Thêm preset backend/UI cho `dynamic-story-horizontal`.
+- Sửa backend render runner copy `templates/shared` vào workdir để dynamic templates load được motion core qua `../shared/...`.
 
 Không làm:
 
 - Không copy CSS dọc rồi scale bừa.
-- Không làm nếu template dọc chưa pass review visual.
+- Chưa làm editor scene dynamic riêng.
+- Chưa làm Preview page dynamic ngang.
 
 ### Files Impact
 
@@ -665,6 +668,9 @@ Không làm:
 - NEW `templates/dynamic-story-horizontal/vendor/gsap.min.js`
 - MODIFY `backend/src/render/render-payload-schema.js`
 - MODIFY `backend/src/render/preflight.js`
+- MODIFY `backend/src/render/render-runner.js`
+- MODIFY `backend/scripts/test-render-payload.js`
+- MODIFY `frontend/scripts/common/constants.js`
 - MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`
 
 ### Risk Assessment
@@ -681,7 +687,39 @@ Không làm:
 
 ### Status
 
-Future.
+Completed.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/dynamic-story-horizontal/script.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-horizontal lint` pass `0 errors, 0 warnings`.
+- `npm --prefix backend run check` pass.
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node -e "...getRenderPreflight()"` pass với `status=ok`, `checks=31`.
+- Direct render horizontal pass:
+  - Command: `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-horizontal render --output /private/tmp/hvt-dynamic-story-horizontal.mp4`
+  - `ffprobe`: `width=1920`, `height=1080`, `avg_frame_rate=30/1`, `duration=68.000000`, `size=3513271`.
+  - Manual frame review tại `0.8s`, `10s`, `24s`, `36s` pass, scene chuyển đúng và layout không bị kéo dọc.
+- API smoke horizontal dynamic pass sau khi sửa copy shared runtime:
+  - Command: `HVT_SMOKE_PAYLOAD_PATH=/private/tmp/hvt-dynamic-horizontal-payload.json HVT_SMOKE_EXPECT_RESOLUTION=1920x1080 HVT_SMOKE_TIMEOUT_MS=180000 npm --prefix backend run smoke:render-api`
+  - Job: `add6e749-1b48-4b1b-b12e-2e329e2b68b2`.
+  - Output: `outputs/add6e749-1b48-4b1b-b12e-2e329e2b68b2.mp4`.
+  - `ffprobe`: `width=1920`, `height=1080`, `avg_frame_rate=30/1`, `duration=68.000000`, `size=3510306`.
+  - Manual frame review từ API output tại `10s`, `24s`, `36s` pass, không còn blank.
+- UI payload builder check pass:
+  - `formatId=dynamic-story-horizontal`
+  - `version=dynamic-motion-1.0.0`
+  - `template.id=dynamic-story-horizontal`
+  - `aspectRatio=16:9`
+  - `resolution=1920x1080`
+  - `scenes=6`.
+
+Bug bắt được:
+
+- API render lần đầu tạo MP4 hợp lệ `1920x1080/68s` nhưng nội dung blank vì workdir chỉ copy template, không copy `templates/shared`.
+- Fix: `prepareWorkDir()` copy `templates/shared` sang `.cache/render-jobs/{jobId}/shared`, đúng với path `../shared/...` trong dynamic template.
 
 ## Phase 8 - Media Handling Nâng Cao
 

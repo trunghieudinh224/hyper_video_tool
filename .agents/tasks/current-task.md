@@ -4,6 +4,57 @@
 
 in_progress
 
+## Dynamic Motion Video - Phase 7 Dynamic Horizontal Template
+
+### Objective
+
+Tạo template dynamic ngang `16:9` dùng cùng dynamic scene contract/motion core với bản dọc, nhưng layout riêng cho desktop/video ngang.
+
+### Scope
+
+Đã làm:
+
+- Tạo `templates/dynamic-story-horizontal/`.
+- Thêm render format UI `Ngang dynamic motion - 1920x1080`.
+- Thêm backend preset/schema/preflight/test cho `dynamic-story-horizontal`.
+- Sửa render runner copy `templates/shared` vào workdir để dynamic templates load được motion core qua `../shared/...`.
+- Render direct và API smoke ra MP4 `1920x1080`.
+
+Không làm trong phase này:
+
+- Chưa làm editor scene dynamic riêng.
+- Chưa làm Preview page dynamic ngang.
+- Chưa làm crop/focus media nâng cao.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/dynamic-story-horizontal/script.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-horizontal lint` pass `0 errors, 0 warnings`.
+- `npm --prefix backend run check` pass.
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node -e "...getRenderPreflight()"` pass với `status=ok`, `checks=31`.
+- Direct render pass:
+  - Output: `/private/tmp/hvt-dynamic-story-horizontal.mp4`.
+  - `ffprobe`: `width=1920`, `height=1080`, `avg_frame_rate=30/1`, `duration=68.000000`, `size=3513271`.
+  - Manual frame review tại `10s`, `24s`, `36s` pass.
+- API smoke render ngang pass:
+  - Job: `add6e749-1b48-4b1b-b12e-2e329e2b68b2`.
+  - Output: `outputs/add6e749-1b48-4b1b-b12e-2e329e2b68b2.mp4`.
+  - `ffprobe`: `width=1920`, `height=1080`, `avg_frame_rate=30/1`, `duration=68.000000`, `size=3510306`.
+  - Manual frame review từ API output tại `10s`, `24s`, `36s` pass.
+- UI payload builder check pass:
+  - `template.id=dynamic-story-horizontal`
+  - `aspectRatio=16:9`
+  - `resolution=1920x1080`
+  - `scenes=6`
+
+Bug bắt được:
+
+- API render lần đầu ra MP4 hợp lệ nhưng blank vì backend không copy `templates/shared` vào render workdir.
+- Đã sửa trong `backend/src/render/render-runner.js`.
+
 ## Dynamic Motion Video - Phase 0 Audit Cơ Chế Render Hiện Tại
 
 ### Objective

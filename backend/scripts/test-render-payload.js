@@ -87,6 +87,26 @@ const mismatchedDynamicPayload = {
 const mismatchedDynamicValidation = validateRenderPayload(mismatchedDynamicPayload);
 assert.equal(mismatchedDynamicValidation.valid, false, "Dynamic vertical payload with horizontal video settings should fail validation.");
 
+const dynamicHorizontalPayload = {
+  ...dynamicPayload,
+  template: {
+    ...dynamicPayload.template,
+    id: "dynamic-story-horizontal"
+  },
+  video: {
+    ...dynamicPayload.video,
+    aspectRatio: "16:9",
+    width: 1920,
+    height: 1080
+  }
+};
+const dynamicHorizontalValidation = validateRenderPayload(dynamicHorizontalPayload);
+assert.equal(
+  dynamicHorizontalValidation.valid,
+  true,
+  `Dynamic horizontal payload should be valid: ${JSON.stringify(dynamicHorizontalValidation.errors)}`
+);
+
 const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");
 assert.equal(fallbackPayload.source.projectSlug, "untitled-project");

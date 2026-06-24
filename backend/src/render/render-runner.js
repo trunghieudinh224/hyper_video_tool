@@ -128,12 +128,17 @@ function validateJobPayload(payload) {
 
 function prepareWorkDir(jobId, payload) {
   const templateDir = path.join(config.projectRoot, "templates", payload.template.id);
+  const sharedTemplateDir = path.join(config.projectRoot, "templates", "shared");
   const workDir = getWorkDir(jobId);
   const compositionDir = path.join(workDir, "composition");
+  const sharedWorkDir = path.join(workDir, "shared");
 
   fs.rmSync(workDir, { recursive: true, force: true });
   ensureDirectory(workDir);
   fs.cpSync(templateDir, compositionDir, { recursive: true });
+  if (fs.existsSync(sharedTemplateDir)) {
+    fs.cpSync(sharedTemplateDir, sharedWorkDir, { recursive: true });
+  }
   fs.writeFileSync(path.join(compositionDir, "render-payload.json"), stableJson(payload));
 
   return compositionDir;

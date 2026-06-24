@@ -27,6 +27,13 @@ const TEMPLATE_PRESETS = {
     height: 1920,
     templateId: "dynamic-story-vertical",
     templateName: "Dynamic Story Vertical"
+  },
+  "dynamic-story-horizontal": {
+    aspectRatio: "16:9",
+    width: 1920,
+    height: 1080,
+    templateId: "dynamic-story-horizontal",
+    templateName: "Dynamic Story Horizontal"
   }
 };
 const SUPPORTED_TEMPLATE_IDS = new Set(Object.keys(TEMPLATE_PRESETS));
@@ -331,7 +338,8 @@ function validateRenderPayload(payload) {
   validateStringField(errors, payload, "template.id");
 
   const templateId = isPlainObject(payload.template) ? payload.template.id : null;
-  const isDynamicPayload = templateId === "dynamic-story-vertical" || payload.version === DYNAMIC_RENDER_PAYLOAD_VERSION;
+  const isDynamicPayload = (typeof templateId === "string" && templateId.startsWith("dynamic-story-"))
+    || payload.version === DYNAMIC_RENDER_PAYLOAD_VERSION;
   const expectedVersion = isDynamicPayload ? DYNAMIC_RENDER_PAYLOAD_VERSION : RENDER_PAYLOAD_VERSION;
   if (payload.version !== expectedVersion) {
     pushError(errors, "version", `Expected render payload version ${expectedVersion}.`);

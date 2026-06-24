@@ -171,6 +171,17 @@ const RENDER_FORMATS = [
     templateId: "dynamic-story-vertical",
     templateName: "Dynamic Story Vertical",
     payloadType: "dynamic-motion"
+  },
+  {
+    id: "dynamic-story-horizontal",
+    label: "Ngang dynamic motion - 1920x1080",
+    aspectRatio: "16:9",
+    resolution: "1920x1080",
+    width: 1920,
+    height: 1080,
+    templateId: "dynamic-story-horizontal",
+    templateName: "Dynamic Story Horizontal",
+    payloadType: "dynamic-motion"
   }
 ];
 
