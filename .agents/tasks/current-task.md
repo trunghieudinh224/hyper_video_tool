@@ -301,6 +301,105 @@ Status: passed
 - Runtime render tests: chưa chạy vì Phase 4 mới tạo template dùng shared core.
 - Remaining risks: cần browser/render verification ở Phase 4 vì fake timeline chưa chứng minh visual thực tế.
 
+## Dynamic Motion Video - Phase 4 Dynamic Story Vertical Template MVP
+
+### Objective
+
+Tạo template dọc đầu tiên dùng dynamic scene contract và shared motion core, render được MP4 mẫu có motion theo nội dung thay vì show toàn bộ item cùng lúc.
+
+### Scope
+
+Đã làm:
+
+- Tạo `templates/dynamic-story-vertical/`.
+- Thêm `index.html`, `style.css`, `script.js`.
+- Copy GSAP local vào `templates/dynamic-story-vertical/vendor/gsap.min.js`.
+- Template đọc `render-payload.json` khi render trong workdir và fallback sang `data/dynamic-motion-payload.sample.json` khi preview trực tiếp từ project.
+- Template render dynamic scene types:
+  - `title`
+  - `text`
+  - `media`
+  - `cards`
+  - `steps`
+  - `outro`
+- Dùng `MotionCore.buildTimelinePlan()` để tính tổng duration theo payload.
+- Dùng shared animation primitives:
+  - `transitionScene`
+  - `revealText`
+  - `revealMedia`
+  - `panMedia`
+  - `sequenceItems`
+  - `spotlightItems`
+- Sửa `templates/shared/motion-core/animations.js` để `fromTo` của scene tương lai không immediate render đè scene hiện tại.
+- Sửa template init timeline ngay khi script được parse để HyperFrames không bắt timeline bootstrap rỗng ở đầu video.
+
+Không làm trong phase này:
+
+- Chưa nối backend schema/API whitelist.
+- Chưa thêm UI chọn template dynamic.
+- Chưa làm template ngang.
+- Chưa hỗ trợ upload asset thật trong UI.
+
+### Files Impact
+
+- NEW `templates/dynamic-story-vertical/index.html`
+- NEW `templates/dynamic-story-vertical/style.css`
+- NEW `templates/dynamic-story-vertical/script.js`
+- NEW `templates/dynamic-story-vertical/vendor/gsap.min.js`
+- MODIFY `templates/shared/motion-core/animations.js`
+- MODIFY `data/dynamic-motion-payload.sample.json`
+- MODIFY `.agents/tasks/current-task.md`
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`
+
+### Logic Changes
+
+- Dynamic vertical template tự dựng scene DOM từ payload.
+- Duration lấy từ duration resolver thay vì timeline scene hardcode trong script.
+- Item/card/step scene chạy từng item theo slot, không show hết cùng lúc.
+- Media scene có reveal, caption và pan nhẹ.
+
+### Risk Assessment
+
+- Tier Auto: template mới chưa được backend whitelist, không ảnh hưởng template showcase hiện tại.
+- Rollback: xóa `templates/dynamic-story-vertical/` và revert sửa shared animation core nếu cần.
+
+### Checklist
+
+- [x] Tạo template dọc dynamic.
+- [x] Import GSAP local.
+- [x] Import shared motion core.
+- [x] Render scene từ payload mẫu.
+- [x] Sequence item/card/step.
+- [x] Media reveal/pan.
+- [x] Lint HyperFrames pass.
+- [x] Render MP4 pass.
+- [x] FFprobe xác nhận `1080x1920`, `68s`.
+- [x] Manual frame review xác nhận đầu video không blank.
+- [x] Xóa file payload tạm trong template sau render.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/dynamic-story-vertical/script.js` pass.
+- `node templates/shared/motion-core/duration.test.js && node templates/shared/motion-core/motion-core.test.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical lint` pass `0 errors, 0 warnings`.
+- Render command pass:
+  - `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical render --output /private/tmp/hvt-dynamic-story-vertical.mp4`
+- `ffprobe /private/tmp/hvt-dynamic-story-vertical.mp4`:
+  - `width=1080`
+  - `height=1920`
+  - `avg_frame_rate=30/1`
+  - `duration=68.000000`
+  - `size=643436`
+- Extracted frames reviewed:
+  - `/tmp/hvt-dynamic-story-frames/frame_0_8.png`
+  - `/tmp/hvt-dynamic-story-frames/frame_2.png`
+  - `/tmp/hvt-dynamic-story-frames/frame_4.png`
+  - `/tmp/hvt-dynamic-story-frames/frame_10.png`
+  - `/tmp/hvt-dynamic-story-frames/frame_24.png`
+- Remaining risks: backend/API chưa nhận template dynamic; đó là Phase 5.
+
 ## Goal hiện tại
 
 Tiếp tục triển khai roadmap HyperFrames cho Hyper Video Tool theo các phase nhỏ, có review và test trước khi commit.

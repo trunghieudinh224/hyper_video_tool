@@ -418,7 +418,34 @@ Không làm:
 
 ### Status
 
-Planned.
+Completed.
+
+### Test Report
+
+Status: passed
+
+- Đã tạo `templates/dynamic-story-vertical/` với `index.html`, `style.css`, `script.js` và `vendor/gsap.min.js`.
+- Template dùng dynamic scene contract `dynamic-motion-1.0.0` và shared motion core.
+- Template render được scene `title`, `text`, `media`, `cards`, `steps`, `outro`.
+- Cards/items và steps không hiện hết một lần; animation chạy tuần tự qua `sequenceItems()` và `spotlightItems()`.
+- Media scene có frame, caption, reveal và pan nhẹ.
+- Đã sửa shared animation core để `fromTo` của scene tương lai dùng `immediateRender: false`, tránh tween đè state scene trước.
+- Đã sửa template init timeline ngay khi script được parse để HyperFrames không bắt bootstrap timeline rỗng ở đầu video.
+- `node --check templates/dynamic-story-vertical/script.js` pass.
+- `node templates/shared/motion-core/duration.test.js && node templates/shared/motion-core/motion-core.test.js` pass.
+- `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical lint` pass `0 errors, 0 warnings`.
+- Render command pass:
+  - `node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical render --output /private/tmp/hvt-dynamic-story-vertical.mp4`
+- `ffprobe /private/tmp/hvt-dynamic-story-vertical.mp4`:
+  - `width=1080`
+  - `height=1920`
+  - `avg_frame_rate=30/1`
+  - `duration=68.000000`
+- Manual frame review pass:
+  - `0.8s`, `2s`, `4s`: title scene đã hiện nội dung, không còn blank đầu video.
+  - `10s`: text scene hiển thị đúng.
+  - `24s`: media scene hiển thị ảnh/caption đúng.
+- File test tạm `templates/dynamic-story-vertical/render-payload.json` đã xóa sau render.
 
 ## Phase 5 - Backend Template Whitelist Và API Render
 

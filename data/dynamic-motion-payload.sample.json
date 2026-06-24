@@ -52,7 +52,7 @@
         "type": "image",
         "role": "logo",
         "name": "Hyper Video Tool logo",
-        "url": "../frontend/assets/logo.png",
+        "url": "",
         "alt": "Hyper Video Tool logo",
         "useInVideo": true
       },

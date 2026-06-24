@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Story Vertical - Template</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div
+    class="video-container"
+    id="video-container"
+    data-composition-id="dynamic-story-vertical"
+    data-start="0"
+    data-duration="68"
+    data-width="1080"
+    data-height="1920"
+  >
+    <div class="ambient-layer" aria-hidden="true">
+      <span class="grid-line line-a"></span>
+      <span class="grid-line line-b"></span>
+      <span class="grid-line line-c"></span>
+      <span class="scan-band band-a"></span>
+      <span class="scan-band band-b"></span>
+    </div>
+    <div class="scene-stage" id="scene-stage"></div>
+    <div class="progress-rail" aria-hidden="true">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <script src="vendor/gsap.min.js"></script>
+  <script src="../shared/motion-core/duration.js"></script>
+  <script src="../shared/motion-core/dom.js"></script>
+  <script src="../shared/motion-core/animations.js"></script>
+  <script src="../shared/motion-core/index.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const dynamicStoryBootstrapTl = gsap.timeline({ paused: true });
+    dynamicStoryBootstrapTl.to({}, { duration: 68 }, 0);
+    window.__timelines["dynamic-story-vertical"] = dynamicStoryBootstrapTl;
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>

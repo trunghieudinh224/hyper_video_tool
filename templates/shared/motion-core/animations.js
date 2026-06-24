@@ -33,7 +33,8 @@
         y: 0,
         duration: getNumber(options.duration, 0.45),
         stagger: getNumber(options.stagger, 0.08),
-        ease: options.ease || "power2.out"
+        ease: options.ease || "power2.out",
+        immediateRender: false
       },
       getNumber(start, 0)
     );
@@ -59,7 +60,8 @@
         scale: 1,
         duration: getNumber(options.duration, 0.5),
         stagger: getNumber(options.stagger, 0.06),
-        ease: options.ease || "power2.out"
+        ease: options.ease || "power2.out",
+        immediateRender: false
       },
       getNumber(start, 0)
     );
@@ -89,7 +91,8 @@
           y: 0,
           duration: getNumber(options.inDuration, 0.35),
           ease: options.ease || "power2.out",
-          pointerEvents: "auto"
+          pointerEvents: "auto",
+          immediateRender: false
         },
         itemStart
       );
@@ -166,7 +169,8 @@
         scale: 1,
         y: 0,
         duration: getNumber(options.duration, 0.65),
-        ease: options.ease || "power2.out"
+        ease: options.ease || "power2.out",
+        immediateRender: false
       },
       getNumber(start, 0)
     );
