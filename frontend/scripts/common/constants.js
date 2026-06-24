@@ -160,6 +160,17 @@ const RENDER_FORMATS = [
     height: 1920,
     templateId: "project-showcase-vertical-60s",
     templateName: "Showcase Vertical 60s"
+  },
+  {
+    id: "dynamic-story-vertical",
+    label: "Dọc dynamic motion - 1080x1920",
+    aspectRatio: "9:16",
+    resolution: "1080x1920",
+    width: 1080,
+    height: 1920,
+    templateId: "dynamic-story-vertical",
+    templateName: "Dynamic Story Vertical",
+    payloadType: "dynamic-motion"
   }
 ];
 

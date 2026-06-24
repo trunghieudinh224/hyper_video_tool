@@ -46,8 +46,241 @@ const AppRender = (() => {
       .join("\n");
   };
 
+  const getUsableAssetUrl = (asset) => {
+    const url = normalizeText(asset && asset.url);
+    if (!url || url.startsWith("blob:")) {
+      return "";
+    }
+    return url;
+  };
+
+  const toDynamicAsset = (asset, fallbackRole) => ({
+    id: asset.id || `asset-${fallbackRole || "media"}`,
+    type: asset.type === "video" ? "video" : "image",
+    role: asset.type || fallbackRole || "media",
+    name: asset.name || asset.title || "Video asset",
+    url: getUsableAssetUrl(asset),
+    alt: asset.name || asset.title || "Video asset",
+    useInVideo: asset.useInVideo !== false
+  });
+
+  const createFallbackDynamicMedia = (projectData) => ({
+    id: "asset-dynamic-placeholder",
+    type: "image",
+    role: "screenshot",
+    name: "Dynamic render placeholder",
+    url: `https://placehold.co/1080x720/101214/eef2f7?text=${encodeURIComponent(projectData.projectName || "Render Preview")}`,
+    alt: "Dynamic render placeholder",
+    useInVideo: true
+  });
+
+  const buildDynamicScenes = (projectData, activeFeatures, milestones, mediaAsset, logoAsset) => {
+    const projectName = normalizeText(projectData.projectName) || "Untitled Project";
+    const mainMessage = normalizeText(projectData.mainMessage)
+      || normalizeText(projectData.keyHighlight)
+      || normalizeText(projectData.shortSummary)
+      || "Video co motion theo tung phan noi dung.";
+    const introBody = normalizeText(projectData.shortSummary)
+      || normalizeText(projectData.videoGoal)
+      || "Noi dung duoc chia thanh cac scene co nhip reveal rieng.";
+    const contextBody = normalizeText(projectData.problemContext)
+      || normalizeText(projectData.solutionWhat)
+      || "Dung cho gioi thieu, tutorial, showcase, story hoac report tuy noi dung.";
+    const mediaBody = normalizeText(projectData.solutionWhat)
+      || normalizeText(projectData.useCase)
+      || "Anh, screenshot hoac video demo duoc dua vao nhu mot phan cua cau chuyen.";
+    const cardItems = activeFeatures.length > 0
+      ? activeFeatures.slice(0, 4).map((feature, index) => ({
+        id: feature.id || `card-${index + 1}`,
+        title: feature.name || feature.title || `Diem nhan ${index + 1}`,
+        body: feature.benefit || feature.description || "Noi dung nay se duoc reveal theo tung slot."
+      }))
+      : [
+        {
+          id: "card-1",
+          title: normalizeText(projectData.keyHighlight) || "Headline vao truoc",
+          body: "Nguoi xem can thay y chinh truoc khi vao chi tiet."
+        },
+        {
+          id: "card-2",
+          title: "Item vao lan luot",
+          body: "Moi item co khoang thoi gian rieng, tranh hien tat ca cung luc."
+        },
+        {
+          id: "card-3",
+          title: "Media duoc focus",
+          body: "Anh va demo clip co reveal, caption va pan nhe."
+        }
+      ];
+    const stepItems = milestones.length > 0
+      ? milestones.slice(0, 5).map((milestone, index) => ({
+        id: milestone.id || `step-${index + 1}`,
+        title: milestone.name || milestone.title || `Buoc ${index + 1}`,
+        body: milestone.description || milestone.date || "Cot moc se duoc highlight theo thu tu."
+      }))
+      : [
+        { id: "step-1", title: "Doc noi dung", body: "Lay brief, script, asset va cac item dang bat." },
+        { id: "step-2", title: "Tinh duration", body: "Can thoi luong theo text, media va so item." },
+        { id: "step-3", title: "Build motion", body: "Tao timeline reveal tung phan thay vi show het." },
+        { id: "step-4", title: "Render MP4", body: "Gui payload cho HyperFrames qua backend local." }
+      ];
+
+    return [
+      {
+        id: "scene-title",
+        type: "title",
+        headline: projectName,
+        subtitle: mainMessage,
+        body: introBody,
+        media: {
+          assetId: logoAsset ? logoAsset.id : "",
+          type: "image",
+          placement: "badge",
+          fit: "contain",
+          focus: "center",
+          caption: ""
+        },
+        motion: { preset: "headlineReveal", intensity: "medium", sequence: "headline-subtitle-body" },
+        duration: { mode: "auto", min: 4, max: 8 }
+      },
+      {
+        id: "scene-context",
+        type: "text",
+        headline: normalizeText(projectData.videoGoal) || "Noi dung duoc ke theo mach ro rang",
+        subtitle: normalizeText(projectData.contentTone) || "Dynamic story",
+        body: contextBody,
+        motion: { preset: "textBuild", intensity: "low", sequence: "headline-body" },
+        duration: { mode: "auto", min: 5, max: 10 }
+      },
+      {
+        id: "scene-media",
+        type: "media",
+        headline: normalizeText(projectData.solutionWhat) || "Media la mot phan cua cau chuyen",
+        subtitle: normalizeText(projectData.useCase) || "Khong chi nem anh len man hinh",
+        body: mediaBody,
+        media: {
+          assetId: mediaAsset.id,
+          type: mediaAsset.type,
+          placement: "focus",
+          fit: "cover",
+          focus: "center",
+          caption: mediaAsset.name || "Render preview"
+        },
+        motion: { preset: "mediaFocus", intensity: "medium", sequence: "media-headline-caption" },
+        duration: { mode: "auto", min: 6, max: 12 }
+      },
+      {
+        id: "scene-cards",
+        type: "cards",
+        headline: normalizeText(projectData.keyHighlight) || "Moi phan noi dung co nhip rieng",
+        subtitle: "Card khong hien het mot phat",
+        items: cardItems,
+        motion: { preset: "spotlightCards", intensity: "medium", sequence: "one-by-one" },
+        duration: { mode: "auto", min: 7, max: 14, perItem: 2.2 }
+      },
+      {
+        id: "scene-steps",
+        type: "steps",
+        headline: "Pipeline render ro rang",
+        subtitle: "Data -> duration -> motion -> MP4",
+        items: stepItems,
+        motion: { preset: "stepSequence", intensity: "medium", sequence: "progressive" },
+        duration: { mode: "auto", min: 8, max: 16, perItem: 2 }
+      },
+      {
+        id: "scene-outro",
+        type: "outro",
+        headline: normalizeText(projectData.endingNote) || "Ket thuc gon va co diem roi",
+        subtitle: normalizeText(projectData.ownerTeam) || "Team phu trach",
+        body: normalizeText(projectData.resultImpact) || "Video render theo noi dung, nen do dai va nhip khong bi khoa cung.",
+        media: {
+          assetId: logoAsset ? logoAsset.id : "",
+          type: "image",
+          placement: "badge",
+          fit: "contain",
+          focus: "center",
+          caption: ""
+        },
+        motion: { preset: "closingHold", intensity: "low", sequence: "headline-subtitle" },
+        duration: { mode: "auto", min: 4, max: 8 }
+      }
+    ];
+  };
+
+  const buildDynamicRenderPayload = (projectData, renderConfig = {}, renderFormat) => {
+    const selectedAssets = projectData.assets || [];
+    const activeAssets = selectedAssets.filter((asset) => asset.useInVideo !== false);
+    const logoSource = activeAssets.find((asset) => asset.type === "logo") || null;
+    const mediaSource = activeAssets.find((asset) => ["screenshot", "video"].includes(asset.type) && getUsableAssetUrl(asset))
+      || activeAssets.find((asset) => ["screenshot", "video"].includes(asset.type))
+      || null;
+    const logoAsset = logoSource ? toDynamicAsset(logoSource, "logo") : null;
+    const mediaAsset = mediaSource ? toDynamicAsset(mediaSource, "screenshot") : createFallbackDynamicMedia(projectData);
+    const dynamicAssets = [logoAsset, mediaAsset].filter(Boolean);
+    const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
+    const milestones = (projectData.milestones || []).slice(0, 5);
+    const audio = projectData.audio || {};
+    const voiceover = audio.voiceover || {};
+
+    return {
+      version: "dynamic-motion-1.0.0",
+      source: {
+        projectName: projectData.projectName || "Untitled Project",
+        projectSlug: projectData.projectSlug || "untitled-project",
+        ownerTeam: projectData.ownerTeam || "Team phát triển",
+        presenterRole: projectData.presenterRole || "Người thuyết trình"
+      },
+      template: {
+        id: renderConfig.templateId || renderFormat.templateId,
+        variant: "default",
+        config: {
+          ...(projectData.templateConfig || {}),
+          theme: (projectData.templateConfig && projectData.templateConfig.theme) || "dark"
+        }
+      },
+      video: {
+        aspectRatio: renderFormat.aspectRatio,
+        width: renderFormat.width,
+        height: renderFormat.height,
+        fps: Number(renderConfig.fps || 30),
+        format: "mp4",
+        durationMode: "content-driven"
+      },
+      audio: {
+        voiceover: {
+          enabled: Boolean(voiceover.enabled),
+          provider: voiceover.provider || "edge-tts",
+          language: voiceover.language || "vi-VN",
+          voiceId: voiceover.voiceId || "vi-VN-HoaiMyNeural",
+          rate: normalizePercent(voiceover.rate, "+0%"),
+          volume: normalizePercent(voiceover.volume, "+0%"),
+          script: voiceover.script || "",
+          outputPath: voiceover.outputPath || ""
+        },
+        backgroundMusic: {
+          enabled: false,
+          source: "",
+          volume: 0.12,
+          ducking: true
+        },
+        soundEffects: {
+          enabled: false,
+          items: []
+        }
+      },
+      assets: {
+        all: dynamicAssets
+      },
+      scenes: buildDynamicScenes(projectData, activeFeatures, milestones, mediaAsset, logoAsset)
+    };
+  };
+
   const buildRenderPayload = (projectData, renderConfig = {}) => {
     const renderFormat = getRenderFormat(renderConfig);
+    if (renderFormat.payloadType === "dynamic-motion") {
+      return buildDynamicRenderPayload(projectData, renderConfig, renderFormat);
+    }
+
     const selectedAssets = projectData.assets || [];
     const logo = selectedAssets.find((asset) => asset.type === "logo" && asset.useInVideo) || null;
     const screenshots = selectedAssets.filter((asset) => asset.type === "screenshot" && asset.useInVideo);

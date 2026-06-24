@@ -593,7 +593,43 @@ Không làm:
 
 ### Status
 
-Planned.
+Completed.
+
+### Test Report
+
+Status: passed
+
+- Đã thêm render format `dynamic-story-vertical` trên Render page:
+  - label `Dọc dynamic motion - 1080x1920`
+  - template id `dynamic-story-vertical`
+  - payload type `dynamic-motion`
+- `AppRender.buildRenderPayload()` có nhánh dynamic MVP:
+  - version `dynamic-motion-1.0.0`
+  - scene types `title`, `text`, `media`, `cards`, `steps`, `outro`
+  - duration mode `content-driven`
+  - map feature đang bật thành card items
+  - map milestone thành step items
+  - map asset/logo/media vào `assets.all`
+  - fallback media bằng placeholder nếu chưa có screenshot/video usable.
+- Output manifest dùng `TEMPLATE_PRESETS`, nên output dynamic hiển thị `Dynamic Story Vertical` thay vì template id thô.
+- `node --check frontend/scripts/common/constants.js && node --check frontend/scripts/common/render-preview.js && node --check backend/src/render/output-manifest.js` pass.
+- `npm --prefix backend run check` pass.
+- Browser smoke Render page pass:
+  - URL: `http://127.0.0.1:3000/pages/render.html`
+  - Dropdown có `dynamic-story-vertical`.
+  - Browser-built payload có `version=dynamic-motion-1.0.0`, `template.id=dynamic-story-vertical`, scenes đúng MVP flow, resolution `1080x1920`.
+- UI end-to-end render dynamic pass qua Chrome headless:
+  - Chọn `dynamic-story-vertical`.
+  - Bấm `Bắt đầu Render`.
+  - Render page poll tới `Hoàn tất`, progress `100%`.
+  - Output: `outputs/5f904c31-50d1-4016-80d0-3057f91368da.mp4`.
+  - Local output record có `template=Dynamic Story Vertical`, `templateId=dynamic-story-vertical`, `resolution=1080x1920`.
+- `ffprobe outputs/5f904c31-50d1-4016-80d0-3057f91368da.mp4`:
+  - `width=1080`
+  - `height=1920`
+  - `avg_frame_rate=30/1`
+  - `duration=68.000000`
+- Server local đã tắt sau smoke test.
 
 ## Phase 7 - Dynamic Horizontal Template
 

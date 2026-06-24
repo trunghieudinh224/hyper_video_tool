@@ -486,6 +486,92 @@ Status: passed
 - Server local đã tắt sau smoke test.
 - Remaining risks: UI chưa build/gửi payload dynamic; đó là Phase 6.
 
+## Dynamic Motion Video - Phase 6 UI Chọn Dynamic Template MVP
+
+### Objective
+
+Cho người dùng chọn render format dynamic trên Render page và render được MP4 `dynamic-story-vertical` từ dữ liệu UI hiện có.
+
+### Scope
+
+Đã làm:
+
+- Thêm option `Dọc dynamic motion - 1080x1920` vào `RENDER_FORMATS`.
+- Thêm `payloadType: "dynamic-motion"` cho format dynamic.
+- Thêm nhánh `buildDynamicRenderPayload()` trong `frontend/scripts/common/render-preview.js`.
+- Dynamic payload lấy dữ liệu từ:
+  - brief/project metadata
+  - features đang bật
+  - milestones
+  - logo/screenshot/video assets nếu usable
+- Nếu chưa có media usable, payload dùng placeholder image để template vẫn render được.
+- Sửa output manifest backend dùng `TEMPLATE_PRESETS` để output dynamic có tên `Dynamic Story Vertical`.
+- UI render flow/poll/output hiện dùng lại cơ chế cũ.
+
+Không làm trong phase này:
+
+- Chưa làm editor scene dynamic.
+- Chưa làm UI chỉnh motion preset từng scene.
+- Chưa làm template ngang dynamic.
+- Chưa sửa Preview page để preview dynamic scene trước render.
+
+### Files Impact
+
+- MODIFY `frontend/scripts/common/constants.js`
+- MODIFY `frontend/scripts/common/render-preview.js`
+- MODIFY `backend/src/render/output-manifest.js`
+- MODIFY `.agents/tasks/current-task.md`
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`
+
+### Logic Changes
+
+- Render format dropdown có thêm dynamic vertical.
+- Payload builder tự chọn schema showcase hoặc dynamic theo `renderFormat.payloadType`.
+- Output manifest biết tên template dynamic.
+
+### Risk Assessment
+
+- Tier Confirm: UI payload dynamic MVP còn heuristic, chưa phải scene editor đầy đủ.
+- Rollback: ẩn format `dynamic-story-vertical` khỏi `RENDER_FORMATS`.
+
+### Checklist
+
+- [x] Thêm option dynamic vào Render page.
+- [x] Build payload dynamic từ AppState.
+- [x] Syntax check frontend/backend file liên quan.
+- [x] Backend check pass.
+- [x] Browser smoke dropdown/payload pass.
+- [x] UI end-to-end render dynamic pass.
+- [x] FFprobe output UI đúng `1080x1920`, `68s`.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js && node --check frontend/scripts/common/render-preview.js && node --check backend/src/render/output-manifest.js` pass.
+- `npm --prefix backend run check` pass.
+- Browser smoke Render page pass:
+  - URL: `http://127.0.0.1:3000/pages/render.html`
+  - Dropdown options gồm `landscape-16x9`, `vertical-9x16`, `dynamic-story-vertical`.
+  - `AppRender.buildRenderPayload(..., { formatId: "dynamic-story-vertical" })` trả payload:
+    - `version=dynamic-motion-1.0.0`
+    - `template.id=dynamic-story-vertical`
+    - scenes `title/text/media/cards/steps/outro`
+    - resolution `1080x1920`
+- UI end-to-end render dynamic pass:
+  - Output: `outputs/5f904c31-50d1-4016-80d0-3057f91368da.mp4`
+  - Render page status `Hoàn tất`
+  - Progress `100%`
+  - Output local record `template=Dynamic Story Vertical`
+  - Output local record `resolution=1080x1920`
+- `ffprobe outputs/5f904c31-50d1-4016-80d0-3057f91368da.mp4`:
+  - `width=1080`
+  - `height=1920`
+  - `avg_frame_rate=30/1`
+  - `duration=68.000000`
+- Server local đã tắt sau smoke test.
+- Remaining risks: dynamic preview page chưa có; horizontal dynamic template là Phase 7.
+
 ## Goal hiện tại
 
 Tiếp tục triển khai roadmap HyperFrames cho Hyper Video Tool theo các phase nhỏ, có review và test trước khi commit.

@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { config } = require("../config");
-const { VIDEO_PRESETS } = require("./render-payload-schema");
+const { TEMPLATE_PRESETS } = require("./render-payload-schema");
 
 const MANIFEST_FILENAME = "manifest.json";
 const MANIFEST_VERSION = "1.0.0";
@@ -45,7 +45,7 @@ function formatDateTime(value) {
 }
 
 function getTemplateName(templateId) {
-  const preset = Object.values(VIDEO_PRESETS).find((item) => item.templateId === templateId);
+  const preset = TEMPLATE_PRESETS[templateId];
   return preset ? preset.templateName : templateId;
 }
 
