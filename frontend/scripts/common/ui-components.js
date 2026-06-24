@@ -931,6 +931,14 @@ const AppUI = (() => {
           <label class="form-label" for="modal-feat-voice">Voice script</label>
           <textarea id="modal-feat-voice" class="form-control" rows="3" placeholder="Câu đọc riêng cho đoạn này...">${isEdit ? escapeText(feature.voiceoverScript) : ''}</textarea>
           <div id="modal-feat-voice-estimate" class="script-voice-estimate" aria-live="polite"></div>
+          <div class="script-voice-preview">
+            <button id="modal-feat-voice-preview-btn" class="btn btn-secondary btn-sm" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+              <span>Nghe thử</span>
+            </button>
+            <span id="modal-feat-voice-preview-status">Tạo audio thật từ voice script hiện tại.</span>
+          </div>
+          <audio id="modal-feat-voice-audio" class="script-voice-audio d-none" controls preload="metadata"></audio>
         </div>
         <div class="form-group">
           <label class="script-switch script-switch-modal" for="modal-feat-use">
@@ -994,6 +1002,36 @@ const AppUI = (() => {
       const voiceInput = document.getElementById("modal-feat-voice");
       const durationInput = document.getElementById("modal-feat-duration");
       const estimateBox = document.getElementById("modal-feat-voice-estimate");
+      const previewButton = document.getElementById("modal-feat-voice-preview-btn");
+      const previewStatus = document.getElementById("modal-feat-voice-preview-status");
+      const previewAudio = document.getElementById("modal-feat-voice-audio");
+
+      const setPreviewButtonState = (isLoading) => {
+        if (!previewButton) {
+          return;
+        }
+
+        previewButton.disabled = isLoading;
+        previewButton.innerHTML = isLoading ? `
+          <span>Đang tạo...</span>
+        ` : `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+          <span>Nghe thử</span>
+        `;
+      };
+
+      const clearVoicePreview = () => {
+        const hadPreview = Boolean(previewAudio && previewAudio.getAttribute("src"));
+        if (previewAudio) {
+          previewAudio.pause();
+          previewAudio.removeAttribute("src");
+          previewAudio.load();
+          previewAudio.classList.add("d-none");
+        }
+        if (hadPreview && previewStatus) {
+          previewStatus.textContent = "Script đã đổi, bấm Nghe thử để tạo audio mới.";
+        }
+      };
 
       const updateVoiceEstimate = () => {
         if (!voiceInput || !durationInput || !estimateBox) {
@@ -1017,13 +1055,70 @@ const AppUI = (() => {
       };
 
       if (voiceInput) {
-        voiceInput.addEventListener("input", updateVoiceEstimate);
+        voiceInput.addEventListener("input", () => {
+          updateVoiceEstimate();
+          clearVoicePreview();
+        });
       }
       if (durationInput) {
         durationInput.addEventListener("input", updateVoiceEstimate);
         durationInput.addEventListener("change", updateVoiceEstimate);
       }
       updateVoiceEstimate();
+
+      if (previewAudio && previewStatus) {
+        previewAudio.addEventListener("loadedmetadata", () => {
+          const duration = Number.isFinite(previewAudio.duration) ? `${previewAudio.duration.toFixed(1)}s` : "không rõ";
+          previewStatus.textContent = `Audio thật: ${duration}. Có thể nghe để kiểm tra nhịp đọc.`;
+        });
+      }
+
+      if (previewButton) {
+        previewButton.addEventListener("click", async () => {
+          const script = normalizeText(voiceInput ? voiceInput.value : "");
+          if (!script) {
+            showToast("Nhập voice script trước khi nghe thử.", "error");
+            return;
+          }
+
+          if (!AppRender.previewVoiceover) {
+            showToast("Frontend chưa có API nghe thử voiceover.", "error");
+            return;
+          }
+
+          setPreviewButtonState(true);
+          if (previewStatus) {
+            previewStatus.textContent = "Đang tạo audio preview...";
+          }
+
+          try {
+            const preview = await AppRender.previewVoiceover({
+              provider: currentVoiceover.provider || "edge-tts",
+              language: currentVoiceover.language || "vi-VN",
+              voiceId: currentVoiceover.voiceId || "vi-VN-HoaiMyNeural",
+              rate: currentVoiceRate,
+              volume: currentVoiceover.volume || "+0%",
+              script
+            });
+
+            if (previewAudio) {
+              previewAudio.src = preview.audioUrl;
+              previewAudio.classList.remove("d-none");
+              previewAudio.load();
+            }
+            if (previewStatus) {
+              previewStatus.textContent = preview.cached ? "Dùng audio preview đã cache." : "Đã tạo audio preview.";
+            }
+          } catch (error) {
+            if (previewStatus) {
+              previewStatus.textContent = error.message || "Không tạo được audio preview.";
+            }
+            showToast(error.message || "Không tạo được audio preview.", "error");
+          } finally {
+            setPreviewButtonState(false);
+          }
+        });
+      }
     };
 
     // Attach Event Listeners

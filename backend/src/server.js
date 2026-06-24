@@ -7,6 +7,7 @@ const { config } = require("./config");
 const { handleOutputs } = require("./routes/outputs");
 const { handleRenderPreflight } = require("./routes/render-preflight");
 const { handleRenderJobs } = require("./routes/render-jobs");
+const { handleVoiceoverPreview } = require("./routes/voiceover-preview");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -105,6 +106,13 @@ async function requestHandler(request, response) {
 
   if (requestUrl.pathname.startsWith("/api/render-jobs")) {
     const handled = await handleRenderJobs(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
+  }
+
+  if (requestUrl.pathname === "/api/voiceover-preview" || requestUrl.pathname.startsWith("/api/voiceover-preview/")) {
+    const handled = await handleVoiceoverPreview(request, response, requestUrl, sendJson);
     if (handled) {
       return;
     }

@@ -4,6 +4,54 @@
 
 in_progress
 
+## Feature - Voiceover Audio Preview
+
+### Objective
+
+Thêm chức năng nghe thử voice script trong modal thêm/sửa đoạn kịch bản. Người dùng bấm `Nghe thử`, backend tạo MP3 bằng engine voiceover hiện có và frontend phát audio ngay trong modal để kiểm tra tốc độ đọc thực tế.
+
+### Scope
+
+Sẽ làm:
+
+- Thêm API `POST /api/voiceover-preview` để tạo/cache MP3 từ text và setting voice hiện tại.
+- Thêm API serve file preview an toàn từ `outputs/audio`.
+- Thêm hàm frontend gọi API preview trong `AppRender`.
+- Thêm nút `Nghe thử`, trạng thái loading/error và audio player trong modal voice script.
+- Sau khi audio load metadata, hiển thị duration audio thật.
+
+Không làm:
+
+- Không tự generate audio khi người dùng đang gõ.
+- Không đổi render video chính.
+- Không làm waveform, subtitle preview hoặc timeline audio.
+- Không đổi schema project/render payload.
+
+### Checklist
+
+- [x] Thêm backend route voiceover preview.
+- [x] Mount route vào backend server.
+- [x] Thêm frontend API helper preview voiceover.
+- [x] Thêm UI nghe thử trong modal scene.
+- [x] Style audio preview gọn, không vỡ mobile.
+- [x] Chạy syntax/test checks.
+- [x] Điền Test Report.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/render-preview.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/render-preview.js frontend/scripts/common/ui-components.js frontend/styles/pages/features.css backend/src/routes/voiceover-preview.js` không có hit.
+- `npm --prefix backend run check` pass, gồm `voiceover:preview:test`.
+- Backend smoke local:
+  - `POST /api/voiceover-preview` với script rỗng trả `422` JSON đúng.
+  - `HEAD /pages/features.html` trả `200`.
+  - `HEAD /api/voiceover-preview/audio/not-valid.mp3` trả `400`.
+- Chưa gọi happy path tạo MP3 thật trong test tự động để tránh phụ thuộc edge-tts/network; cần test thủ công bằng nút `Nghe thử` trong modal.
+
 ## Feature - Voice Script Duration Estimate
 
 ### Objective

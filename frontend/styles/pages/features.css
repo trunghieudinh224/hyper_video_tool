@@ -517,6 +517,31 @@
   color: var(--color-danger);
 }
 
+.script-voice-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  min-width: 0;
+}
+
+.script-voice-preview .btn {
+  flex-shrink: 0;
+  gap: var(--space-1);
+}
+
+.script-voice-preview span {
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  line-height: 1.45;
+}
+
+.script-voice-audio {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
 .script-actions {
   display: flex;
   gap: var(--space-2);
@@ -724,6 +749,11 @@
 
   .script-voice-estimate span {
     text-align: left;
+  }
+
+  .script-voice-preview {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .script-order {

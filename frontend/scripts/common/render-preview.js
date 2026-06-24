@@ -565,6 +565,30 @@ const AppRender = (() => {
     return responseBody.data.preflight;
   };
 
+  const previewVoiceover = async (voiceoverConfig) => {
+    const response = await fetch("/api/voiceover-preview", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(voiceoverConfig || {})
+    });
+
+    let responseBody;
+    try {
+      responseBody = await response.json();
+    } catch (_error) {
+      throw new Error("Không đọc được audio preview từ backend. Hãy chạy UI qua backend local.");
+    }
+
+    if (!response.ok || !responseBody.success) {
+      throw new Error(responseBody.message || "Không tạo được audio nghe thử.");
+    }
+
+    return responseBody.data.preview;
+  };
+
   const formatBytes = (bytes) => {
     if (!Number.isFinite(bytes)) {
       return "Không rõ";
@@ -852,6 +876,7 @@ const AppRender = (() => {
     getPreflight,
     getRenderJob,
     listBackendOutputs,
+    previewVoiceover,
     startRender,
     resumeRender,
     isRendering: () => isRendering,
