@@ -9,6 +9,7 @@ const { validateRenderPayload } = require("../src/render/render-payload-schema")
 const projectRoot = path.resolve(__dirname, "../..");
 const sampleProjectPath = path.join(projectRoot, "data", "sample-project.json");
 const samplePayloadPath = path.join(projectRoot, "data", "render-payload.sample.json");
+const dynamicSamplePayloadPath = path.join(projectRoot, "data", "dynamic-motion-payload.sample.json");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -59,6 +60,32 @@ const mismatchedVerticalPayload = {
 };
 const mismatchedValidation = validateRenderPayload(mismatchedVerticalPayload);
 assert.equal(mismatchedValidation.valid, false, "Vertical payload with horizontal template should fail validation.");
+
+const dynamicPayload = readJson(dynamicSamplePayloadPath);
+const dynamicValidation = validateRenderPayload(dynamicPayload);
+assert.equal(dynamicValidation.valid, true, `Dynamic payload should be valid: ${JSON.stringify(dynamicValidation.errors)}`);
+assert.equal(dynamicPayload.version, "dynamic-motion-1.0.0");
+assert.equal(dynamicPayload.template.id, "dynamic-story-vertical");
+assert.equal(dynamicPayload.video.aspectRatio, "9:16");
+assert.equal(dynamicPayload.video.width, 1080);
+assert.equal(dynamicPayload.video.height, 1920);
+assert.deepEqual(
+  dynamicPayload.scenes.map((scene) => scene.type),
+  ["title", "text", "media", "cards", "steps", "outro"],
+  "Dynamic scene order must match MVP flow."
+);
+
+const mismatchedDynamicPayload = {
+  ...dynamicPayload,
+  video: {
+    ...dynamicPayload.video,
+    aspectRatio: "16:9",
+    width: 1920,
+    height: 1080
+  }
+};
+const mismatchedDynamicValidation = validateRenderPayload(mismatchedDynamicPayload);
+assert.equal(mismatchedDynamicValidation.valid, false, "Dynamic vertical payload with horizontal video settings should fail validation.");
 
 const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");

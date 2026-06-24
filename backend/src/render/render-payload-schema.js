@@ -1,6 +1,7 @@
 "use strict";
 
 const RENDER_PAYLOAD_VERSION = "1.0.0";
+const DYNAMIC_RENDER_PAYLOAD_VERSION = "dynamic-motion-1.0.0";
 const VIDEO_PRESETS = {
   "16:9": {
     aspectRatio: "16:9",
@@ -17,7 +18,18 @@ const VIDEO_PRESETS = {
     templateName: "Showcase Vertical 60s"
   }
 };
-const SUPPORTED_TEMPLATE_IDS = new Set(Object.values(VIDEO_PRESETS).map((preset) => preset.templateId));
+const TEMPLATE_PRESETS = {
+  "project-showcase-90s": VIDEO_PRESETS["16:9"],
+  "project-showcase-vertical-60s": VIDEO_PRESETS["9:16"],
+  "dynamic-story-vertical": {
+    aspectRatio: "9:16",
+    width: 1080,
+    height: 1920,
+    templateId: "dynamic-story-vertical",
+    templateName: "Dynamic Story Vertical"
+  }
+};
+const SUPPORTED_TEMPLATE_IDS = new Set(Object.keys(TEMPLATE_PRESETS));
 const SUPPORTED_ASPECT_RATIOS = new Set(Object.keys(VIDEO_PRESETS));
 const SUPPORTED_VOICEOVER_PROVIDERS = new Set(["edge-tts", "openai", "elevenlabs", "piper"]);
 const SUPPORTED_VOICEOVER_LANGUAGES = new Set(["vi-VN", "en-US", "ja-JP"]);
@@ -28,6 +40,14 @@ const SCENE_TYPES = new Set([
   "features",
   "timeline",
   "impact",
+  "outro"
+]);
+const DYNAMIC_SCENE_TYPES = new Set([
+  "title",
+  "text",
+  "media",
+  "cards",
+  "steps",
   "outro"
 ]);
 
@@ -100,6 +120,89 @@ function validateScene(errors, scene, index) {
       if (scene.voiceover.fits !== undefined && typeof scene.voiceover.fits !== "boolean") {
         pushError(errors, `${basePath}.voiceover.fits`, "Scene voiceover fits must be a boolean.");
       }
+    }
+  }
+}
+
+function validateDynamicDuration(errors, duration, basePath) {
+  if (duration === undefined) {
+    return;
+  }
+
+  if (!isPlainObject(duration)) {
+    pushError(errors, `${basePath}.duration`, "Scene duration must be an object.");
+    return;
+  }
+
+  if (duration.mode !== undefined && !["auto", "fixed"].includes(duration.mode)) {
+    pushError(errors, `${basePath}.duration.mode`, "Duration mode must be auto or fixed.");
+  }
+
+  for (const fieldName of ["seconds", "min", "max", "perItem"]) {
+    if (duration[fieldName] !== undefined && (!Number.isFinite(duration[fieldName]) || duration[fieldName] < 0)) {
+      pushError(errors, `${basePath}.duration.${fieldName}`, "Duration value must be a non-negative number.");
+    }
+  }
+}
+
+function validateDynamicMedia(errors, media, basePath) {
+  if (media === undefined || media === null) {
+    return;
+  }
+
+  if (!isPlainObject(media)) {
+    pushError(errors, basePath, "Scene media must be an object.");
+    return;
+  }
+
+  validateStringField(errors, { media }, "media.assetId", false);
+  validateStringField(errors, { media }, "media.type", false);
+  validateStringField(errors, { media }, "media.url", false);
+  validateStringField(errors, { media }, "media.alt", false);
+  validateStringField(errors, { media }, "media.fit", false);
+  validateStringField(errors, { media }, "media.focus", false);
+  validateStringField(errors, { media }, "media.caption", false);
+}
+
+function validateDynamicItem(errors, item, basePath) {
+  if (!isPlainObject(item)) {
+    pushError(errors, basePath, "Scene item must be an object.");
+    return;
+  }
+
+  validateStringField(errors, item, "id", false);
+  validateStringField(errors, item, "title", false);
+  validateStringField(errors, item, "body", false);
+  validateDynamicMedia(errors, item.media, `${basePath}.media`);
+}
+
+function validateDynamicScene(errors, scene, index) {
+  const basePath = `scenes[${index}]`;
+
+  if (!isPlainObject(scene)) {
+    pushError(errors, basePath, "Expected scene object.");
+    return;
+  }
+
+  if (!isNonEmptyString(scene.id)) {
+    pushError(errors, `${basePath}.id`, "Scene id is required.");
+  }
+
+  if (!DYNAMIC_SCENE_TYPES.has(scene.type)) {
+    pushError(errors, `${basePath}.type`, `Scene type must be one of: ${Array.from(DYNAMIC_SCENE_TYPES).join(", ")}.`);
+  }
+
+  validateStringField(errors, scene, "headline", false);
+  validateStringField(errors, scene, "subtitle", false);
+  validateStringField(errors, scene, "body", false);
+  validateDynamicMedia(errors, scene.media, `${basePath}.media`);
+  validateDynamicDuration(errors, scene.duration, basePath);
+
+  if (scene.items !== undefined) {
+    if (!Array.isArray(scene.items)) {
+      pushError(errors, `${basePath}.items`, "Scene items must be an array.");
+    } else {
+      scene.items.forEach((item, itemIndex) => validateDynamicItem(errors, item, `${basePath}.items[${itemIndex}]`));
     }
   }
 }
@@ -223,15 +326,18 @@ function validateRenderPayload(payload) {
     };
   }
 
-  if (payload.version !== RENDER_PAYLOAD_VERSION) {
-    pushError(errors, "version", `Expected render payload version ${RENDER_PAYLOAD_VERSION}.`);
-  }
-
   validateStringField(errors, payload, "source.projectName");
   validateStringField(errors, payload, "source.projectSlug");
   validateStringField(errors, payload, "template.id");
 
-  if (isPlainObject(payload.template) && !SUPPORTED_TEMPLATE_IDS.has(payload.template.id)) {
+  const templateId = isPlainObject(payload.template) ? payload.template.id : null;
+  const isDynamicPayload = templateId === "dynamic-story-vertical" || payload.version === DYNAMIC_RENDER_PAYLOAD_VERSION;
+  const expectedVersion = isDynamicPayload ? DYNAMIC_RENDER_PAYLOAD_VERSION : RENDER_PAYLOAD_VERSION;
+  if (payload.version !== expectedVersion) {
+    pushError(errors, "version", `Expected render payload version ${expectedVersion}.`);
+  }
+
+  if (isPlainObject(payload.template) && !SUPPORTED_TEMPLATE_IDS.has(templateId)) {
     pushError(
       errors,
       "template.id",
@@ -255,19 +361,25 @@ function validateRenderPayload(payload) {
       pushError(errors, "video.fps", "Video fps must be a positive integer.");
     }
 
-    const preset = VIDEO_PRESETS[payload.video.aspectRatio];
+    const preset = TEMPLATE_PRESETS[templateId] || VIDEO_PRESETS[payload.video.aspectRatio];
     if (preset) {
-      if (payload.video.width !== preset.width || payload.video.height !== preset.height) {
-        pushError(errors, "video", `Video ${payload.video.aspectRatio} must be ${preset.width}x${preset.height}.`);
+      if (payload.video.aspectRatio !== preset.aspectRatio) {
+        pushError(errors, "video.aspectRatio", `Template ${preset.templateId} requires aspect ratio ${preset.aspectRatio}.`);
       }
-      if (isPlainObject(payload.template) && payload.template.id !== preset.templateId) {
-        pushError(errors, "template.id", `Template for ${payload.video.aspectRatio} must be ${preset.templateId}.`);
+      if (payload.video.width !== preset.width || payload.video.height !== preset.height) {
+        pushError(errors, "video", `Template ${preset.templateId} requires video ${preset.width}x${preset.height}.`);
+      }
+      const defaultPreset = VIDEO_PRESETS[payload.video.aspectRatio];
+      if (!isDynamicPayload && defaultPreset && templateId !== defaultPreset.templateId) {
+        pushError(errors, "template.id", `Template for ${payload.video.aspectRatio} must be ${defaultPreset.templateId}.`);
       }
     }
   }
 
   if (!Array.isArray(payload.scenes)) {
     pushError(errors, "scenes", "Scenes must be an array.");
+  } else if (isDynamicPayload) {
+    payload.scenes.forEach((scene, index) => validateDynamicScene(errors, scene, index));
   } else {
     const sceneTypes = payload.scenes.map((scene) => scene && scene.type);
     for (const requiredType of SCENE_TYPES) {
@@ -291,7 +403,10 @@ function validateRenderPayload(payload) {
 }
 
 module.exports = {
+  DYNAMIC_RENDER_PAYLOAD_VERSION,
   RENDER_PAYLOAD_VERSION,
+  DYNAMIC_SCENE_TYPES,
+  TEMPLATE_PRESETS,
   VIDEO_PRESETS,
   SUPPORTED_TEMPLATE_IDS,
   SUPPORTED_VOICEOVER_LANGUAGES,

@@ -400,6 +400,92 @@ Status: passed
   - `/tmp/hvt-dynamic-story-frames/frame_24.png`
 - Remaining risks: backend/API chưa nhận template dynamic; đó là Phase 5.
 
+## Dynamic Motion Video - Phase 5 Backend Template Whitelist Và API Render
+
+### Objective
+
+Cho backend render template `dynamic-story-vertical` qua `POST /api/render-jobs` bằng payload dynamic, không phá validator/template showcase hiện có.
+
+### Scope
+
+Đã làm:
+
+- Thêm `TEMPLATE_PRESETS` trong `backend/src/render/render-payload-schema.js`.
+- Whitelist `dynamic-story-vertical`.
+- Giữ `VIDEO_PRESETS` làm default aspect-ratio mapping cũ cho payload showcase hiện tại.
+- Thêm dynamic payload version `dynamic-motion-1.0.0`.
+- Thêm dynamic scene validator riêng cho:
+  - `title`
+  - `text`
+  - `media`
+  - `cards`
+  - `steps`
+  - `outro`
+- Preflight kiểm thêm dynamic sample payload và template dynamic.
+- Mở rộng test payload để dynamic sample pass và mismatch horizontal settings fail.
+- Smoke render API dynamic pass.
+
+Không làm trong phase này:
+
+- Chưa nối UI chọn dynamic template.
+- Chưa đổi template mặc định.
+- Chưa migrate showcase payload sang contract dynamic.
+- Chưa làm template ngang dynamic.
+
+### Files Impact
+
+- MODIFY `backend/src/render/render-payload-schema.js`
+- MODIFY `backend/src/render/preflight.js`
+- MODIFY `backend/scripts/test-render-payload.js`
+- MODIFY `.agents/tasks/current-task.md`
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`
+
+### Logic Changes
+
+- Backend hiện support nhiều template trên cùng aspect ratio thông qua `TEMPLATE_PRESETS`.
+- `dynamic-story-vertical` dùng schema scene dynamic, còn `project-showcase-*` vẫn dùng schema showcase cũ.
+- Render runner không cần đổi vì đã copy template theo `payload.template.id`.
+
+### Risk Assessment
+
+- Tier Confirm: validator backend thay đổi nhưng đã có regression `npm --prefix backend run check`.
+- Rollback: revert schema/preflight/test nếu dynamic API cần tách route riêng về sau.
+
+### Checklist
+
+- [x] Whitelist template dynamic.
+- [x] Validate dynamic payload sample.
+- [x] Giữ showcase payload cũ pass.
+- [x] Preflight kiểm template dynamic.
+- [x] Backend check pass.
+- [x] API smoke render dynamic pass.
+- [x] FFprobe output API đúng `1080x1920`, `68s`.
+
+### Test Report
+
+Status: passed
+
+- `npm --prefix backend run check` pass.
+- `node -e "...getRenderPreflight()"` pass:
+  - `status=ok`
+  - `ready=true`
+  - `checks=25`
+  - `errors=[]`
+- Backend local chạy tại `http://127.0.0.1:3000`.
+- API smoke render dynamic pass:
+  - `HVT_SMOKE_PAYLOAD_PATH=data/dynamic-motion-payload.sample.json HVT_SMOKE_EXPECT_RESOLUTION=1080x1920 HVT_SMOKE_TIMEOUT_MS=180000 npm --prefix backend run smoke:render-api`
+  - Job: `32bbd36d-88e8-414b-bd08-7699e8d4dac4`
+  - Output: `outputs/32bbd36d-88e8-414b-bd08-7699e8d4dac4.mp4`
+  - Output size: `174909`
+  - DurationMs: `31527`
+- `ffprobe outputs/32bbd36d-88e8-414b-bd08-7699e8d4dac4.mp4`:
+  - `width=1080`
+  - `height=1920`
+  - `avg_frame_rate=30/1`
+  - `duration=68.000000`
+- Server local đã tắt sau smoke test.
+- Remaining risks: UI chưa build/gửi payload dynamic; đó là Phase 6.
+
 ## Goal hiện tại
 
 Tiếp tục triển khai roadmap HyperFrames cho Hyper Video Tool theo các phase nhỏ, có review và test trước khi commit.

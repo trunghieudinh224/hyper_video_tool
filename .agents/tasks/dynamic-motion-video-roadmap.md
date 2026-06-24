@@ -502,7 +502,39 @@ Không làm:
 
 ### Status
 
-Planned.
+Completed.
+
+### Test Report
+
+Status: passed
+
+- Đã thêm `TEMPLATE_PRESETS` để backend support nhiều template trên cùng aspect ratio, trong khi `VIDEO_PRESETS` vẫn giữ default cũ cho mapper/UI hiện tại.
+- Đã whitelist `dynamic-story-vertical`.
+- Validator có nhánh dynamic contract riêng:
+  - version `dynamic-motion-1.0.0`
+  - scene types `title`, `text`, `media`, `cards`, `steps`, `outro`
+  - duration object `{ mode, min, max, perItem, seconds }`
+  - media/item optional, không bắt schema showcase cũ.
+- Showcase payload cũ vẫn dùng validator cũ và vẫn bắt template mặc định theo aspect ratio.
+- Preflight kiểm thêm:
+  - `data/dynamic-motion-payload.sample.json`
+  - `templates/dynamic-story-vertical/`
+- `npm --prefix backend run check` pass.
+- `node -e "...getRenderPreflight()"` pass:
+  - `status=ok`
+  - `ready=true`
+  - `checks=25`
+  - `errors=[]`
+- API smoke render dynamic pass:
+  - `HVT_SMOKE_PAYLOAD_PATH=data/dynamic-motion-payload.sample.json HVT_SMOKE_EXPECT_RESOLUTION=1080x1920 HVT_SMOKE_TIMEOUT_MS=180000 npm --prefix backend run smoke:render-api`
+  - Job: `32bbd36d-88e8-414b-bd08-7699e8d4dac4`
+  - Output: `outputs/32bbd36d-88e8-414b-bd08-7699e8d4dac4.mp4`
+  - Output manifest resolution: `1080x1920`
+- `ffprobe outputs/32bbd36d-88e8-414b-bd08-7699e8d4dac4.mp4`:
+  - `width=1080`
+  - `height=1920`
+  - `avg_frame_rate=30/1`
+  - `duration=68.000000`
 
 ## Phase 6 - UI Chọn Dynamic Template MVP
 

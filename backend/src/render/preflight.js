@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { config } = require("../config");
-const { VIDEO_PRESETS, validateRenderPayload } = require("./render-payload-schema");
+const { TEMPLATE_PRESETS, validateRenderPayload } = require("./render-payload-schema");
 
 function checkFileExists(filePath, label) {
   const exists = fs.existsSync(filePath) && fs.statSync(filePath).isFile();
@@ -35,6 +35,30 @@ function checkSamplePayload() {
       label: "Render payload sample",
       status: "error",
       message: "Cannot read render payload sample.",
+      detail: error.message
+    };
+  }
+}
+
+function checkDynamicSamplePayload() {
+  const payloadPath = path.join(config.projectRoot, "data", "dynamic-motion-payload.sample.json");
+
+  try {
+    const payload = JSON.parse(fs.readFileSync(payloadPath, "utf8"));
+    const validation = validateRenderPayload(payload);
+    return {
+      id: "dynamic-motion-sample-payload",
+      label: "Dynamic motion sample payload",
+      status: validation.valid ? "ok" : "error",
+      message: validation.valid ? "Dynamic sample payload is valid." : "Dynamic sample payload is invalid.",
+      detail: validation.valid ? path.relative(config.projectRoot, payloadPath) : validation.errors
+    };
+  } catch (error) {
+    return {
+      id: "dynamic-motion-sample-payload",
+      label: "Dynamic motion sample payload",
+      status: "error",
+      message: "Cannot read dynamic motion sample payload.",
       detail: error.message
     };
   }
@@ -97,7 +121,7 @@ function checkTemplateFilesForPreset(preset) {
 }
 
 function checkTemplateFiles() {
-  return Object.values(VIDEO_PRESETS).flatMap(checkTemplateFilesForPreset);
+  return Object.values(TEMPLATE_PRESETS).flatMap(checkTemplateFilesForPreset);
 }
 
 function checkRunnerFiles() {
@@ -140,6 +164,7 @@ function checkRunnerFiles() {
 function getRenderPreflight() {
   const checks = [
     checkSamplePayload(),
+    checkDynamicSamplePayload(),
     ...checkTemplateFiles(),
     checkOutputsDirectory(),
     ...checkRunnerFiles()
@@ -157,6 +182,7 @@ function getRenderPreflight() {
       "Nếu runner dependency bị thiếu, chạy: npm --prefix backend run hf:setup",
       "Nếu template lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-90s lint",
       "Nếu template dọc lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/project-showcase-vertical-60s lint",
+      "Nếu template dynamic lint lỗi, chạy: node backend/scripts/run-hyperframes-local.js --cwd templates/dynamic-story-vertical lint",
       "Nếu outputs/ không ghi được, kiểm tra quyền ghi thư mục project."
     ]
   };
