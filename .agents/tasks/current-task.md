@@ -2,7 +2,304 @@
 
 ## Trạng thái workflow
 
-completed
+in_progress
+
+## Dynamic Motion Video - Phase 0 Audit Cơ Chế Render Hiện Tại
+
+### Objective
+
+Làm rõ cơ chế render hiện tại của Hyper Video Tool trước khi thiết kế dynamic motion video. Phase này chỉ đọc code và cập nhật tài liệu; không sửa runtime, không thêm template mới, không đổi schema.
+
+### Scope
+
+Sẽ làm:
+
+- Đọc mapper payload hiện tại.
+- Đọc schema payload hiện tại.
+- Đọc render runner/backend job hiện tại.
+- Đọc template ngang và dọc hiện tại.
+- Ghi lại flow render, điểm reuse được, điểm giới hạn.
+
+Không làm:
+
+- Không thêm dynamic scene contract.
+- Không tạo duration resolver.
+- Không tạo shared motion core.
+- Không tạo template mới.
+- Không nối UI/backend cho template mới.
+
+### Files Impact
+
+- MODIFY `.agents/tasks/current-task.md` - checklist và test report Phase 0.
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md` - cập nhật status Phase 0.
+
+### Logic Changes
+
+Không có thay đổi logic runtime trong Phase 0.
+
+### Risk Assessment
+
+- Tier Auto: đọc code và cập nhật tài liệu task.
+- Rollback: revert thay đổi tài liệu nếu cần.
+- Side effect runtime: không có.
+
+### Dependency Map
+
+Phase 0 audit -> Phase 1 dynamic scene contract -> Phase 2 duration resolver -> Phase 3 shared motion core -> Phase 4 template dọc dynamic.
+
+### Audit Summary
+
+Flow render hiện tại:
+
+```text
+UI/project data
+-> `projectToRenderPayload()`
+-> payload showcase cố định
+-> `POST /api/render-jobs`
+-> validate payload
+-> copy template theo `payload.template.id` vào `.cache/render-jobs/{jobId}/composition`
+-> ghi `render-payload.json`
+-> gọi HyperFrames local runner
+-> nếu bật voiceover thì generate MP3 trước render và mux audio sau render
+-> ghi MP4 vào `outputs/{jobId}.mp4`
+-> upsert output manifest
+```
+
+Điểm reuse được:
+
+- Render runner đã generic ở mức copy template theo `payload.template.id`; đây là nền tốt để thêm template dynamic.
+- Backend job queue, logs, output path, manifest và mux voiceover đã có sẵn.
+- Template hiện tại đã đọc `render-payload.json` trong workdir và fallback sang sample payload khi preview.
+- Template dọc đã có một phần item sequencing qua `features.displayMode = "sequence"` và `animateFeatureSequence()`.
+- Text clamp/fallback/logo fallback đã có pattern dùng lại được.
+
+Giới hạn cần sửa ở phase sau:
+
+- `VIDEO_PRESETS` đang map cứng `16:9 -> project-showcase-90s` và `9:16 -> project-showcase-vertical-60s`.
+- `SCENE_TYPES` bắt buộc đủ 7 scene showcase: `intro/problem/solution/features/timeline/impact/outro`.
+- Mapper tạo payload bằng `SCENE_DURATIONS` hardcode, tổng thời lượng hiện là `74s`.
+- Template ngang/dọc đều có `SCENE_TIMELINE` hardcode, chưa tính duration theo nội dung.
+- Scene/media contract hiện chưa đủ tổng quát cho `title/text/media/cards/steps/outro`.
+- Sequencing mới nằm chủ yếu ở `features` của template dọc; các scene khác vẫn reveal cụm nội dung cùng lúc.
+
+### Checklist
+
+- [x] Đọc flow mapper/schema/backend render runner.
+- [x] Đọc template ngang `project-showcase-90s`.
+- [x] Đọc template dọc `project-showcase-vertical-60s`.
+- [x] Ghi summary cơ chế render hiện tại.
+- [x] Ghi điểm reuse được và giới hạn cần sửa.
+- [x] Cập nhật `.agents/tasks/dynamic-motion-video-roadmap.md` status Phase 0.
+- [x] Điền Test Report Phase 0.
+
+### Verification Plan
+
+- Kiểm tra tài liệu Phase 0 có đủ summary flow, reuse points và limitations.
+- Không chạy test runtime vì phase này chỉ audit tài liệu.
+
+### Test Report
+
+Status: passed
+
+- Commands run:
+  - `sed`/`nl` đọc `backend/src/render/project-to-render-payload.js`.
+  - `sed`/`nl` đọc `backend/src/render/render-payload-schema.js`.
+  - `sed`/`nl` đọc `backend/src/render/render-runner.js`.
+  - `sed` đọc `backend/src/routes/render-jobs.js`.
+  - `sed`/`nl` đọc `templates/project-showcase-90s/script.js`.
+  - `sed`/`nl` đọc `templates/project-showcase-vertical-60s/script.js`.
+  - `sed` đọc `backend/src/render/preflight.js`.
+- Runtime tests: không chạy vì Phase 0 chỉ audit tài liệu, không đổi code runtime.
+- Artifacts: `.agents/tasks/current-task.md` và `.agents/tasks/dynamic-motion-video-roadmap.md`.
+- Remaining risks: Phase 1 cần quyết định schema dynamic nên đi song song payload riêng hay mở rộng validator backend ngay.
+
+### Handoff
+
+Chưa có.
+
+## Dynamic Motion Video - Phase 1 Dynamic Scene Contract MVP
+
+### Objective
+
+Tạo payload mẫu cho dynamic motion video, đủ mô tả scene chỉ text, scene có media, scene có card/item, scene step-by-step và outro. Phase này không đổi backend schema để tránh ảnh hưởng render hiện tại.
+
+### Scope
+
+Đã làm:
+
+- Tạo `data/dynamic-motion-payload.sample.json`.
+- Định nghĩa scene fields: `id`, `type`, `headline`, `subtitle`, `body`, `items`, `media`, `motion`, `duration`.
+- Định nghĩa scene types MVP: `title`, `text`, `media`, `cards`, `steps`, `outro`.
+- Định nghĩa media contract: `assetId`, `type`, `placement`, `fit`, `focus`, `caption`.
+- Giữ dynamic contract riêng, chưa validate bằng backend schema hiện tại.
+
+Không làm:
+
+- Chưa nối UI.
+- Chưa thêm template mới.
+- Chưa mở rộng `render-payload-schema.js`.
+- Chưa migrate payload showcase cũ.
+
+### Files Impact
+
+- NEW `data/dynamic-motion-payload.sample.json`.
+- MODIFY `.agents/tasks/current-task.md`.
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`.
+
+### Logic Changes
+
+Không có thay đổi logic runtime. Đây là contract/sample riêng cho phase dynamic template sau.
+
+### Risk Assessment
+
+- Tier Auto: thêm sample payload riêng không ảnh hưởng render hiện tại.
+- Rollback: xóa `data/dynamic-motion-payload.sample.json`.
+
+### Checklist
+
+- [x] Tạo payload mẫu dynamic motion.
+- [x] Bao phủ scene text/media/items/steps/outro.
+- [x] Validate JSON parse.
+- [x] Không sửa backend schema trong phase này.
+- [x] Cập nhật roadmap status Phase 1.
+
+### Test Report
+
+Status: passed
+
+- `node -e "JSON.parse(require('node:fs').readFileSync('data/dynamic-motion-payload.sample.json','utf8')); console.log('ok')"` pass.
+- Runtime tests: không chạy vì Phase 1 chỉ thêm sample payload, chưa nối runtime.
+- Remaining risks: Phase 2 cần duration resolver đọc được contract này và tính timeline plan ổn định.
+
+## Dynamic Motion Video - Phase 2 Duration Resolver MVP
+
+### Objective
+
+Tạo helper tính thời lượng scene theo nội dung để template dynamic sau này không hardcode `60s/90s/120s` hoặc bảng scene cố định.
+
+### Scope
+
+Đã làm:
+
+- Tạo `templates/shared/motion-core/duration.js`.
+- Thêm `resolveSceneDuration(scene, options)`.
+- Thêm `buildTimelinePlan(payload, options)`.
+- Duration tính từ base scene type, số item, độ dài text và voiceover estimate.
+- Có min/max clamp theo từng scene.
+- Helper viết dạng dùng được trong Node test và browser template sau này.
+
+Không làm:
+
+- Chưa nối helper vào template cũ.
+- Chưa tạo animation primitive.
+- Chưa sync audio từng scene tuyệt đối.
+- Chưa auto split text dài thành nhiều scene.
+
+### Files Impact
+
+- NEW `templates/shared/motion-core/duration.js`.
+- NEW `templates/shared/motion-core/duration.test.js`.
+- MODIFY `.agents/tasks/current-task.md`.
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`.
+
+### Logic Changes
+
+Chưa ảnh hưởng runtime hiện tại. Helper mới chỉ được test độc lập.
+
+### Risk Assessment
+
+- Tier Auto: helper mới chưa được import bởi template production.
+- Rollback: xóa hai file trong `templates/shared/motion-core/`.
+
+### Checklist
+
+- [x] Tạo duration resolver.
+- [x] Tạo timeline plan builder.
+- [x] Test title scene min/max.
+- [x] Test cards nhiều item dài hơn ít item.
+- [x] Test media scene giữ minimum ổn định.
+- [x] Test voiceover có thể kéo dài scene.
+- [x] Test sample payload build timeline plan.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/shared/motion-core/duration.js && node --check templates/shared/motion-core/duration.test.js` pass.
+- `node templates/shared/motion-core/duration.test.js` pass: `duration tests passed`.
+- Runtime render tests: chưa chạy vì helper chưa nối vào template.
+- Remaining risks: Phase 3 cần animation primitives thật, không chỉ duration plan.
+
+## Dynamic Motion Video - Phase 3 Shared Motion Core MVP
+
+### Objective
+
+Tạo lõi motion nhỏ dùng chung cho template dynamic: DOM helpers, duration helpers và GSAP animation primitives. Phase này vẫn chưa nối template production.
+
+### Scope
+
+Đã làm:
+
+- Tạo `templates/shared/motion-core/dom.js`.
+- Tạo `templates/shared/motion-core/animations.js`.
+- Tạo `templates/shared/motion-core/index.js`.
+- Tạo `templates/shared/motion-core/README.md`.
+- Tạo `templates/shared/motion-core/motion-core.test.js`.
+- Primitive hiện có:
+  - `revealText`
+  - `revealBlock`
+  - `sequenceItems`
+  - `spotlightItems`
+  - `revealMedia`
+  - `panMedia`
+  - `transitionScene`
+
+Không làm:
+
+- Chưa tạo template `dynamic-story-vertical`.
+- Chưa nối shared core vào template cũ.
+- Chưa render MP4.
+- Chưa thêm SFX/caption/background music.
+
+### Files Impact
+
+- NEW `templates/shared/motion-core/dom.js`.
+- NEW `templates/shared/motion-core/animations.js`.
+- NEW `templates/shared/motion-core/index.js`.
+- NEW `templates/shared/motion-core/README.md`.
+- NEW `templates/shared/motion-core/motion-core.test.js`.
+- MODIFY `templates/shared/motion-core/duration.test.js` nếu cần test liên quan.
+- MODIFY `.agents/tasks/current-task.md`.
+- MODIFY `.agents/tasks/dynamic-motion-video-roadmap.md`.
+
+### Logic Changes
+
+Chưa ảnh hưởng runtime hiện tại. Shared core mới chỉ được test độc lập.
+
+### Risk Assessment
+
+- Tier Auto: shared core chưa được template production import.
+- Rollback: xóa `templates/shared/motion-core/`.
+
+### Checklist
+
+- [x] Tạo DOM helper.
+- [x] Tạo animation primitives.
+- [x] Tạo entrypoint `MotionCore`.
+- [x] Tạo README hướng dẫn browser usage.
+- [x] Test primitive bằng fake timeline.
+- [x] Chạy syntax check.
+
+### Test Report
+
+Status: passed
+
+- `node --check templates/shared/motion-core/duration.js && node --check templates/shared/motion-core/dom.js && node --check templates/shared/motion-core/animations.js && node --check templates/shared/motion-core/index.js && node --check templates/shared/motion-core/duration.test.js && node --check templates/shared/motion-core/motion-core.test.js` pass.
+- `node templates/shared/motion-core/duration.test.js && node templates/shared/motion-core/motion-core.test.js` pass:
+  - `duration tests passed`
+  - `motion core tests passed`
+- Runtime render tests: chưa chạy vì Phase 4 mới tạo template dùng shared core.
+- Remaining risks: cần browser/render verification ở Phase 4 vì fake timeline chưa chứng minh visual thực tế.
 
 ## Goal hiện tại
 

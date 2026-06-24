@@ -1,0 +1,240 @@
+{
+  "version": "dynamic-motion-1.0.0",
+  "source": {
+    "projectName": "Hyper Video Tool",
+    "projectSlug": "hyper-video-tool",
+    "ownerTeam": "Internal Tools",
+    "presenterRole": "Product Builder"
+  },
+  "template": {
+    "id": "dynamic-story-vertical",
+    "variant": "default",
+    "config": {
+      "theme": "dark",
+      "tone": "clear",
+      "accentColor": "cyan",
+      "density": "balanced"
+    }
+  },
+  "video": {
+    "aspectRatio": "9:16",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "format": "mp4",
+    "durationMode": "content-driven"
+  },
+  "audio": {
+    "voiceover": {
+      "enabled": false,
+      "provider": "edge-tts",
+      "language": "vi-VN",
+      "voiceId": "vi-VN-HoaiMyNeural",
+      "rate": "+0%",
+      "volume": "+0%",
+      "script": ""
+    },
+    "backgroundMusic": {
+      "enabled": false,
+      "source": "",
+      "volume": 0.12,
+      "ducking": true
+    },
+    "soundEffects": {
+      "enabled": false,
+      "items": []
+    }
+  },
+  "assets": {
+    "all": [
+      {
+        "id": "asset-logo",
+        "type": "image",
+        "role": "logo",
+        "name": "Hyper Video Tool logo",
+        "url": "../frontend/assets/logo.png",
+        "alt": "Hyper Video Tool logo",
+        "useInVideo": true
+      },
+      {
+        "id": "asset-preview",
+        "type": "image",
+        "role": "screenshot",
+        "name": "Render page preview",
+        "url": "https://placehold.co/1080x720/101214/eef2f7?text=Render+Preview",
+        "alt": "Render preview screenshot",
+        "useInVideo": true
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene-title",
+      "type": "title",
+      "headline": "Tao can tao video co motion that su",
+      "subtitle": "Khong phai show het item cung mot luc",
+      "body": "Template se tu can thoi luong theo noi dung va reveal tung phan theo nhip.",
+      "media": {
+        "assetId": "asset-logo",
+        "type": "image",
+        "placement": "badge",
+        "fit": "contain",
+        "focus": "center",
+        "caption": ""
+      },
+      "motion": {
+        "preset": "headlineReveal",
+        "intensity": "medium",
+        "sequence": "headline-subtitle-body"
+      },
+      "duration": {
+        "mode": "auto",
+        "min": 4,
+        "max": 8
+      }
+    },
+    {
+      "id": "scene-context",
+      "type": "text",
+      "headline": "No phai phu hop voi nhieu kieu noi dung",
+      "subtitle": "Gioi thieu, tutorial, showcase, story hoac report",
+      "body": "Scene khong bat buoc phai co so lieu hay danh sach. Neu chi co text, motion tap trung vao cach reveal headline, body va background.",
+      "motion": {
+        "preset": "textBuild",
+        "intensity": "low",
+        "sequence": "headline-body"
+      },
+      "duration": {
+        "mode": "auto",
+        "min": 5,
+        "max": 10
+      }
+    },
+    {
+      "id": "scene-media",
+      "type": "media",
+      "headline": "Neu co anh thi anh phai la mot phan cua cau chuyen",
+      "subtitle": "Khong chi nem screenshot len man hinh",
+      "body": "Media co caption, fit, focus va motion rieng de tranh bi tinh.",
+      "media": {
+        "assetId": "asset-preview",
+        "type": "image",
+        "placement": "focus",
+        "fit": "cover",
+        "focus": "center",
+        "caption": "Preview render flow"
+      },
+      "motion": {
+        "preset": "mediaFocus",
+        "intensity": "medium",
+        "sequence": "media-headline-caption"
+      },
+      "duration": {
+        "mode": "auto",
+        "min": 6,
+        "max": 12
+      }
+    },
+    {
+      "id": "scene-cards",
+      "type": "cards",
+      "headline": "Moi phan noi dung co nhip rieng",
+      "subtitle": "Card khong nen hien het mot phat",
+      "items": [
+        {
+          "id": "card-1",
+          "title": "Headline vao truoc",
+          "body": "Nguoi xem can biet scene dang noi gi.",
+          "media": null
+        },
+        {
+          "id": "card-2",
+          "title": "Item vao lan luot",
+          "body": "Moi item co slot rieng, item cu co the dim hoac truot ra.",
+          "media": null
+        },
+        {
+          "id": "card-3",
+          "title": "Media duoc focus",
+          "body": "Anh va clip can duoc reveal, pan hoac zoom nhe.",
+          "media": null
+        }
+      ],
+      "motion": {
+        "preset": "spotlightCards",
+        "intensity": "medium",
+        "sequence": "one-by-one"
+      },
+      "duration": {
+        "mode": "auto",
+        "min": 7,
+        "max": 14,
+        "perItem": 2.2
+      }
+    },
+    {
+      "id": "scene-steps",
+      "type": "steps",
+      "headline": "Cach render nen di theo pipeline ro",
+      "subtitle": "Data -> duration -> motion -> MP4",
+      "items": [
+        {
+          "id": "step-1",
+          "title": "Doc payload",
+          "body": "Template nhan scene generic."
+        },
+        {
+          "id": "step-2",
+          "title": "Tinh duration",
+          "body": "Thoi luong dua tren text, item, media va voiceover."
+        },
+        {
+          "id": "step-3",
+          "title": "Build timeline",
+          "body": "GSAP reveal tung phan theo timeline plan."
+        },
+        {
+          "id": "step-4",
+          "title": "Render MP4",
+          "body": "HyperFrames record thanh video."
+        }
+      ],
+      "motion": {
+        "preset": "stepSequence",
+        "intensity": "medium",
+        "sequence": "progressive"
+      },
+      "duration": {
+        "mode": "auto",
+        "min": 8,
+        "max": 16,
+        "perItem": 2
+      }
+    },
+    {
+      "id": "scene-outro",
+      "type": "outro",
+      "headline": "MVP dau tien chi can render mau cho ngon",
+      "subtitle": "UI de sau khi motion da dat",
+      "body": "Neu MP4 mau chua cuon, lam UI truoc la vo nghia.",
+      "media": {
+        "assetId": "asset-logo",
+        "type": "image",
+        "placement": "badge",
+        "fit": "contain",
+        "focus": "center",
+        "caption": ""
+      },
+      "motion": {
+        "preset": "closingHold",
+        "intensity": "low",
+        "sequence": "headline-subtitle"
+      },
+      "duration": {
+        "mode": "auto",
+        "min": 4,
+        "max": 8
+      }
+    }
+  ]
+}
