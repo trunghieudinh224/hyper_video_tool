@@ -2101,6 +2101,7 @@ const AppUI = (() => {
     <svg class="preview-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7Z"/></svg>
     <span>Chạy thử</span>
   `;
+  let previewSceneTimeSec = 0;
   const stopPreviewAutoplay = (showMessage = false) => {
     if (!autoplayTimer) {
       return;
@@ -2119,18 +2120,81 @@ const AppUI = (() => {
 
   const renderPreviewScreen = (container, data) => {
     const activeTemplate = TEMPLATES_LIST.find(t => t.id === data.templateId) || TEMPLATES_LIST[0];
-    const scenes = activeTemplate.scenes;
+    const activeSegments = (data.features || []).filter((item) => item.useInVideo);
+    const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
+    const selectedVideoStyle = videoStyles.find((style) => style.id === data.videoStyleId) || videoStyles[0] || null;
+    const getSceneTemplate = (templateId) => sceneTemplates.find((template) => template.id === templateId)
+      || sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId)
+      || sceneTemplates[0]
+      || null;
+    const getDefaultSlotValue = (slot, segment = {}) => {
+      const primaryAssetId = data.primaryAssetId || ((data.assets || [])[0] && (data.assets || [])[0].id) || "";
+      const base = {
+        type: slot.type,
+        delay: Number.isFinite(slot.defaultDelay) ? slot.defaultDelay : 0,
+        animation: (slot.allowedAnimations && slot.allowedAnimations[0]) || "fade-up",
+        enabled: true
+      };
+      if (slot.type === "asset" || slot.type === "media") return { ...base, assetId: primaryAssetId };
+      if (slot.type === "list") {
+        return { ...base, items: [segment.name, segment.description, segment.benefit].map((value) => String(value || "").trim()).filter(Boolean).slice(0, 4) };
+      }
+      if (slot.id === "title") return { ...base, text: segment.name || "" };
+      if (slot.id === "description") return { ...base, text: segment.description || "" };
+      if (slot.id === "tag" || slot.id === "kicker" || slot.id === "header" || slot.id === "cta") return { ...base, text: segment.benefit || segment.type || "" };
+      return { ...base, text: "" };
+    };
+    const normalizeSegmentSlots = (segment = {}, template) => {
+      if (!template) return {};
+      return template.slots.reduce((slots, slot) => {
+        const existing = segment.slots && segment.slots[slot.id] ? segment.slots[slot.id] : {};
+        const fallback = getDefaultSlotValue(slot, segment);
+        const delay = Number.parseFloat(existing.delay);
+        slots[slot.id] = {
+          ...fallback,
+          ...existing,
+          type: slot.type,
+          delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
+          animation: existing.animation || fallback.animation,
+          enabled: slot.required ? true : existing.enabled !== false
+        };
+        return slots;
+      }, {});
+    };
+    const slotScenes = activeSegments.map((segment, index) => {
+      const sceneTemplate = getSceneTemplate(segment.sceneTemplateId);
+      const durationSec = Math.min(30, Math.max(3, Number.parseInt(segment.durationSec, 10) || (sceneTemplate && sceneTemplate.recommendedDurationSec) || 8));
+      return {
+        id: segment.id || `segment-${index + 1}`,
+        title: segment.name || `Đoạn ${index + 1}`,
+        desc: segment.description || "",
+        durationSec,
+        duration: `${durationSec}s`,
+        segment,
+        sceneTemplate,
+        slots: normalizeSegmentSlots(segment, sceneTemplate),
+        isSlotScene: true
+      };
+    });
+    const scenes = slotScenes.length > 0 ? slotScenes : activeTemplate.scenes.map((scene) => ({
+      ...scene,
+      durationSec: Number.parseInt(scene.duration, 10) || 8,
+      isSlotScene: false
+    }));
     const selectedIdx = Math.min(AppState.getSelectedSceneIndex(), Math.max(scenes.length - 1, 0));
     const currentScene = scenes[selectedIdx] || scenes[0];
-    const activeSegments = (data.features || []).filter((item) => item.useInVideo);
     const ratioClass = activeTemplate.ratio === "9:16" ? "is-vertical" : "is-landscape";
     const estimatedDuration = activeSegments.reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
     const sceneDuration = currentScene ? currentScene.duration : "0s";
-    const escapeText = (value) => String(value || "")
+    const sceneDurationSec = currentScene ? (Number.parseInt(currentScene.durationSec, 10) || Number.parseInt(currentScene.duration, 10) || 8) : 0;
+    previewSceneTimeSec = Math.min(previewSceneTimeSec, sceneDurationSec);
+    const escapeText = (value) => String(value == null ? "" : value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
+    const activeSlotCount = currentScene && currentScene.sceneTemplate ? currentScene.sceneTemplate.slots.length : 0;
 
     container.innerHTML = `
       <div class="workspace-header preview-workspace-header">
@@ -2164,6 +2228,16 @@ const AppUI = (() => {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
             </button>
           </div>
+
+          ${currentScene && currentScene.isSlotScene ? `
+            <div class="preview-time-control">
+              <label for="preview-time-range">
+                <span>Thời điểm scene</span>
+                <strong>${previewSceneTimeSec.toFixed(1)}s / ${sceneDurationSec}s</strong>
+              </label>
+              <input id="preview-time-range" type="range" min="0" max="${sceneDurationSec}" step="0.1" value="${previewSceneTimeSec}">
+            </div>
+          ` : ""}
         </section>
 
         <aside class="preview-side-panel" aria-label="Thông tin scene xem trước">
@@ -2176,19 +2250,19 @@ const AppUI = (() => {
             <p>${escapeText(currentScene ? currentScene.desc : "Template chưa có mô tả scene.")}</p>
             <div class="preview-info-grid">
               <div><span>Thời lượng scene</span><strong>${escapeText(sceneDuration)}</strong></div>
-              <div><span>Kịch bản bật</span><strong>${activeSegments.length}</strong></div>
+              <div><span>${currentScene && currentScene.isSlotScene ? "Scene template" : "Kịch bản bật"}</span><strong>${currentScene && currentScene.sceneTemplate ? escapeText(currentScene.sceneTemplate.name) : activeSegments.length}</strong></div>
               <div><span>Ước tính</span><strong>${estimatedDuration}s</strong></div>
             </div>
           </section>
 
           <section class="preview-scene-list" aria-label="Danh sách scene">
-            <div class="preview-section-title">Danh sách scene</div>
+            <div class="preview-section-title">${slotScenes.length > 0 ? "Phân đoạn slot-based" : "Danh sách scene"}</div>
             ${scenes.map((scene, index) => `
               <button class="scene-item ${selectedIdx === index ? 'active' : ''}" data-index="${index}" type="button">
                 <span class="scene-item-index">${index + 1}</span>
                 <span class="scene-item-copy">
                   <strong>${escapeText(scene.title)}</strong>
-                  <small>${escapeText(scene.desc || "")}</small>
+                  <small>${escapeText(scene.isSlotScene && scene.sceneTemplate ? scene.sceneTemplate.name : (scene.desc || ""))}</small>
                 </span>
                 <span class="scene-item-duration">${escapeText(scene.duration)}</span>
               </button>
@@ -2196,10 +2270,19 @@ const AppUI = (() => {
           </section>
 
           <section class="preview-segment-summary" aria-label="Kịch bản đang bật">
-            <div class="preview-section-title">Kịch bản đang bật</div>
+            <div class="preview-section-title">${currentScene && currentScene.isSlotScene ? `Slots đang dùng (${activeSlotCount})` : "Kịch bản đang bật"}</div>
             ${activeSegments.length === 0 ? `
               <div class="preview-empty-note">Chưa có đoạn kịch bản nào đang bật.</div>
-            ` : activeSegments.slice(0, 4).map((segment, index) => `
+            ` : currentScene && currentScene.isSlotScene && currentScene.sceneTemplate ? currentScene.sceneTemplate.slots.map((slot) => {
+              const value = currentScene.slots[slot.id] || {};
+              return `
+              <div class="preview-slot-timing-item ${value.enabled === false ? "is-disabled" : ""} ${Number(value.delay) <= previewSceneTimeSec ? "is-visible" : ""}">
+                <span>${escapeText(Number(value.delay || 0).toFixed(1))}s</span>
+                <strong>${escapeText(slot.label)}</strong>
+                <small>${escapeText(value.animation || "none")}</small>
+              </div>
+              `;
+            }).join("") : activeSegments.slice(0, 4).map((segment, index) => `
               <div class="preview-segment-item">
                 <span>${index + 1}</span>
                 <strong>${escapeText(segment.name || "Đoạn chưa đặt tên")}</strong>
@@ -2217,13 +2300,18 @@ const AppUI = (() => {
     };
 
     // Draw canvas content
-    drawPreviewCanvas(currentScene.id, data);
+    if (currentScene && currentScene.isSlotScene) {
+      drawSlotBasedPreviewCanvas(currentScene, data, selectedVideoStyle, previewSceneTimeSec);
+    } else {
+      drawPreviewCanvas(currentScene.id, data);
+    }
 
     // Bind Scene Item Click
     container.querySelectorAll(".scene-item").forEach(item => {
       item.addEventListener("click", () => {
         clearAutoplay();
         const idx = parseInt(item.getAttribute("data-index"));
+        previewSceneTimeSec = 0;
         AppState.setSelectedSceneIndex(idx);
       });
     });
@@ -2231,13 +2319,27 @@ const AppUI = (() => {
     // Control buttons bind
     document.getElementById("btn-prev-scene").addEventListener("click", () => {
       clearAutoplay();
-      if (selectedIdx > 0) AppState.setSelectedSceneIndex(selectedIdx - 1);
+      if (selectedIdx > 0) {
+        previewSceneTimeSec = 0;
+        AppState.setSelectedSceneIndex(selectedIdx - 1);
+      }
     });
 
     document.getElementById("btn-next-scene").addEventListener("click", () => {
       clearAutoplay();
-      if (selectedIdx < scenes.length - 1) AppState.setSelectedSceneIndex(selectedIdx + 1);
+      if (selectedIdx < scenes.length - 1) {
+        previewSceneTimeSec = 0;
+        AppState.setSelectedSceneIndex(selectedIdx + 1);
+      }
     });
+
+    const timeRange = document.getElementById("preview-time-range");
+    if (timeRange) {
+      timeRange.addEventListener("input", () => {
+        previewSceneTimeSec = Number.parseFloat(timeRange.value) || 0;
+        renderPreviewScreen(container, AppState.getProjectData());
+      });
+    }
 
     // Play/Pause slide
     const playBtn = document.getElementById("btn-play-preview");
@@ -2249,12 +2351,143 @@ const AppUI = (() => {
         showToast("Bắt đầu chạy trình chiếu các cảnh quay...");
 
         let localIdx = selectedIdx;
+        previewSceneTimeSec = 0;
         autoplayTimer = setInterval(() => {
-          localIdx = (localIdx + 1) % scenes.length;
-          AppState.setSelectedSceneIndex(localIdx);
-        }, 3000); // Shift every 3s
+          const activeData = AppState.getProjectData();
+          const currentDuration = currentScene && currentScene.durationSec ? currentScene.durationSec : 3;
+          previewSceneTimeSec = Math.min(currentDuration, previewSceneTimeSec + 0.5);
+          if (previewSceneTimeSec >= currentDuration) {
+            localIdx = (localIdx + 1) % scenes.length;
+            previewSceneTimeSec = 0;
+            AppState.setSelectedSceneIndex(localIdx);
+          } else {
+            renderPreviewScreen(container, activeData);
+          }
+        }, 500);
       }
     });
+  };
+
+  const drawSlotBasedPreviewCanvas = (scene, data, videoStyle, currentTimeSec) => {
+    const canvas = document.getElementById("preview-canvas");
+    if (!canvas || !scene || !scene.sceneTemplate) return;
+
+    const escapeText = (value) => String(value == null ? "" : value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+    const theme = videoStyle && videoStyle.colorTheme ? videoStyle.colorTheme : {
+      background: "#0f172a",
+      surface: "#1e293b",
+      surfaceAlt: "#334155",
+      text: "#f8fafc",
+      mutedText: "#cbd5e1",
+      accent: "#1f4fd8",
+      border: "#334155"
+    };
+    const getAsset = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
+    const getSlotValue = (slotId) => scene.slots && scene.slots[slotId] ? scene.slots[slotId] : {};
+    const isVisible = (value) => value.enabled !== false && Number(value.delay || 0) <= currentTimeSec;
+    const slotClass = (value) => `preview-slot ${isVisible(value) ? "is-visible" : "is-pending"} anim-${escapeText(value.animation || "none")}`;
+    const renderTextSlot = (slotId, className = "") => {
+      const value = getSlotValue(slotId);
+      if (!value.text && value.enabled === false) return "";
+      return `<div class="${slotClass(value)} ${className}" data-delay="${escapeText(value.delay || 0)}">${escapeText(value.text || "")}</div>`;
+    };
+    const renderAssetSlot = (slotId, className = "") => {
+      const value = getSlotValue(slotId);
+      const asset = getAsset(value.assetId);
+      const label = asset ? asset.name || asset.id : "Asset";
+      const src = asset && asset.url ? asset.url : "";
+      if (src) {
+        return `<div class="${slotClass(value)} ${className}" data-delay="${escapeText(value.delay || 0)}"><img src="${escapeText(src)}" alt="${escapeText(label)}"></div>`;
+      }
+      return `<div class="${slotClass(value)} ${className}" data-delay="${escapeText(value.delay || 0)}">${escapeText(label)}</div>`;
+    };
+    const renderListSlot = (slotId) => {
+      const value = getSlotValue(slotId);
+      const items = Array.isArray(value.items) ? value.items.filter(Boolean) : [];
+      return `
+        <div class="${slotClass(value)} preview-slot-list" data-delay="${escapeText(value.delay || 0)}">
+          ${items.length === 0 ? `<span>Chưa có item</span>` : items.slice(0, 6).map((item) => `<span>${escapeText(item)}</span>`).join("")}
+        </div>
+      `;
+    };
+    const renderMediaSlot = (slotId) => {
+      const value = getSlotValue(slotId);
+      const asset = getAsset(value.assetId);
+      const src = asset && asset.url ? asset.url : "";
+      return `
+        <div class="${slotClass(value)} preview-slot-media" data-delay="${escapeText(value.delay || 0)}">
+          ${src ? `<img src="${escapeText(src)}" alt="${escapeText(asset.name || "Media")}">` : `<span>Image / Video</span>`}
+        </div>
+      `;
+    };
+
+    canvas.style.setProperty("--preview-bg", theme.background);
+    canvas.style.setProperty("--preview-surface", theme.surface);
+    canvas.style.setProperty("--preview-surface-alt", theme.surfaceAlt || theme.surface);
+    canvas.style.setProperty("--preview-text", theme.text);
+    canvas.style.setProperty("--preview-muted", theme.mutedText);
+    canvas.style.setProperty("--preview-accent", theme.accent);
+    canvas.style.setProperty("--preview-border", theme.border);
+    canvas.style.backgroundColor = theme.background;
+    canvas.style.color = theme.text;
+
+    const templateId = scene.sceneTemplate.id;
+    let body = "";
+    if (templateId === "media-showcase") {
+      body = `
+        <div class="preview-slot-layout layout-media-showcase">
+          <div class="preview-slot-topline">${renderTextSlot("header", "slot-kicker")}${renderAssetSlot("logo", "slot-logo")}</div>
+          ${renderTextSlot("title", "slot-title")}
+          ${renderMediaSlot("media")}
+          ${renderTextSlot("description", "slot-description")}
+        </div>
+      `;
+    } else if (templateId === "grid-feature") {
+      body = `
+        <div class="preview-slot-layout layout-grid-feature">
+          ${renderTextSlot("header", "slot-kicker")}
+          ${renderTextSlot("title", "slot-title")}
+          ${renderListSlot("grid")}
+          ${renderTextSlot("description", "slot-description")}
+        </div>
+      `;
+    } else if (templateId === "step-flow") {
+      body = `
+        <div class="preview-slot-layout layout-step-flow">
+          ${renderTextSlot("title", "slot-title")}
+          ${renderListSlot("steps")}
+          ${renderTextSlot("note", "slot-description")}
+        </div>
+      `;
+    } else if (templateId === "outro-cta") {
+      body = `
+        <div class="preview-slot-layout layout-outro-cta">
+          ${renderAssetSlot("logo", "slot-logo")}
+          ${renderTextSlot("title", "slot-title")}
+          ${renderTextSlot("cta", "slot-description")}
+          ${renderTextSlot("tag", "slot-tag")}
+        </div>
+      `;
+    } else {
+      body = `
+        <div class="preview-slot-layout layout-intro-stack">
+          ${renderAssetSlot("logo", "slot-logo")}
+          ${renderTextSlot("kicker", "slot-kicker")}
+          ${renderTextSlot("title", "slot-title")}
+          ${renderTextSlot("description", "slot-description")}
+          ${renderTextSlot("tag", "slot-tag")}
+        </div>
+      `;
+    }
+
+    canvas.innerHTML = `
+      ${body}
+      <div class="preview-time-badge">${currentTimeSec.toFixed(1)}s</div>
+    `;
   };
 
   const drawPreviewCanvas = (sceneId, data) => {

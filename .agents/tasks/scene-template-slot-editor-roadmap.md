@@ -689,7 +689,38 @@ Không làm:
 
 ### Status
 
-Pending.
+In progress.
+
+### Slice 1 - Slot-Based Preview UI
+
+Status: completed.
+
+Summary:
+
+- Preview page ưu tiên active segments trong `features` và tạo scene preview từ `sceneTemplateId + slots`.
+- Nếu chưa có active segments, preview vẫn fallback về scene generic cũ.
+- Áp `videoStyleId` vào màu nền, surface, text, accent, border và glow trong preview canvas.
+- Hỗ trợ preview layout cho `intro-stack`, `media-showcase`, `grid-feature`, `step-flow`, `outro-cta`.
+- Thêm scrub scene time để kiểm tra slot delay.
+- Slot có `delay` nhỏ hơn hoặc bằng thời gian hiện tại sẽ visible; slot chưa tới delay hiển thị pending.
+- Panel bên phải hiển thị slot timing, animation và trạng thái visible/pending.
+- Chưa đổi render payload và chưa đổi HyperFrames render thật.
+
+Test Report:
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/preview.css` không có hit.
+- `curl -I http://127.0.0.1:3028/pages/preview.html` trả `200`.
+- `npm --prefix backend run check` pass.
+- CDP desktop smoke:
+  - inject project có segment `grid-feature`.
+  - preview render `.preview-slot-layout`.
+  - tại `0s`, grid list chưa visible.
+  - scrub tới `2s`, grid list visible.
+  - time control hiển thị `2.0s / 8s`.
+  - slot timing hiển thị các mốc `0.0s`, `0.5s`, `2.0s`, `4.0s`.
+- Desktop screenshot: `/private/tmp/hvt-phase4-slot-preview.png`.
 
 ## Phase 5 - Render Payload Mapping Cho Slot-Based Scenes
 

@@ -4,6 +4,42 @@
 
 in_progress
 
+## Roadmap Phase 4 Slice 1 - Slot-Based Preview UI
+
+### Objective
+
+Cho trang Xem trước render được các phân đoạn có `sceneTemplateId + slots` theo layout scene template, và cho user scrub thời gian để thấy slot delay.
+
+### Summary
+
+- Preview page ưu tiên active segments trong `features` nếu có segment bật `useInVideo`.
+- Mỗi segment được map thành một scene preview slot-based gồm `sceneTemplateId`, `slots`, `durationSec`.
+- Nếu project chưa có segment slot-based, preview vẫn fallback về scene generic cũ.
+- Preview áp `videoStyleId` vào màu nền, surface, text, accent, border và glow.
+- Hỗ trợ layout preview cho `intro-stack`, `media-showcase`, `grid-feature`, `step-flow`, `outro-cta`.
+- Thêm thanh scrub thời gian theo scene để kiểm tra delay.
+- Slot có delay nhỏ hơn hoặc bằng thời gian hiện tại sẽ hiện; slot chưa tới delay hiển thị trạng thái pending.
+- Panel bên phải hiển thị scene template, slot timing, animation và trạng thái visible/pending.
+- Chưa đổi render payload và chưa đổi HyperFrames render thật.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "alert\\(|confirm\\(|prompt\\(|debugger|console\\.log\\(" frontend/scripts/common/ui-components.js frontend/styles/pages/preview.css` không có hit.
+- `curl -I http://127.0.0.1:3028/pages/preview.html` trả `200`.
+- `npm --prefix backend run check` pass.
+- CDP desktop smoke pass:
+  - Inject project có segment `grid-feature`.
+  - Preview render `.preview-slot-layout`.
+  - Tại `0s`, grid list chưa visible.
+  - Scrub tới `2s`, grid list visible.
+  - Time control hiển thị `2.0s / 8s`.
+  - Slot timing hiển thị `0.0s Header`, `0.5s Title`, `2.0s Grid Items`, `4.0s Description`.
+- Desktop screenshot: `/private/tmp/hvt-phase4-slot-preview.png`.
+
 ## Roadmap Phase 3 Slice 2 - Required Slot Validation Và Detail Summary
 
 ### Objective
