@@ -146,7 +146,8 @@ Ví dụ:
 - Không dùng gradient trong app UI.
 - Không dùng hero marketing.
 - Không dùng emoji trang trí.
-- Action icon button phải dùng icon solid/filled, không dùng stroke-only outline icon. Icon-only button phải có `aria-label` hoặc `title`, ưu tiên nền solid cho hành động trực tiếp, hover chỉ đổi màu/border đậm hơn hoặc nhấc nhẹ.
+- Action icon button phải dùng icon solid/filled, không dùng stroke-only outline icon. Icon-only button phải có `aria-label` hoặc `title`. Không tự thêm background cho icon button nếu user không yêu cầu; hover chỉ đổi màu icon đậm hơn và/hoặc nhấc nhẹ/lún nhẹ, không đổi hoặc thêm background.
+- Section/panel nội dung phải dùng common component `app-section` trong `frontend/styles/components.css` với cấu trúc `app-section-header`, `app-section-eyebrow`, `app-section-helper`, `app-section-content`. Không tạo/copy style page-local `*-panel` nếu common section đáp ứng được.
 
 ## JavaScript
 

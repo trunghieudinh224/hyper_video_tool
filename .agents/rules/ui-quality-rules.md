@@ -1,5 +1,5 @@
 ---
-trigger: on_demand
+trigger: always_on
 description: UI quality and anti-slop rules for web projects. Use before/after frontend implementation, redesign, taste polish, or browser review.
 ---
 
@@ -38,11 +38,29 @@ Tránh:
 - Spacing có rhythm, không cảm tính mỗi section.
 - Màu có vai trò: background, surface, text, border, accent, semantic states.
 
+## Section Panels
+
+- Các section/panel nội dung trong app phải dùng common component `app-section`.
+- Cấu trúc chuẩn:
+  - Container: `app-section`, thêm `is-compact` khi dùng panel phụ/sidebar.
+  - Header: `app-section-header`.
+  - Eyebrow/title nhỏ: `app-section-eyebrow`.
+  - Helper/subtitle: `app-section-helper`.
+  - Body: `app-section-content`.
+- Không tạo page-local panel mới như `*-panel`, `*-panel-header`, `*-panel-content` nếu common `app-section` đáp ứng được.
+- Page CSS chỉ được override layout nội dung bên trong section, không copy lại border, radius, padding, background, header rhythm của `app-section`.
+- Nếu bắt buộc tạo biến thể section riêng, phải ghi lý do trong task/report.
+
 ## Icon Buttons
 
-- Action icon buttons trong app phải dùng icon dạng solid/filled, không dùng stroke-only outline icon.
+- Action icon buttons trong app bắt buộc dùng icon dạng solid/filled, không dùng stroke-only outline icon.
+- Icon-only action button chỉ sử dụng màu của icon (color), không sử dụng màu nền (no background color).
 - Icon-only action button phải có `aria-label` hoặc `title` rõ ràng.
-- Icon-only action button nên có nền solid khi là hành động trực tiếp; hover chỉ được làm màu/icon/border đậm hơn hoặc nhấc nhẹ, không đổi sang background trang trí mới.
+- Quy định nếu sử dụng cho các nút hành động như save, edit, xóa thì hãy sử dụng các class FontAwesome đồng bộ sau:
+  - Sửa (edit): `fa-solid fa-pen`
+  - Lưu (save): `fa-solid fa-floppy-disk`
+  - Xóa (delete): `fa-solid fa-trash`
+- Hover chỉ đổi màu icon đậm hơn hoặc nhạt hơn (như `var(--color-primary-hover)`) và nhấc nhẹ (ví dụ `transform: translateY(-1px)`); active/pressed có thể lún nhẹ. Không đổi hoặc thêm background trong hover/active.
 - Active/pressed state nên có hiệu ứng lún nhẹ để người dùng thấy phản hồi.
 - Không dùng icon chỉ để trang trí nếu không giúp scan hoặc thao tác.
 
