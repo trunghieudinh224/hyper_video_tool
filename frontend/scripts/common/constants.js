@@ -26,6 +26,7 @@ const INITIAL_PROJECT_DATA = {
   videoStyleId: "dark-tech",
   videoStyleOverrides: {},
   defaultSceneTemplateId: "intro-stack",
+  sceneItemViews: [],
   templateId: "project-showcase-90s",
   templateConfig: {
     theme: "dark",
@@ -175,6 +176,20 @@ const SCENE_SLOT_TYPES = [
   { id: "media", label: "Image / Video", valueField: "assetId" },
   { id: "list", label: "List / Grid", valueField: "items" },
   { id: "tag", label: "Tag / Label", valueField: "text" }
+];
+
+const SCENE_ITEM_VIEW_PRESETS = [
+  { id: "logo", label: "Logo", type: "asset", enabled: true },
+  { id: "kicker", label: "Kicker", type: "text", enabled: true },
+  { id: "title", label: "Title", type: "text", enabled: true },
+  { id: "description", label: "Description", type: "text", enabled: true },
+  { id: "tag", label: "Tag / Label", type: "tag", enabled: true },
+  { id: "header", label: "Header", type: "text", enabled: true },
+  { id: "media", label: "Image / Video", type: "media", enabled: true },
+  { id: "grid", label: "Grid Items", type: "list", enabled: true },
+  { id: "steps", label: "Steps", type: "list", enabled: true },
+  { id: "note", label: "Note", type: "text", enabled: true },
+  { id: "cta", label: "Call to action", type: "text", enabled: true }
 ];
 
 const SCENE_SLOT_ANIMATIONS = [

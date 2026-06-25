@@ -139,6 +139,7 @@ const AppStorage = (() => {
     videoStyleId: "dark-tech",
     videoStyleOverrides: {},
     defaultSceneTemplateId: "intro-stack",
+    sceneItemViews: [],
     templateId: "project-showcase-90s",
     templateConfig: {
       theme: "dark",

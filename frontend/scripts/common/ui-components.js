@@ -6,7 +6,7 @@ const AppUI = (() => {
   const VOICE_ESTIMATE_BASE_WPM = 185;
 
   // Internal view states
-  let templateRatioFilter = "all";
+  let templateRatioFilter = "9:16";
   let selectedScriptSegmentId = null;
 
   const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
@@ -17,9 +17,247 @@ const AppUI = (() => {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
+  const escapeText = (value) => String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+
+  const renderIcon = (name, className = "") => {
+    const icons = {
+      palette: "fa-palette",
+      grid: "fa-table-cells-large",
+      layers: "fa-layer-group",
+      plus: "fa-plus",
+      pen: "fa-pen",
+      trash: "fa-trash",
+      text: "fa-font",
+      shapes: "fa-shapes",
+      image: "fa-image",
+      list: "fa-list",
+      tag: "fa-tag"
+    };
+    const icon = icons[name] || icons.grid;
+    const extraClass = className ? ` ${escapeAttribute(className)}` : "";
+    return `<i class="fa-solid ${icon} app-icon${extraClass}" aria-hidden="true"></i>`;
+  };
+
+  const SCENE_ITEM_COLOR_ROLES = [
+    { id: "text", label: "Text", hint: "Chữ chính: title, label chính, CTA chính." },
+    { id: "mutedText", label: "Muted text", hint: "Chữ phụ: description, note, caption." },
+    { id: "accent", label: "Accent", hint: "Điểm nhấn: kicker, tag, CTA, highlight." }
+  ];
+
+  const SCENE_ITEM_DISPLAY_STYLES = [
+    { id: "plain", label: "Plain", hint: "Không nền, không viền. Hợp với text/title/description." },
+    { id: "surface", label: "Surface", hint: "Có nền surface và viền nhẹ. Hợp logo, card, list item." },
+    { id: "outlined", label: "Outlined", hint: "Trong suốt hoặc nền rất nhẹ, nhấn bằng border." },
+    { id: "filled", label: "Filled", hint: "Dùng nền nhấn mạnh từ accent/accent soft." },
+    { id: "pill", label: "Pill", hint: "Badge/tag bo tròn." },
+    { id: "media-frame", label: "Media frame", hint: "Khung ảnh/video có surface, border và crop media." }
+  ];
+
+  const getSceneItemAppearanceDefaults = (item = {}) => {
+    const label = String(item.label || item.id || "").toLowerCase();
+    const type = item.type || "text";
+
+    if (type === "media") {
+      return { colorRole: "accent", displayStyle: "media-frame" };
+    }
+    if (type === "asset") {
+      return { colorRole: "accent", displayStyle: "surface" };
+    }
+    if (type === "list") {
+      return { colorRole: "text", displayStyle: "surface" };
+    }
+    if (type === "tag") {
+      return { colorRole: "accent", displayStyle: "pill" };
+    }
+    if (label.includes("description") || label.includes("note") || label.includes("caption")) {
+      return { colorRole: "mutedText", displayStyle: "plain" };
+    }
+    if (label.includes("header") || label.includes("kicker") || label.includes("cta") || label.includes("call")) {
+      return { colorRole: "accent", displayStyle: "plain" };
+    }
+    return { colorRole: "text", displayStyle: "plain" };
+  };
+
+  const getSceneItemColorRole = (roleId) => SCENE_ITEM_COLOR_ROLES.find((role) => role.id === roleId) || SCENE_ITEM_COLOR_ROLES[0];
+  const getSceneItemDisplayStyle = (styleId) => SCENE_ITEM_DISPLAY_STYLES.find((style) => style.id === styleId) || SCENE_ITEM_DISPLAY_STYLES[0];
+
+  const renderSceneItemPreview = (slot) => {
+    if (slot.type === "asset") {
+      return `<span class="scene-item-thumb-mark">${renderIcon("shapes")}</span>`;
+    }
+    if (slot.type === "media") {
+      return `
+        <span class="scene-item-media-mark">
+          ${renderIcon("image")}
+        </span>
+      `;
+    }
+    if (slot.type === "list") {
+      return `
+        <span class="scene-item-list-mark">
+          <span></span><span></span><span></span><span></span>
+        </span>
+      `;
+    }
+    if (slot.type === "tag") {
+      return `<span class="scene-item-tag-mark"><span></span></span>`;
+    }
+    return `
+      <span class="scene-item-text-mark">
+        <span></span>
+        <span></span>
+      </span>
+    `;
+  };
+
   const getVideoStylePreset = (styleId) => {
     const styles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
     return styles.find((style) => style.id === styleId) || styles[0] || null;
+  };
+
+  const getProjectSceneTemplates = (data = AppState.getProjectData()) => {
+    const presets = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const customTemplates = Array.isArray(data && data.customSceneTemplates) ? data.customSceneTemplates : [];
+    const merged = new Map();
+
+    presets.forEach((template) => {
+      if (template && template.id) {
+        merged.set(template.id, template);
+      }
+    });
+    customTemplates.forEach((template) => {
+      if (template && template.id) {
+        merged.set(template.id, {
+          ...template,
+          isCustomized: presets.some((preset) => preset.id === template.id)
+        });
+      }
+    });
+
+    return Array.from(merged.values());
+  };
+
+  const getSceneTemplateAspectRatios = (template) => {
+    if (!template || typeof template !== "object") {
+      return [];
+    }
+
+    const ratios = Array.isArray(template.supportedAspectRatios)
+      ? template.supportedAspectRatios
+      : template.aspectRatios;
+
+    return Array.isArray(ratios) ? ratios.filter(Boolean) : [];
+  };
+
+  const getProjectSceneItemViews = (data = AppState.getProjectData()) => {
+    const presets = Array.isArray(SCENE_ITEM_VIEW_PRESETS) ? SCENE_ITEM_VIEW_PRESETS : [];
+    const customItems = Array.isArray(data && data.sceneItemViews) ? data.sceneItemViews : [];
+    return [
+      ...presets,
+      ...customItems
+    ].filter((item) => item && item.enabled !== false)
+      .map((item) => {
+        const appearance = getSceneItemAppearanceDefaults(item);
+        return {
+          ...item,
+          colorRole: item.colorRole || appearance.colorRole,
+          displayStyle: item.displayStyle || appearance.displayStyle
+        };
+      });
+  };
+
+  const clampSceneLayoutNumber = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
+
+  const getSceneSlotLayout = (slot, index = 0, ratio = "") => {
+    if (slot && slot.layout && typeof slot.layout === "object") {
+      const width = clampSceneLayoutNumber(slot.layout.width, 12, 100);
+      const height = clampSceneLayoutNumber(slot.layout.height, 5, 100);
+      return {
+        x: clampSceneLayoutNumber(slot.layout.x, 0, 100 - width),
+        y: clampSceneLayoutNumber(slot.layout.y, 0, 100 - height),
+        width,
+        height
+      };
+    }
+
+    const label = String(slot && slot.label || "").toLowerCase();
+    const type = slot && slot.type;
+    const portraitPresets = [
+      { x: 16, y: 24, width: 68, height: 7 },
+      { x: 36, y: 34, width: 28, height: 10 },
+      { x: 16, y: 47, width: 68, height: 7 },
+      { x: 12, y: 58, width: 76, height: 20 },
+      { x: 16, y: 82, width: 68, height: 7 }
+    ];
+    const landscapePresets = [
+      { x: 10, y: 22, width: 36, height: 14 },
+      { x: 10, y: 45, width: 36, height: 14 },
+      { x: 52, y: 24, width: 36, height: 18 },
+      { x: 52, y: 52, width: 36, height: 20 },
+      { x: 10, y: 68, width: 36, height: 12 }
+    ];
+    const presets = ratio === "16:9" ? landscapePresets : portraitPresets;
+
+    if (ratio === "16:9" && (type === "asset" || label.includes("logo"))) {
+      return { x: 10, y: 22, width: 16, height: 18 };
+    }
+    if (ratio === "16:9" && (label.includes("header") || label.includes("kicker"))) {
+      return { x: 30, y: 25, width: 30, height: 12 };
+    }
+    if (ratio === "16:9" && label.includes("title")) {
+      return { x: 10, y: 45, width: 36, height: 14 };
+    }
+    if (ratio === "16:9" && type === "media") {
+      return { x: 48, y: 22, width: 42, height: 48 };
+    }
+    if (ratio === "16:9" && type === "list") {
+      return { x: 52, y: 36, width: 36, height: 20 };
+    }
+    if (ratio === "16:9" && (label.includes("description") || label.includes("note"))) {
+      return { x: 10, y: 68, width: 38, height: 14 };
+    }
+    if (ratio === "16:9" && type === "tag") {
+      return { x: 56, y: 66, width: 28, height: 12 };
+    }
+    if (type === "media") {
+      return { x: 12, y: 58, width: 76, height: 20 };
+    }
+    if (type === "asset" || label.includes("logo")) {
+      return { x: 36, y: 34, width: 28, height: 10 };
+    }
+
+    return presets[index] || {
+      x: 16,
+      y: Math.min(84, 22 + (index * 11)),
+      width: 68,
+      height: 7
+    };
+  };
+
+  const getSceneSlotStyle = (slot, index = 0, ratio = "") => {
+    const layout = getSceneSlotLayout(slot, index, ratio);
+    return [
+      `left:${layout.x}%`,
+      `top:${layout.y}%`,
+      `width:${layout.width}%`,
+      `height:${layout.height}%`
+    ].join(";");
+  };
+
+  const getSceneTemplateAspectClass = (template, ratio = "") => {
+    if (ratio === "16:9") {
+      return "is-landscape";
+    }
+    if (ratio === "9:16") {
+      return "is-portrait";
+    }
+    const aspectRatios = getSceneTemplateAspectRatios(template);
+    return aspectRatios.includes("16:9") && !aspectRatios.includes("9:16")
+      ? "is-landscape"
+      : "is-portrait";
   };
 
   const getVideoStyleOverride = (data, styleId) => {
@@ -75,6 +313,45 @@ const AppUI = (() => {
     const green = Number.parseInt(hex.slice(2, 4), 16);
     const blue = Number.parseInt(hex.slice(4, 6), 16);
     return ((red * 299) + (green * 587) + (blue * 114)) / 1000 > 180;
+  };
+
+  const normalizeHexColor = (value, fallback = "#000000") => {
+    const raw = String(value || "").trim();
+    const normalized = raw.startsWith("#") ? raw : `#${raw}`;
+    if (/^#[0-9a-f]{6}$/i.test(normalized)) {
+      return normalized.toUpperCase();
+    }
+
+    return fallback.toUpperCase();
+  };
+
+  const parseCssColorOpacity = (value, fallbackHex = "#22D3EE", fallbackOpacity = 0.28) => {
+    const text = String(value || "").trim();
+    const hexMatch = text.match(/^#([0-9a-f]{6})$/i);
+    if (hexMatch) {
+      return { hex: `#${hexMatch[1]}`.toUpperCase(), opacity: fallbackOpacity };
+    }
+
+    const rgbaMatch = text.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([0-9.]+))?\s*\)$/i);
+    if (!rgbaMatch) {
+      return { hex: normalizeHexColor(fallbackHex, "#22D3EE"), opacity: fallbackOpacity };
+    }
+
+    const red = Math.min(255, Math.max(0, Number.parseInt(rgbaMatch[1], 10) || 0));
+    const green = Math.min(255, Math.max(0, Number.parseInt(rgbaMatch[2], 10) || 0));
+    const blue = Math.min(255, Math.max(0, Number.parseInt(rgbaMatch[3], 10) || 0));
+    const opacity = Math.min(1, Math.max(0, Number.parseFloat(rgbaMatch[4] || String(fallbackOpacity))));
+    const hex = `#${[red, green, blue].map((part) => part.toString(16).padStart(2, "0")).join("")}`;
+    return { hex: hex.toUpperCase(), opacity };
+  };
+
+  const hexToRgba = (hexValue, opacityValue) => {
+    const hex = normalizeHexColor(hexValue, "#22D3EE").replace("#", "");
+    const opacity = Math.min(1, Math.max(0, Number.parseFloat(opacityValue) || 0));
+    const red = Number.parseInt(hex.slice(0, 2), 16);
+    const green = Number.parseInt(hex.slice(2, 4), 16);
+    const blue = Number.parseInt(hex.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${Math.round(opacity * 100) / 100})`;
   };
 
   const applyStylePreviewVariables = (root, style) => {
@@ -203,6 +480,8 @@ const AppUI = (() => {
 
   // Modal Helper
   const showModal = (title, bodyContent, buttons = []) => {
+    DOM.modalContainer.classList.remove("is-style-editor");
+    DOM.modalContainer.classList.remove("is-scene-template-editor");
     DOM.modalTitle.textContent = title;
     DOM.modalBody.innerHTML = typeof bodyContent === 'string' ? `<p>${bodyContent}</p>` : "";
     if (typeof bodyContent === 'object') {
@@ -229,6 +508,8 @@ const AppUI = (() => {
 
   const closeModal = () => {
     DOM.modalContainer.classList.add("d-none");
+    DOM.modalContainer.classList.remove("is-style-editor");
+    DOM.modalContainer.classList.remove("is-scene-template-editor");
   };
 
   // Switch App Tab
@@ -745,7 +1026,7 @@ const AppUI = (() => {
     const scriptDisplayMode = data.scriptDisplayMode === "stack" ? "stack" : "sequence";
     const currentVoiceover = (data.audio && data.audio.voiceover) || {};
     const currentVoiceRate = currentVoiceover.rate || "+0%";
-    const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const sceneTemplates = getProjectSceneTemplates(data);
     const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
     const slotAnimations = Array.isArray(SCENE_SLOT_ANIMATIONS) ? SCENE_SLOT_ANIMATIONS : [];
     const estimatedDuration = list
@@ -1992,6 +2273,42 @@ const AppUI = (() => {
     }
 
     const theme = resolvedStyle.colorTheme || {};
+    const glowColor = parseCssColorOpacity(theme.glow || "rgba(34, 211, 238, 0.28)", theme.accent || "#22D3EE", 0.28);
+    const styleColorState = {
+      background: normalizeHexColor(theme.background || "#05070A", "#05070A"),
+      surface: normalizeHexColor(theme.surface || "#101722", "#101722"),
+      surfaceAlt: normalizeHexColor(theme.surfaceAlt || theme.surface || "#162033", "#162033"),
+      text: normalizeHexColor(theme.text || "#F8FAFC", "#F8FAFC"),
+      mutedText: normalizeHexColor(theme.mutedText || "#94A3B8", "#94A3B8"),
+      accent: normalizeHexColor(theme.accent || "#22D3EE", "#22D3EE"),
+      accentSoft: normalizeHexColor(theme.accentSoft || "#164E63", "#164E63"),
+      border: normalizeHexColor(theme.border || "#1E3A5F", "#1E3A5F"),
+      glow: normalizeHexColor(glowColor.hex, "#22D3EE")
+    };
+    const styleTokenDescriptions = {
+      background: "Nền toàn frame/video.",
+      surface: "Nền block có khung: media, logo box, list/card item.",
+      surfaceAlt: "Nền phụ hoặc placeholder nhẹ hơn surface.",
+      text: "Chữ chính: title, label chính, CTA chính.",
+      mutedText: "Chữ phụ: description, note, caption, metadata.",
+      accent: "Điểm nhấn: kicker, tag, CTA, guide line, highlight.",
+      accentSoft: "Nền nhấn nhẹ cho badge/tag/active state.",
+      border: "Màu viền cho item dùng Surface, Outlined, Pill hoặc Media frame."
+    };
+    const renderPickrColorField = (key, label) => {
+      return `
+        <div class="form-group style-color-field">
+          <span class="style-token-head">
+            <span class="form-label">${label}</span>
+            <span class="style-token-hint">${escapeText(styleTokenDescriptions[key] || "")}</span>
+          </span>
+          <button class="style-pickr-button" type="button" data-color-key="${key}" data-color-label="${escapeAttribute(label)}" aria-label="Chọn màu ${label}">
+            <span class="style-pickr-swatch" aria-hidden="true"></span>
+            <span class="style-pickr-value">${escapeText(styleColorState[key])}</span>
+          </button>
+        </div>
+      `;
+    };
     const modalBody = document.createElement("div");
     modalBody.innerHTML = `
       <div class="style-editor-modal">
@@ -2001,48 +2318,37 @@ const AppUI = (() => {
           <span class="style-editor-preview-line"></span>
           <span class="style-editor-preview-accent"></span>
         </div>
-        <div class="style-editor-grid">
-          <div class="form-group">
-            <label class="form-label" for="style-color-background">Background</label>
-            <input id="style-color-background" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.background || "#05070A")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-surface">Surface</label>
-            <input id="style-color-surface" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.surface || "#101722")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-surface-alt">Surface phụ</label>
-            <input id="style-color-surface-alt" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.surfaceAlt || theme.surface || "#162033")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-text">Text</label>
-            <input id="style-color-text" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.text || "#F8FAFC")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-muted">Muted text</label>
-            <input id="style-color-muted" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.mutedText || "#94A3B8")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-accent">Accent</label>
-            <input id="style-color-accent" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.accent || "#22D3EE")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-accent-soft">Accent mềm</label>
-            <input id="style-color-accent-soft" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.accentSoft || "#164E63")}">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="style-color-border">Border</label>
-            <input id="style-color-border" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.border || "#1E3A5F")}">
-          </div>
+        <div class="style-contract-note">
+          <strong>Video Style chỉ là bộ token màu.</strong>
+          <span>Scene Item/Slot sẽ chọn token để dùng qua Color role và Display style. Ví dụ Title dùng Text + Plain, Description dùng Muted text + Plain, Media dùng Surface + Border, Tag dùng Accent + Pill.</span>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="style-color-glow">Glow</label>
-          <input id="style-color-glow" class="form-control" type="text" value="${escapeAttribute(theme.glow || "rgba(34, 211, 238, 0.28)")}" placeholder="rgba(34, 211, 238, 0.28)">
-          <div class="form-hint">Dùng giá trị CSS hợp lệ, ví dụ rgba(...).</div>
+        <div class="style-editor-grid">
+          ${renderPickrColorField("background", "Background")}
+          ${renderPickrColorField("surface", "Surface")}
+          ${renderPickrColorField("surfaceAlt", "Surface phụ")}
+          ${renderPickrColorField("text", "Text")}
+          ${renderPickrColorField("mutedText", "Muted text")}
+          ${renderPickrColorField("accent", "Accent")}
+          ${renderPickrColorField("accentSoft", "Accent mềm")}
+          ${renderPickrColorField("border", "Border")}
+        </div>
+        <div class="form-group style-color-field">
+          <span class="form-label">Glow</span>
+          <div class="form-hint">Halo/shadow nhấn cho frame hoặc item được bật glow. Không muốn glow thì kéo opacity về 0.</div>
+          <button class="style-pickr-button" type="button" data-color-key="glow" data-color-label="Glow" aria-label="Chọn màu Glow">
+            <span class="style-pickr-swatch" aria-hidden="true"></span>
+            <span class="style-pickr-value">${escapeText(styleColorState.glow)}</span>
+          </button>
+          <label class="style-opacity-row" for="style-glow-opacity">
+            <span>Độ mạnh glow</span>
+            <strong id="style-glow-opacity-value">${Math.round(glowColor.opacity * 100)}%</strong>
+          </label>
+          <input id="style-glow-opacity" class="style-opacity-range" type="range" min="0" max="1" step="0.01" value="${escapeAttribute(glowColor.opacity)}">
         </div>
         <div class="form-grid two-cols">
           <div class="form-group">
             <label class="form-label" for="style-motion-style">Motion style</label>
+            <div class="form-hint">Hiện tại dùng để lưu nhịp animation chung cho renderer sau. Phase render thật chưa nối thì chưa thấy khác biệt lớn.</div>
             <select id="style-motion-style" class="form-control">
               ${["minimal", "dynamic", "soft", "sharp"].map((motion) => `
                 <option value="${motion}" ${resolvedStyle.motionStyle === motion ? "selected" : ""}>${motion}</option>
@@ -2051,6 +2357,7 @@ const AppUI = (() => {
           </div>
           <div class="form-group">
             <label class="form-label" for="style-background-style">Background style</label>
+            <div class="form-hint">Định nghĩa kiểu nền cho preview/render sau này, ví dụ nền trơn, grid nhẹ hoặc ưu tiên media.</div>
             <select id="style-background-style" class="form-control">
               ${["dark-grid", "clean-surface", "media-focus", "plain", "subtle-grid"].map((background) => `
                 <option value="${background}" ${resolvedStyle.backgroundStyle === background ? "selected" : ""}>${background}</option>
@@ -2062,15 +2369,15 @@ const AppUI = (() => {
     `;
 
     const getEditedTheme = () => ({
-      background: document.getElementById("style-color-background").value,
-      surface: document.getElementById("style-color-surface").value,
-      surfaceAlt: document.getElementById("style-color-surface-alt").value,
-      text: document.getElementById("style-color-text").value,
-      mutedText: document.getElementById("style-color-muted").value,
-      accent: document.getElementById("style-color-accent").value,
-      accentSoft: document.getElementById("style-color-accent-soft").value,
-      border: document.getElementById("style-color-border").value,
-      glow: document.getElementById("style-color-glow").value.trim() || (theme.glow || "rgba(34, 211, 238, 0.28)")
+      background: styleColorState.background,
+      surface: styleColorState.surface,
+      surfaceAlt: styleColorState.surfaceAlt,
+      text: styleColorState.text,
+      mutedText: styleColorState.mutedText,
+      accent: styleColorState.accent,
+      accentSoft: styleColorState.accentSoft,
+      border: styleColorState.border,
+      glow: hexToRgba(styleColorState.glow, document.getElementById("style-glow-opacity").value)
     });
 
     const getEditedStyle = () => ({
@@ -2138,6 +2445,84 @@ const AppUI = (() => {
         }
       }
     ]);
+    DOM.modalContainer.classList.add("is-style-editor");
+
+    const setPickrButtonColor = (button, color) => {
+      const normalized = normalizeHexColor(color, "#000000");
+      const swatch = button.querySelector(".style-pickr-swatch");
+      const value = button.querySelector(".style-pickr-value");
+      if (swatch) {
+        swatch.style.backgroundColor = normalized;
+      }
+      if (value) {
+        value.textContent = normalized;
+      }
+    };
+
+    modalBody.querySelectorAll(".style-pickr-button").forEach((button) => {
+      const colorKey = button.getAttribute("data-color-key");
+      const colorLabel = button.getAttribute("data-color-label") || colorKey;
+      setPickrButtonColor(button, styleColorState[colorKey]);
+
+      if (typeof Pickr === "undefined") {
+        const fallbackInput = document.createElement("input");
+        fallbackInput.type = "color";
+        fallbackInput.value = styleColorState[colorKey];
+        fallbackInput.setAttribute("aria-hidden", "true");
+        fallbackInput.tabIndex = -1;
+        fallbackInput.style.position = "absolute";
+        fallbackInput.style.width = "1px";
+        fallbackInput.style.height = "1px";
+        fallbackInput.style.opacity = "0";
+        fallbackInput.style.pointerEvents = "none";
+        button.after(fallbackInput);
+        button.title = "Dùng bộ chọn màu mặc định của trình duyệt.";
+        button.addEventListener("click", () => fallbackInput.click());
+        fallbackInput.addEventListener("input", () => {
+          const nextColor = normalizeHexColor(fallbackInput.value, styleColorState[colorKey]);
+          styleColorState[colorKey] = nextColor;
+          setPickrButtonColor(button, nextColor);
+          refreshModalPreview();
+        });
+        return;
+      }
+
+      const pickr = Pickr.create({
+        el: button,
+        theme: "classic",
+        default: styleColorState[colorKey],
+        useAsButton: true,
+        components: {
+          preview: true,
+          opacity: false,
+          hue: true,
+          interaction: {
+            hex: true,
+            input: true,
+            clear: false,
+            save: false,
+            cancel: false
+          }
+        }
+      });
+
+      button.setAttribute("aria-label", `Chọn màu ${colorLabel}`);
+
+      pickr.on("change", (color) => {
+        const nextColor = normalizeHexColor(color.toHEXA().toString(), styleColorState[colorKey]);
+        styleColorState[colorKey] = nextColor;
+        setPickrButtonColor(button, nextColor);
+        refreshModalPreview();
+      });
+    });
+
+    const glowOpacityInput = modalBody.querySelector("#style-glow-opacity");
+    const glowOpacityValue = modalBody.querySelector("#style-glow-opacity-value");
+    if (glowOpacityInput && glowOpacityValue) {
+      glowOpacityInput.addEventListener("input", () => {
+        glowOpacityValue.textContent = `${Math.round(Number.parseFloat(glowOpacityInput.value || "0") * 100)}%`;
+      });
+    }
 
     modalBody.querySelectorAll("input, select").forEach((input) => {
       input.addEventListener("input", refreshModalPreview);
@@ -2146,16 +2531,892 @@ const AppUI = (() => {
     refreshModalPreview();
   };
 
+  const openSceneItemModal = (container) => {
+    const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
+    const defaultAppearance = getSceneItemAppearanceDefaults({ type: slotTypes[0] ? slotTypes[0].id : "text" });
+
+    const modalBody = document.createElement("div");
+    modalBody.innerHTML = `
+      <div class="scene-item-modal-form">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="modal-scene-item-label">Tên item *</label>
+            <input id="modal-scene-item-label" class="form-control" type="text" placeholder="Ví dụ: Subtitle, Screenshot, CTA">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modal-scene-item-type">Loại item</label>
+            <select id="modal-scene-item-type" class="form-control">
+              ${slotTypes.map((type) => `
+                <option value="${escapeAttribute(type.id)}">${escapeText(type.label)}</option>
+              `).join("")}
+            </select>
+          </div>
+        </div>
+
+        <div class="scene-item-contract-box">
+          <strong>Scene Item mới phải chọn cách dùng Video Style.</strong>
+          <span>Type là loại dữ liệu. Color role quyết định dùng token Text/Muted/Accent. Display style quyết định có nền, border, pill hay media frame.</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="modal-scene-item-color-role">Color role</label>
+            <select id="modal-scene-item-color-role" class="form-control">
+              ${SCENE_ITEM_COLOR_ROLES.map((role) => `
+                <option value="${escapeAttribute(role.id)}" ${role.id === defaultAppearance.colorRole ? "selected" : ""}>${escapeText(role.label)}</option>
+              `).join("")}
+            </select>
+            <div class="form-hint" id="modal-scene-item-color-hint">${escapeText(getSceneItemColorRole(defaultAppearance.colorRole).hint)}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modal-scene-item-display-style">Display style</label>
+            <select id="modal-scene-item-display-style" class="form-control">
+              ${SCENE_ITEM_DISPLAY_STYLES.map((style) => `
+                <option value="${escapeAttribute(style.id)}" ${style.id === defaultAppearance.displayStyle ? "selected" : ""}>${escapeText(style.label)}</option>
+              `).join("")}
+            </select>
+            <div class="form-hint" id="modal-scene-item-style-hint">${escapeText(getSceneItemDisplayStyle(defaultAppearance.displayStyle).hint)}</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="scene-item-toggle-row" for="modal-scene-item-enabled">
+            <input id="modal-scene-item-enabled" type="checkbox" checked>
+            <span class="scene-item-toggle-track" aria-hidden="true"></span>
+            <span>Bật item view này trong thư viện</span>
+          </label>
+        </div>
+      </div>
+    `;
+
+    const syncSceneItemAppearanceHints = () => {
+      const roleSelect = modalBody.querySelector("#modal-scene-item-color-role");
+      const styleSelect = modalBody.querySelector("#modal-scene-item-display-style");
+      const roleHint = modalBody.querySelector("#modal-scene-item-color-hint");
+      const styleHint = modalBody.querySelector("#modal-scene-item-style-hint");
+
+      if (roleHint && roleSelect) {
+        roleHint.textContent = getSceneItemColorRole(roleSelect.value).hint;
+      }
+      if (styleHint && styleSelect) {
+        styleHint.textContent = getSceneItemDisplayStyle(styleSelect.value).hint;
+      }
+    };
+
+    modalBody.querySelector("#modal-scene-item-type").addEventListener("change", (event) => {
+      const appearance = getSceneItemAppearanceDefaults({
+        type: event.target.value,
+        label: modalBody.querySelector("#modal-scene-item-label").value
+      });
+      modalBody.querySelector("#modal-scene-item-color-role").value = appearance.colorRole;
+      modalBody.querySelector("#modal-scene-item-display-style").value = appearance.displayStyle;
+      syncSceneItemAppearanceHints();
+    });
+    modalBody.querySelector("#modal-scene-item-color-role").addEventListener("change", syncSceneItemAppearanceHints);
+    modalBody.querySelector("#modal-scene-item-display-style").addEventListener("change", syncSceneItemAppearanceHints);
+
+    showModal("Thêm Scene Item", modalBody, [
+      { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+      {
+        text: "Thêm item",
+        class: "btn-primary",
+        onClick: () => {
+          const label = normalizeText(document.getElementById("modal-scene-item-label").value);
+          const type = document.getElementById("modal-scene-item-type").value;
+          const colorRole = document.getElementById("modal-scene-item-color-role").value;
+          const displayStyle = document.getElementById("modal-scene-item-display-style").value;
+          const enabled = document.getElementById("modal-scene-item-enabled").checked;
+
+          if (!label) {
+            showToast("Cần nhập tên item.", "error");
+            return;
+          }
+
+          const baseId = label.toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 36) || "item";
+          const currentData = AppState.getProjectData();
+          const existingIds = new Set([
+            ...(Array.isArray(SCENE_ITEM_VIEW_PRESETS) ? SCENE_ITEM_VIEW_PRESETS : []),
+            ...(Array.isArray(currentData.sceneItemViews) ? currentData.sceneItemViews : [])
+          ].map((item) => item.id));
+          let nextId = baseId;
+          let suffix = 2;
+          while (existingIds.has(nextId)) {
+            nextId = `${baseId}-${suffix}`;
+            suffix += 1;
+          }
+
+          const sceneItemViews = Array.isArray(currentData.sceneItemViews) ? [...currentData.sceneItemViews] : [];
+          sceneItemViews.push({
+            id: nextId,
+            label,
+            type,
+            colorRole,
+            displayStyle,
+            enabled
+          });
+
+          AppState.updateProjectField("sceneItemViews", sceneItemViews);
+          renderTemplateScreen(container, AppState.getProjectData());
+          closeModal();
+          showToast("Đã thêm Scene Item.");
+        }
+      }
+    ]);
+  };
+
+  const openSceneTemplateModal = (container, templateId = null, preferredAspectRatio = templateRatioFilter) => {
+    const currentData = AppState.getProjectData();
+    const sceneTemplates = getProjectSceneTemplates(currentData);
+    const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
+    const animations = Array.isArray(SCENE_SLOT_ANIMATIONS) ? SCENE_SLOT_ANIMATIONS : [];
+    const template = sceneTemplates.find((item) => item.id === templateId) || null;
+    const isEditing = Boolean(template);
+    const fallbackSlotType = slotTypes[0] ? slotTypes[0].id : "text";
+    const sceneItemViews = getProjectSceneItemViews(currentData);
+    const createSlug = (value, fallback = "scene-template") => {
+      const base = normalizeText(value)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 42);
+
+      return base || fallback;
+    };
+    const getUniqueTemplateId = (name) => {
+      const existingIds = new Set(sceneTemplates.map((item) => item.id));
+      const baseId = createSlug(name);
+      let nextId = baseId;
+      let suffix = 2;
+
+      while (existingIds.has(nextId)) {
+        nextId = `${baseId}-${suffix}`;
+        suffix += 1;
+      }
+
+      return nextId;
+    };
+    const clampNumber = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
+    const initialAspectRatios = getSceneTemplateAspectRatios(template);
+    const initialAspectRatio = initialAspectRatios.includes(preferredAspectRatio)
+      ? preferredAspectRatio
+      : initialAspectRatios.includes("16:9") && !initialAspectRatios.includes("9:16")
+        ? "16:9"
+        : initialAspectRatios[0] || preferredAspectRatio || "9:16";
+    let currentAspectRatio = initialAspectRatio;
+    const getDefaultSlotLayout = (slot, index) => getSceneSlotLayout(slot, index, currentAspectRatio);
+
+    let slotDrafts = (template && Array.isArray(template.slots) ? template.slots : [
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 0.8, allowedAnimations: ["fade-up"] }
+    ]).map((slot, index) => ({
+      id: slot.id || `slot-${index + 1}`,
+      label: slot.label || `Slot ${index + 1}`,
+      sourceItemLabel: slot.sourceItemLabel || slot.sceneItemLabel || slot.itemLabel || slot.label || getSlotTypeLabel(slot.type || fallbackSlotType),
+      type: slot.type || fallbackSlotType,
+      colorRole: slot.colorRole || getSceneItemAppearanceDefaults(slot).colorRole,
+      displayStyle: slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle,
+      required: Boolean(slot.required),
+      defaultDelay: 0,
+      allowedAnimations: Array.isArray(slot.allowedAnimations) && slot.allowedAnimations.length
+        ? [slot.allowedAnimations[0]]
+        : ["none"],
+      layout: getDefaultSlotLayout(slot, index)
+    }));
+    let selectedSlotIndex = 0;
+    let suppressPreviewClick = false;
+    const modalBody = document.createElement("div");
+    const getSlotTypeLabel = (typeId) => {
+      const slotType = slotTypes.find((type) => type.id === typeId);
+      return slotType ? slotType.label : typeId;
+    };
+    const renderSceneItemPalette = () => {
+      if (!sceneItemViews.length) {
+        return `<div class="scene-template-palette-empty">Chưa có scene item nào.</div>`;
+      }
+
+      return sceneItemViews.map((item) => `
+        <button class="scene-template-palette-item slot-${escapeAttribute(item.type)}" type="button" data-palette-item-id="${escapeAttribute(item.id)}">
+          <span class="scene-template-palette-preview" aria-hidden="true">
+            ${renderSceneItemPreview(item)}
+          </span>
+          <span class="scene-template-palette-copy">
+            <strong>${escapeText(item.label)}</strong>
+            <small>${escapeText(getSlotTypeLabel(item.type))} · ${escapeText(getSceneItemDisplayStyle(item.displayStyle).label)}</small>
+          </span>
+        </button>
+      `).join("");
+    };
+    const getPreviewSlotStyle = (slot, index) => getSceneSlotStyle(slot, index);
+    const renderPreview = () => {
+      const previewStage = modalBody.querySelector("#scene-template-preview-stage");
+      if (!previewStage) {
+        return;
+      }
+
+      previewStage.innerHTML = `
+        <span class="scene-template-preview-safe is-top"></span>
+        <span class="scene-template-preview-safe is-bottom"></span>
+        <span class="scene-template-center-guide is-vertical" data-center-guide="vertical" aria-hidden="true"></span>
+        <span class="scene-template-center-guide is-horizontal" data-center-guide="horizontal" aria-hidden="true"></span>
+        ${slotDrafts.map((slot, index) => `
+          <div
+            class="scene-template-preview-item slot-${escapeAttribute(slot.type)} ${selectedSlotIndex === index ? "is-selected" : ""}"
+            role="button"
+            tabindex="-1"
+            data-preview-slot-index="${index}"
+            style="${getPreviewSlotStyle(slot, index)}"
+            title="Kéo để đổi vị trí ${escapeAttribute(slot.label)}"
+          >
+            <b class="scene-template-preview-index">${index + 1}</b>
+            <span>${escapeText(slot.label)}</span>
+            <i class="scene-template-resize-handle" data-resize-handle="se" aria-hidden="true"></i>
+          </div>
+        `).join("")}
+      `;
+    };
+    const renderSlotRow = (slot, index) => `
+      <article class="scene-template-slot-row ${selectedSlotIndex === index ? "is-selected" : ""}" data-slot-index="${index}">
+        <div class="scene-template-slot-head">
+          <span class="scene-template-slot-number">${index + 1}</span>
+          <strong>${escapeText(slot.sourceItemLabel || getSlotTypeLabel(slot.type) || slot.label || `Slot ${index + 1}`)}</strong>
+          <button class="scene-template-slot-remove" type="button" data-slot-action="remove" aria-label="Xóa slot ${escapeAttribute(slot.label || `Slot ${index + 1}`)}">
+            ${renderIcon("trash")}
+          </button>
+        </div>
+        <div class="scene-template-slot-grid">
+          <div class="form-group">
+            <label class="form-label" for="scene-template-slot-label-${index}">Tên slot</label>
+            <input id="scene-template-slot-label-${index}" class="form-control" data-slot-field="label" type="text" value="${escapeAttribute(slot.label)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="scene-template-slot-delay-${index}">Delay</label>
+            <input id="scene-template-slot-delay-${index}" class="form-control" data-slot-field="defaultDelay" type="number" min="0" step="0.1" value="${escapeAttribute(String(slot.defaultDelay))}">
+          </div>
+        </div>
+        <div class="scene-template-slot-options">
+          <div class="form-group scene-template-animation-field">
+            <label class="form-label" for="scene-template-slot-animation-${index}">Animation</label>
+            <select id="scene-template-slot-animation-${index}" class="form-control" data-slot-animation-select>
+              ${animations.map((animation) => `
+                <option value="${escapeAttribute(animation.id)}" ${slot.allowedAnimations.includes(animation.id) ? "selected" : ""}>${escapeText(animation.label)}</option>
+              `).join("")}
+            </select>
+          </div>
+          <label class="scene-item-toggle-row" for="scene-template-slot-required-${index}">
+            <input id="scene-template-slot-required-${index}" data-slot-field="required" type="checkbox" ${slot.required ? "checked" : ""}>
+            <span class="scene-item-toggle-track" aria-hidden="true"></span>
+            <span>Bắt buộc</span>
+          </label>
+        </div>
+      </article>
+    `;
+    const renderSlots = () => {
+      const slotList = modalBody.querySelector("#scene-template-slot-list");
+      if (!slotList) {
+        return;
+      }
+
+      slotList.innerHTML = slotDrafts.map(renderSlotRow).join("");
+      renderPreview();
+    };
+    const syncSlotDraftsFromForm = () => {
+      const rows = Array.from(modalBody.querySelectorAll(".scene-template-slot-row"));
+      slotDrafts = rows.map((row, index) => {
+        const previousSlot = slotDrafts[index] || {};
+        const label = normalizeText(row.querySelector('[data-slot-field="label"]')?.value || `Slot ${index + 1}`);
+        const defaultAnimation = animations[0] ? animations[0].id : "none";
+        const selectedAnimation = row.querySelector("[data-slot-animation-select]")?.value || defaultAnimation;
+
+        return {
+          id: createSlug(label, `slot-${index + 1}`),
+          label,
+          sourceItemLabel: previousSlot.sourceItemLabel || previousSlot.label || getSlotTypeLabel(previousSlot.type || fallbackSlotType),
+          type: previousSlot.type || fallbackSlotType,
+          colorRole: previousSlot.colorRole || getSceneItemAppearanceDefaults(previousSlot).colorRole,
+          displayStyle: previousSlot.displayStyle || getSceneItemAppearanceDefaults(previousSlot).displayStyle,
+          required: Boolean(row.querySelector('[data-slot-field="required"]')?.checked),
+          defaultDelay: Math.max(0, Number(row.querySelector('[data-slot-field="defaultDelay"]')?.value || 0)),
+          allowedAnimations: [selectedAnimation],
+          layout: previousSlot.layout || getDefaultSlotLayout(previousSlot, index)
+        };
+      });
+    };
+    const focusSlotRow = (index) => {
+      const modalScroller = DOM.modalBody;
+      const previousModalScrollTop = modalScroller ? modalScroller.scrollTop : 0;
+      selectedSlotIndex = Math.max(0, Math.min(index, slotDrafts.length - 1));
+      renderPreview();
+      if (modalScroller) {
+        modalScroller.scrollTop = previousModalScrollTop;
+      }
+
+      modalBody.querySelectorAll(".scene-template-slot-row").forEach((row) => {
+        row.classList.toggle("is-selected", Number(row.getAttribute("data-slot-index")) === selectedSlotIndex);
+      });
+
+      const slotRow = modalBody.querySelector(`.scene-template-slot-row[data-slot-index="${selectedSlotIndex}"]`);
+      const slotList = modalBody.querySelector("#scene-template-slot-list");
+      if (slotRow && slotList) {
+        const nextScrollTop = slotRow.offsetTop
+          - slotList.offsetTop
+          - ((slotList.clientHeight - slotRow.offsetHeight) / 2);
+        const restoreModalScroll = () => {
+          if (modalScroller) {
+            modalScroller.scrollTop = previousModalScrollTop;
+          }
+        };
+        slotList.scrollTop = Math.max(0, nextScrollTop);
+        requestAnimationFrame(restoreModalScroll);
+        setTimeout(restoreModalScroll, 0);
+      }
+    };
+    const selectSlotPreview = (index) => {
+      selectedSlotIndex = Math.max(0, Math.min(index, slotDrafts.length - 1));
+      modalBody.querySelectorAll(".scene-template-preview-item").forEach((item) => {
+        item.classList.toggle("is-selected", Number(item.getAttribute("data-preview-slot-index")) === selectedSlotIndex);
+      });
+      modalBody.querySelectorAll(".scene-template-slot-row").forEach((row) => {
+        row.classList.toggle("is-selected", Number(row.getAttribute("data-slot-index")) === selectedSlotIndex);
+      });
+    };
+    const syncCenterGuides = (stage, layout, isActive = true) => {
+      const verticalGuide = stage ? stage.querySelector("[data-center-guide='vertical']") : null;
+      const horizontalGuide = stage ? stage.querySelector("[data-center-guide='horizontal']") : null;
+      if (!verticalGuide || !horizontalGuide || !isActive || !layout) {
+        if (verticalGuide) {
+          verticalGuide.classList.remove("is-visible");
+        }
+        if (horizontalGuide) {
+          horizontalGuide.classList.remove("is-visible");
+        }
+        return;
+      }
+
+      const centerX = layout.x + (layout.width / 2);
+      const centerY = layout.y + (layout.height / 2);
+      verticalGuide.classList.toggle("is-visible", Math.abs(centerX - 50) <= 0.01);
+      horizontalGuide.classList.toggle("is-visible", Math.abs(centerY - 50) <= 0.01);
+    };
+    const snapLayoutToCenterGuides = (layout) => {
+      const snapThreshold = 1.2;
+      const nextLayout = { ...layout };
+      const centerX = nextLayout.x + (nextLayout.width / 2);
+      const centerY = nextLayout.y + (nextLayout.height / 2);
+
+      if (Math.abs(centerX - 50) <= snapThreshold) {
+        nextLayout.x = 50 - (nextLayout.width / 2);
+      }
+      if (Math.abs(centerY - 50) <= snapThreshold) {
+        nextLayout.y = 50 - (nextLayout.height / 2);
+      }
+
+      nextLayout.x = Math.round(clampNumber(nextLayout.x, 0, 100 - nextLayout.width) * 10) / 10;
+      nextLayout.y = Math.round(clampNumber(nextLayout.y, 0, 100 - nextLayout.height) * 10) / 10;
+      return nextLayout;
+    };
+    const getLayoutFromDropEvent = (event, slotSize = { width: 68, height: 7 }) => {
+      const stage = modalBody.querySelector("#scene-template-preview-stage");
+      const rect = stage.getBoundingClientRect();
+      const width = clampNumber(slotSize.width, 12, 90);
+      const height = clampNumber(slotSize.height, 5, 44);
+      const x = ((event.clientX - rect.left) / rect.width) * 100 - (width / 2);
+      const y = ((event.clientY - rect.top) / rect.height) * 100 - (height / 2);
+
+      return {
+        x: Math.round(clampNumber(x, 0, 100 - width) * 10) / 10,
+        y: Math.round(clampNumber(y, 0, 100 - height) * 10) / 10,
+        width,
+        height
+      };
+    };
+    const getLayoutFromPointerResize = (event, slotIndex) => {
+      const stage = modalBody.querySelector("#scene-template-preview-stage");
+      const rect = stage.getBoundingClientRect();
+      const current = slotDrafts[slotIndex].layout || getDefaultSlotLayout(slotDrafts[slotIndex], slotIndex);
+      const width = ((event.clientX - rect.left) / rect.width) * 100 - current.x;
+      const height = ((event.clientY - rect.top) / rect.height) * 100 - current.y;
+
+      return {
+        ...current,
+        width: Math.round(clampNumber(width, 12, 100 - current.x) * 10) / 10,
+        height: Math.round(clampNumber(height, 5, 100 - current.y) * 10) / 10
+      };
+    };
+
+    modalBody.innerHTML = `
+      <div class="scene-template-editor-modal">
+        <div class="scene-template-meta-grid">
+          <div class="form-group">
+            <label class="form-label" for="scene-template-name">Tên template *</label>
+            <input id="scene-template-name" class="form-control" type="text" value="${escapeAttribute(template ? template.name : "")}" placeholder="Ví dụ: KPI Summary">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="scene-template-duration">Thời lượng gợi ý</label>
+            <input id="scene-template-duration" class="form-control" type="number" min="1" step="1" value="${escapeAttribute(template ? template.recommendedDurationSec : 8)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="scene-template-ratio">Tỉ lệ hỗ trợ</label>
+            <select id="scene-template-ratio" class="form-control">
+              <option value="9:16" ${initialAspectRatio === "9:16" ? "selected" : ""}>Dọc 9:16</option>
+              <option value="16:9" ${initialAspectRatio === "16:9" ? "selected" : ""}>Ngang 16:9</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="scene-template-description">Mô tả</label>
+          <textarea id="scene-template-description" class="form-control" rows="3" placeholder="Template này dùng cho loại phân đoạn nào">${escapeText(template ? template.description : "")}</textarea>
+        </div>
+
+        <div class="scene-template-designer ${initialAspectRatio === "16:9" ? "is-landscape" : "is-portrait"}">
+          <section class="scene-template-preview-panel" aria-label="Preview vị trí scene item">
+            <div class="scene-template-editor-section-head">
+              <strong>Preview view</strong>
+              <span>Kéo item vào frame hoặc kéo block đang có để đổi vị trí.</span>
+            </div>
+            <div class="scene-template-preview-shell">
+              <div class="scene-template-preview-stage ${getSceneTemplateAspectClass({ aspectRatios: [initialAspectRatio] })}" id="scene-template-preview-stage"></div>
+            </div>
+          </section>
+
+          <section class="scene-template-control-panel">
+            <div class="scene-template-palette">
+              <div class="scene-template-editor-section-head">
+                <strong>Scene items</strong>
+                <span>Kéo item vào preview để tạo slot.</span>
+              </div>
+              <div class="scene-template-palette-list">
+                ${renderSceneItemPalette()}
+              </div>
+            </div>
+
+            <div class="scene-template-slot-editor">
+              <div class="scene-template-slot-toolbar">
+                <div>
+                  <strong>Slots</strong>
+                  <span>Danh sách slot trong template.</span>
+                </div>
+              </div>
+              <div class="scene-template-slot-list" id="scene-template-slot-list"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+
+    renderSlots();
+
+    modalBody.addEventListener("click", (event) => {
+      const removeButton = event.target.closest("[data-slot-action='remove']");
+      const previewItem = event.target.closest("[data-preview-slot-index]");
+      const slotRow = event.target.closest(".scene-template-slot-row");
+
+      if (previewItem) {
+        event.preventDefault();
+        if (suppressPreviewClick) {
+          suppressPreviewClick = false;
+          return;
+        }
+        const index = Number(previewItem.getAttribute("data-preview-slot-index"));
+        if (Number.isInteger(index)) {
+          focusSlotRow(index);
+        }
+        return;
+      }
+
+      if (!removeButton) {
+        if (slotRow) {
+          const index = Number(slotRow.getAttribute("data-slot-index"));
+          if (Number.isInteger(index)) {
+            selectedSlotIndex = index;
+            renderPreview();
+            modalBody.querySelectorAll(".scene-template-slot-row").forEach((row) => {
+              row.classList.toggle("is-selected", Number(row.getAttribute("data-slot-index")) === index);
+            });
+          }
+        }
+        return;
+      }
+
+      syncSlotDraftsFromForm();
+      const row = removeButton.closest(".scene-template-slot-row");
+      const index = Number(row && row.getAttribute("data-slot-index"));
+      if (slotDrafts.length <= 1) {
+        showToast("Scene template cần ít nhất một slot.", "warning");
+        return;
+      }
+      slotDrafts.splice(index, 1);
+      selectedSlotIndex = Math.max(0, Math.min(selectedSlotIndex, slotDrafts.length - 1));
+      renderSlots();
+    });
+
+    modalBody.addEventListener("pointerdown", (event) => {
+      const handle = event.target.closest("[data-resize-handle]");
+      if (!handle) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      const previewItem = handle.closest("[data-preview-slot-index]");
+      const index = Number(previewItem && previewItem.getAttribute("data-preview-slot-index"));
+      if (!Number.isInteger(index) || !slotDrafts[index]) {
+        return;
+      }
+
+      focusSlotRow(index);
+      const activePreviewItem = modalBody.querySelector(`.scene-template-preview-item[data-preview-slot-index="${index}"]`);
+
+      const onPointerMove = (moveEvent) => {
+        slotDrafts[index].layout = getLayoutFromPointerResize(moveEvent, index);
+        if (activePreviewItem) {
+          activePreviewItem.style.width = `${slotDrafts[index].layout.width}%`;
+          activePreviewItem.style.height = `${slotDrafts[index].layout.height}%`;
+        }
+      };
+      const onPointerUp = () => {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    });
+
+    modalBody.addEventListener("pointerdown", (event) => {
+      const previewItem = event.target.closest(".scene-template-preview-item");
+      if (!previewItem || event.target.closest("[data-resize-handle]")) {
+        return;
+      }
+
+      event.preventDefault();
+      const index = Number(previewItem.getAttribute("data-preview-slot-index"));
+      const stage = modalBody.querySelector("#scene-template-preview-stage");
+      if (!Number.isInteger(index) || !slotDrafts[index] || !stage) {
+        return;
+      }
+
+      syncSlotDraftsFromForm();
+      selectSlotPreview(index);
+
+      const stageRect = stage.getBoundingClientRect();
+      const itemRect = previewItem.getBoundingClientRect();
+      const currentLayout = slotDrafts[index].layout || getDefaultSlotLayout(slotDrafts[index], index);
+      const pointerOffsetX = ((event.clientX - itemRect.left) / stageRect.width) * 100;
+      const pointerOffsetY = ((event.clientY - itemRect.top) / stageRect.height) * 100;
+      let didMove = false;
+
+      const moveToPointer = (moveEvent) => {
+        const x = ((moveEvent.clientX - stageRect.left) / stageRect.width) * 100 - pointerOffsetX;
+        const y = ((moveEvent.clientY - stageRect.top) / stageRect.height) * 100 - pointerOffsetY;
+        const rawLayout = {
+          ...currentLayout,
+          x: Math.round(clampNumber(x, 0, 100 - currentLayout.width) * 10) / 10,
+          y: Math.round(clampNumber(y, 0, 100 - currentLayout.height) * 10) / 10
+        };
+        const nextLayout = snapLayoutToCenterGuides(rawLayout);
+
+        didMove = true;
+        slotDrafts[index].layout = nextLayout;
+        previewItem.style.left = `${nextLayout.x}%`;
+        previewItem.style.top = `${nextLayout.y}%`;
+        syncCenterGuides(stage, nextLayout);
+      };
+
+      const onPointerMove = (moveEvent) => {
+        moveEvent.preventDefault();
+        moveToPointer(moveEvent);
+      };
+      const onPointerUp = (upEvent) => {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        if (didMove) {
+          moveToPointer(upEvent);
+          syncCenterGuides(stage, null, false);
+          suppressPreviewClick = true;
+          setTimeout(() => {
+            suppressPreviewClick = false;
+          }, 120);
+        } else {
+          syncCenterGuides(stage, null, false);
+        }
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    });
+
+    modalBody.addEventListener("input", (event) => {
+      if (!event.target.closest(".scene-template-slot-row")) {
+        return;
+      }
+
+      syncSlotDraftsFromForm();
+      renderPreview();
+    });
+
+    modalBody.addEventListener("change", (event) => {
+      if (event.target.id !== "scene-template-ratio") {
+        return;
+      }
+
+      const stage = modalBody.querySelector("#scene-template-preview-stage");
+      if (!stage) {
+        return;
+      }
+
+      const designer = modalBody.querySelector(".scene-template-designer");
+      if (designer) {
+        designer.classList.toggle("is-landscape", event.target.value === "16:9");
+        designer.classList.toggle("is-portrait", event.target.value !== "16:9");
+      }
+      currentAspectRatio = event.target.value || "9:16";
+      stage.classList.toggle("is-landscape", currentAspectRatio === "16:9");
+      stage.classList.toggle("is-portrait", currentAspectRatio !== "16:9");
+    });
+
+    const addPaletteItemAsSlot = (item, sourceEvent) => {
+      if (!item) {
+        return false;
+      }
+
+      syncSlotDraftsFromForm();
+      const nextSlot = {
+        id: createSlug(item.label, `slot-${slotDrafts.length + 1}`),
+        label: item.label,
+        sourceItemLabel: item.label,
+        type: item.type || fallbackSlotType,
+        colorRole: item.colorRole || getSceneItemAppearanceDefaults(item).colorRole,
+        displayStyle: item.displayStyle || getSceneItemAppearanceDefaults(item).displayStyle,
+        required: false,
+        defaultDelay: 0,
+        allowedAnimations: ["none"],
+        layout: getLayoutFromDropEvent(sourceEvent, getDefaultSlotLayout(item, slotDrafts.length))
+      };
+
+      slotDrafts.push(nextSlot);
+      selectedSlotIndex = slotDrafts.length - 1;
+      renderSlots();
+      return true;
+    };
+
+    modalBody.addEventListener("pointerdown", (event) => {
+      const paletteItem = event.target.closest("[data-palette-item-id]");
+      if (!paletteItem) {
+        return;
+      }
+
+      const item = sceneItemViews.find((sceneItem) => sceneItem.id === paletteItem.getAttribute("data-palette-item-id"));
+      const stage = modalBody.querySelector("#scene-template-preview-stage");
+      if (!item || !stage) {
+        return;
+      }
+
+      event.preventDefault();
+      let didMove = false;
+      const ghost = paletteItem.cloneNode(true);
+      ghost.classList.add("is-pointer-drag-ghost");
+      ghost.style.width = `${paletteItem.getBoundingClientRect().width}px`;
+      document.body.appendChild(ghost);
+
+      const moveGhost = (moveEvent) => {
+        ghost.style.transform = `translate3d(${Math.round(moveEvent.clientX + 12)}px, ${Math.round(moveEvent.clientY + 12)}px, 0)`;
+      };
+      moveGhost(event);
+
+      const syncDragOverState = (moveEvent) => {
+        const rect = stage.getBoundingClientRect();
+        const isOverStage = moveEvent.clientX >= rect.left
+          && moveEvent.clientX <= rect.right
+          && moveEvent.clientY >= rect.top
+          && moveEvent.clientY <= rect.bottom;
+        stage.classList.toggle("is-drag-over", isOverStage);
+        return isOverStage;
+      };
+      const onPointerMove = (moveEvent) => {
+        didMove = true;
+        moveGhost(moveEvent);
+        syncDragOverState(moveEvent);
+      };
+      const onPointerUp = (upEvent) => {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        ghost.remove();
+        const isOverStage = syncDragOverState(upEvent);
+        stage.classList.remove("is-drag-over");
+        if (didMove && isOverStage) {
+          addPaletteItemAsSlot(item, upEvent);
+        }
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    });
+
+    modalBody.addEventListener("dragstart", (event) => {
+      const paletteItem = event.target.closest("[data-palette-item-id]");
+      const previewItem = event.target.closest("[data-preview-slot-index]");
+
+      if (paletteItem) {
+        const payload = JSON.stringify({
+          source: "palette",
+          itemId: paletteItem.getAttribute("data-palette-item-id")
+        });
+        event.dataTransfer.setData("application/json", payload);
+        event.dataTransfer.setData("text/plain", payload);
+        event.dataTransfer.effectAllowed = "copy";
+        return;
+      }
+
+      if (previewItem) {
+        if (event.target.closest("[data-resize-handle]")) {
+          event.preventDefault();
+          return;
+        }
+        const payload = JSON.stringify({
+          source: "slot",
+          index: Number(previewItem.getAttribute("data-preview-slot-index"))
+        });
+        event.dataTransfer.setData("application/json", payload);
+        event.dataTransfer.setData("text/plain", payload);
+        event.dataTransfer.effectAllowed = "move";
+      }
+    });
+
+    modalBody.addEventListener("dragover", (event) => {
+      if (!event.target.closest("#scene-template-preview-stage")) {
+        return;
+      }
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      modalBody.querySelector("#scene-template-preview-stage").classList.add("is-drag-over");
+    });
+
+    modalBody.addEventListener("dragleave", (event) => {
+      const stage = modalBody.querySelector("#scene-template-preview-stage");
+      if (stage && !stage.contains(event.relatedTarget)) {
+        stage.classList.remove("is-drag-over");
+      }
+    });
+
+    modalBody.addEventListener("drop", (event) => {
+      const stage = event.target.closest("#scene-template-preview-stage");
+      if (!stage) {
+        return;
+      }
+
+      event.preventDefault();
+      stage.classList.remove("is-drag-over");
+      syncSlotDraftsFromForm();
+
+      let payload = {};
+      try {
+        payload = JSON.parse(event.dataTransfer.getData("application/json") || event.dataTransfer.getData("text/plain") || "{}");
+      } catch (error) {
+        payload = {};
+      }
+
+      if (payload.source === "slot" && Number.isInteger(payload.index) && slotDrafts[payload.index]) {
+        const currentLayout = slotDrafts[payload.index].layout || getDefaultSlotLayout(slotDrafts[payload.index], payload.index);
+        slotDrafts[payload.index].layout = getLayoutFromDropEvent(event, currentLayout);
+        selectedSlotIndex = payload.index;
+        renderSlots();
+        return;
+      }
+
+      if (payload.source === "palette") {
+        const item = sceneItemViews.find((sceneItem) => sceneItem.id === payload.itemId);
+        addPaletteItemAsSlot(item, event);
+      }
+    });
+
+    showModal(isEditing ? `Sửa Scene Template: ${template.name}` : "Thêm Scene Template", modalBody, [
+      { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+      {
+        text: isEditing ? "Lưu template" : "Thêm template",
+        class: "btn-primary",
+        onClick: () => {
+          syncSlotDraftsFromForm();
+
+          const name = normalizeText(document.getElementById("scene-template-name").value);
+          const description = normalizeText(document.getElementById("scene-template-description").value);
+          const aspectRatio = document.getElementById("scene-template-ratio").value || "9:16";
+          const category = template && template.category ? template.category : (aspectRatio === "16:9" ? "landscape" : "vertical");
+          const aspectRatios = [aspectRatio];
+          const recommendedDurationSec = Math.max(1, Math.round(Number(document.getElementById("scene-template-duration").value || 8)));
+          const slots = slotDrafts
+            .map((slot, index) => ({
+              ...slot,
+              id: createSlug(slot.label, `slot-${index + 1}`),
+              label: normalizeText(slot.label),
+              layout: getSceneSlotLayout(slot, index)
+            }))
+            .filter((slot) => slot.label);
+
+          if (!name) {
+            showToast("Cần nhập tên scene template.", "error");
+            return;
+          }
+          if (aspectRatios.length === 0) {
+            showToast("Cần chọn ít nhất một tỉ lệ.", "error");
+            return;
+          }
+          if (slots.length === 0) {
+            showToast("Cần ít nhất một slot có tên.", "error");
+            return;
+          }
+
+          const nextData = AppState.getProjectData();
+          const customSceneTemplates = Array.isArray(nextData.customSceneTemplates)
+            ? [...nextData.customSceneTemplates]
+            : [];
+          const nextTemplate = {
+            id: template ? template.id : getUniqueTemplateId(name),
+            name,
+            description,
+            category,
+            aspectRatios,
+            supportedAspectRatios: aspectRatios,
+            recommendedDurationSec,
+            slots
+          };
+          const existingIndex = customSceneTemplates.findIndex((item) => item.id === nextTemplate.id);
+
+          if (existingIndex >= 0) {
+            customSceneTemplates[existingIndex] = nextTemplate;
+          } else {
+            customSceneTemplates.push(nextTemplate);
+          }
+
+          AppState.setProjectData({
+            ...nextData,
+            customSceneTemplates
+          });
+          closeModal();
+          renderTemplateScreen(container, AppState.getProjectData());
+          showToast(isEditing ? "Đã lưu Scene Template." : "Đã thêm Scene Template.");
+        }
+      }
+    ]);
+    DOM.modalContainer.classList.add("is-scene-template-editor");
+  };
+
   // 6. Template & Theme Picker View
   const renderTemplateScreen = (container, data) => {
     const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
-    const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const sceneTemplates = getProjectSceneTemplates(data);
     const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
     const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0];
-    const selectedSceneTemplate = sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId) || sceneTemplates[0];
     const filteredSceneTemplates = templateRatioFilter === "all"
       ? sceneTemplates
-      : sceneTemplates.filter((template) => template.aspectRatios.includes(templateRatioFilter));
+      : sceneTemplates.filter((template) => getSceneTemplateAspectRatios(template).includes(templateRatioFilter));
     const escapeText = (value) => String(value || "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -2165,18 +3426,50 @@ const AppUI = (() => {
       const slotType = slotTypes.find((type) => type.id === typeId);
       return slotType ? slotType.label : typeId;
     };
+    const getSlotTypeIcon = (typeId) => {
+      const icons = {
+        text: "text",
+        asset: "shapes",
+        media: "image",
+        list: "list",
+        tag: "tag"
+      };
+      return icons[typeId] || "grid";
+    };
     const getLegacyTemplate = () => TEMPLATES_LIST.find((template) => template.id === data.templateId) || TEMPLATES_LIST[0];
     const renderSceneWireframe = (template) => `
-      <div class="scene-wireframe scene-wireframe-${template.id}" aria-hidden="true">
+      <div class="scene-wireframe scene-wireframe-${template.id} ${getSceneTemplateAspectClass(template, templateRatioFilter)}" aria-hidden="true">
         <span class="scene-wire-safe-area is-top"></span>
         <span class="scene-wire-safe-area is-bottom"></span>
-        ${template.slots.slice(0, 7).map((slot) => `
-          <span class="scene-wire-slot slot-${slot.type} ${slot.required ? "is-required" : ""}">
+        ${template.slots.slice(0, 7).map((slot, index) => `
+          <span class="scene-wire-slot slot-${slot.type} ${slot.required ? "is-required" : ""}" style="${getSceneSlotStyle(slot, index, templateRatioFilter)}">
             ${escapeText(slot.label)}
           </span>
         `).join("")}
       </div>
     `;
+    const sceneItemViews = getProjectSceneItemViews(data);
+    const renderSceneItemViews = (items) => {
+      if (!Array.isArray(items) || items.length === 0) {
+        return `<div class="template-empty-state">Chưa có item view trong thư viện.</div>`;
+      }
+
+      return items.map((item) => `
+        <article class="scene-item-view-card slot-${item.type} scene-item-style-${escapeAttribute(item.displayStyle)}">
+          <div class="scene-item-view-preview" aria-hidden="true">
+            ${renderSceneItemPreview(item)}
+          </div>
+          <div class="scene-item-view-copy">
+            <span class="scene-item-view-type">
+              ${renderIcon(getSlotTypeIcon(item.type))}
+              ${escapeText(getSlotTypeLabel(item.type))}
+            </span>
+            <strong>${escapeText(item.label)}</strong>
+            <small>${escapeText(getSceneItemColorRole(item.colorRole).label)} · ${escapeText(getSceneItemDisplayStyle(item.displayStyle).label)}</small>
+          </div>
+        </article>
+      `).join("");
+    };
 
     container.innerHTML = `
       <div class="workspace-header template-workspace-header">
@@ -2188,129 +3481,100 @@ const AppUI = (() => {
 
       <div class="template-workspace-grid">
         <div class="template-main-column">
-          <section class="template-panel">
-            <div class="template-panel-header">
+          <section class="app-section">
+            <div class="app-section-header">
               <div>
-                <span class="template-section-eyebrow">Video Style</span>
-                <h2>Style chung toàn video</h2>
+                <span class="app-section-eyebrow">${renderIcon("palette")} Video Style</span>
+                <span class="app-section-helper">Style chung toàn video · Chọn preset hoặc chỉnh màu trong từng style.</span>
               </div>
-              <span class="template-helper-text">Chọn preset hoặc chỉnh màu trong từng style.</span>
             </div>
-            <div class="video-style-grid">
-              ${videoStyles.map((style) => `
-                <div class="video-style-card style-${style.id} ${selectedVideoStyle && selectedVideoStyle.id === style.id ? "active" : ""}" data-style-id="${style.id}">
-                  <button class="video-style-select-area" type="button" data-style-id="${style.id}">
-                    <span class="video-style-preview">
-                      <span class="video-style-preview-surface"></span>
-                      <span class="video-style-preview-line is-strong"></span>
-                      <span class="video-style-preview-line"></span>
-                      <span class="video-style-preview-accent"></span>
-                    </span>
-                    <span class="video-style-copy">
-                      <strong>${escapeText(style.name)}</strong>
-                      <small>${escapeText(style.description)}</small>
-                    </span>
-                    <span class="video-style-meta">${escapeText((resolveVideoStyle(style.id, data) || style).motionStyle)} · ${escapeText((resolveVideoStyle(style.id, data) || style).backgroundStyle)}${(resolveVideoStyle(style.id, data) || style).isCustomized ? " · đã chỉnh" : ""}</span>
-                  </button>
-                  <button class="video-style-edit-btn" type="button" data-style-id="${style.id}" aria-label="Sửa style ${escapeText(style.name)}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M19.07 4.93a1 1 0 0 0-1.41 0L16.24 6.36l2.83 2.83 1.41-1.41a1 1 0 0 0 0-1.42l-1.41-1.43zM14.83 7.78 4 18.61V21h2.39l10.83-10.83-2.39-2.39z"/>
-                    </svg>
-                  </button>
-                </div>
-              `).join("")}
+            <div class="app-section-content">
+              <div class="video-style-grid">
+                ${videoStyles.map((style) => `
+                  <div class="video-style-card style-${style.id} ${selectedVideoStyle && selectedVideoStyle.id === style.id ? "active" : ""}" data-style-id="${style.id}">
+                    <button class="video-style-select-area" type="button" data-style-id="${style.id}">
+                      <span class="video-style-preview">
+                        <span class="video-style-preview-surface"></span>
+                        <span class="video-style-preview-line is-strong"></span>
+                        <span class="video-style-preview-line"></span>
+                        <span class="video-style-preview-accent"></span>
+                      </span>
+                      <span class="video-style-copy">
+                        <strong>${escapeText(style.name)}</strong>
+                        <small>${escapeText(style.description)}</small>
+                      </span>
+                      <span class="video-style-meta">${escapeText((resolveVideoStyle(style.id, data) || style).motionStyle)} · ${escapeText((resolveVideoStyle(style.id, data) || style).backgroundStyle)}${(resolveVideoStyle(style.id, data) || style).isCustomized ? " · đã chỉnh" : ""}</span>
+                    </button>
+                    <button class="video-style-edit-btn" type="button" data-style-id="${style.id}" aria-label="Sửa style ${escapeText(style.name)}">
+                      ${renderIcon("pen")}
+                    </button>
+                  </div>
+                `).join("")}
+              </div>
             </div>
           </section>
 
-          <section class="template-panel">
-            <div class="template-panel-header">
+          <section class="app-section">
+            <div class="app-section-header">
               <div>
-                <span class="template-section-eyebrow">Scene Templates</span>
-                <h2>Layout cho từng phân đoạn</h2>
+                <span class="app-section-eyebrow">${renderIcon("grid")} Scene Templates</span>
+                <span class="app-section-helper">Layout cho từng phân đoạn</span>
               </div>
+              <button class="app-section-action scene-template-create-btn" type="button">
+                ${renderIcon("plus")}
+                <span>Thêm template</span>
+              </button>
+            </div>
+            <div class="app-section-content">
               <div class="filter-group template-ratio-filter" role="group" aria-label="Lọc scene template theo tỉ lệ">
-                <button class="filter-btn ratio-filter-btn ${templateRatioFilter === 'all' ? 'active' : ''}" data-ratio="all">Tất cả</button>
-                <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '16:9' ? 'active' : ''}" data-ratio="16:9">Ngang 16:9</button>
                 <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '9:16' ? 'active' : ''}" data-ratio="9:16">Dọc 9:16</button>
+                <button class="filter-btn ratio-filter-btn ${templateRatioFilter === '16:9' ? 'active' : ''}" data-ratio="16:9">Ngang 16:9</button>
+              </div>
+
+              <div class="scene-template-grid ${templateRatioFilter === "16:9" ? "is-landscape" : "is-portrait"}">
+                ${filteredSceneTemplates.length === 0 ? `
+                  <div class="template-empty-state">Không có scene template phù hợp tỉ lệ này.</div>
+                ` : filteredSceneTemplates.map((template) => `
+                  <div class="scene-template-card" data-template-id="${template.id}">
+                    <button class="scene-template-select-area" type="button" data-template-id="${template.id}">
+                      ${renderSceneWireframe(template)}
+                      <span class="scene-template-copy">
+                        <strong>${escapeText(template.name)}</strong>
+                        <small>${escapeText(template.description)}</small>
+                      </span>
+                      <span class="scene-template-meta">
+                        <span>${escapeText(template.category)}</span>
+                        <span>${template.recommendedDurationSec}s</span>
+                        <span>${template.slots.length} slot</span>
+                      </span>
+                    </button>
+                    <button class="scene-template-edit-btn" type="button" data-template-id="${template.id}" aria-label="Sửa template ${escapeText(template.name)}">
+                      ${renderIcon("pen")}
+                    </button>
+                  </div>
+                `).join("")}
               </div>
             </div>
+          </section>
 
-            <div class="scene-template-grid">
-              ${filteredSceneTemplates.length === 0 ? `
-                <div class="template-empty-state">Không có scene template phù hợp tỉ lệ này.</div>
-              ` : filteredSceneTemplates.map((template) => `
-                <button class="scene-template-card ${selectedSceneTemplate && selectedSceneTemplate.id === template.id ? "active" : ""}" type="button" data-template-id="${template.id}">
-                  ${renderSceneWireframe(template)}
-                  <span class="scene-template-copy">
-                    <strong>${escapeText(template.name)}</strong>
-                    <small>${escapeText(template.description)}</small>
-                  </span>
-                  <span class="scene-template-meta">
-                    <span>${escapeText(template.category)}</span>
-                    <span>${template.recommendedDurationSec}s</span>
-                    <span>${template.slots.length} slot</span>
-                  </span>
-                </button>
-              `).join("")}
+          <section class="app-section">
+            <div class="app-section-header">
+              <div>
+                <span class="app-section-eyebrow">${renderIcon("layers")} Scene Items</span>
+                <span class="app-section-helper">Thư viện item view dùng chung. Khi sửa scene template chi tiết sẽ chọn item từ đây để đưa vào frame.</span>
+              </div>
+              <button class="app-section-action scene-item-create-btn" type="button">
+                ${renderIcon("plus")}
+                <span>Thêm item</span>
+              </button>
+            </div>
+            <div class="app-section-content">
+              <div class="scene-item-view-grid">
+                ${renderSceneItemViews(sceneItemViews)}
+              </div>
             </div>
           </section>
         </div>
-
-        <aside class="template-side-panel">
-          <section class="template-panel is-compact">
-            <div class="template-panel-header">
-              <div>
-                <span class="template-section-eyebrow">Đang chọn</span>
-                <h2>${escapeText(selectedVideoStyle ? selectedVideoStyle.name : "Chưa có style")}</h2>
-              </div>
-            </div>
-            <div class="template-summary-list">
-              <div>
-                <span>Trạng thái style</span>
-                <strong>${selectedVideoStyle && selectedVideoStyle.isCustomized ? "Đã chỉnh trong project" : "Đang dùng preset gốc"}</strong>
-              </div>
-              <div>
-                <span>Scene template mặc định</span>
-                <strong>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn")}</strong>
-              </div>
-              <div>
-                <span>Render template hiện tại</span>
-                <strong>${escapeText(getLegacyTemplate().name)}</strong>
-              </div>
-              <div>
-                <span>Tỉ lệ hỗ trợ</span>
-                <strong>${escapeText((selectedVideoStyle && selectedVideoStyle.aspectRatios || []).join(", "))}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section class="template-panel is-compact">
-            <div class="template-panel-header">
-              <div>
-                <span class="template-section-eyebrow">Slots</span>
-                <h2>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Scene template")}</h2>
-              </div>
-            </div>
-            <div class="slot-definition-list">
-              ${(selectedSceneTemplate ? selectedSceneTemplate.slots : []).map((slot) => `
-                <div class="slot-definition-item">
-                  <span>
-                    <strong>${escapeText(slot.label)}</strong>
-                    <small>${escapeText(getSlotTypeLabel(slot.type))}${slot.required ? " · bắt buộc" : " · tùy chọn"}</small>
-                  </span>
-                  <span>${slot.defaultDelay}s</span>
-                </div>
-              `).join("")}
-            </div>
-          </section>
-
-          <section class="template-panel is-compact">
-            <div class="template-note">
-              <strong>Ghi chú</strong>
-              <p>Nội dung slot sẽ được nhập ở trang Kịch bản. Trang này chỉ chọn style và xem thư viện layout.</p>
-            </div>
-          </section>
-        </aside>
       </div>
     `;
 
@@ -2338,13 +3602,33 @@ const AppUI = (() => {
       });
     });
 
-    container.querySelectorAll(".scene-template-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const id = card.getAttribute("data-template-id");
-        AppState.updateProjectField("defaultSceneTemplateId", id);
-        renderTemplateScreen(container, AppState.getProjectData());
+    container.querySelectorAll(".scene-template-select-area").forEach((button) => {
+      button.addEventListener("click", () => {
+        const id = button.getAttribute("data-template-id");
+        openSceneTemplateModal(container, id, templateRatioFilter);
       });
     });
+
+    container.querySelectorAll(".scene-template-edit-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openSceneTemplateModal(container, button.getAttribute("data-template-id"), templateRatioFilter);
+      });
+    });
+
+    const sceneTemplateCreateButton = container.querySelector(".scene-template-create-btn");
+    if (sceneTemplateCreateButton) {
+      sceneTemplateCreateButton.addEventListener("click", () => {
+        openSceneTemplateModal(container, null, templateRatioFilter);
+      });
+    }
+
+    const sceneItemCreateButton = container.querySelector(".scene-item-create-btn");
+    if (sceneItemCreateButton) {
+      sceneItemCreateButton.addEventListener("click", () => {
+        openSceneItemModal(container);
+      });
+    }
 
     // Ratio filter selection click
     container.querySelectorAll(".ratio-filter-btn").forEach(btn => {
@@ -2384,7 +3668,7 @@ const AppUI = (() => {
   const renderPreviewScreen = (container, data) => {
     const activeTemplate = TEMPLATES_LIST.find(t => t.id === data.templateId) || TEMPLATES_LIST[0];
     const activeSegments = (data.features || []).filter((item) => item.useInVideo);
-    const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const sceneTemplates = getProjectSceneTemplates(data);
     const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
     const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0] || null;
     const getSceneTemplate = (templateId) => sceneTemplates.find((template) => template.id === templateId)
@@ -2564,7 +3848,7 @@ const AppUI = (() => {
 
     // Draw canvas content
     if (currentScene && currentScene.isSlotScene) {
-      drawSlotBasedPreviewCanvas(currentScene, data, selectedVideoStyle, previewSceneTimeSec);
+      drawSlotBasedPreviewCanvas(currentScene, data, selectedVideoStyle, previewSceneTimeSec, activeTemplate.ratio);
     } else {
       drawPreviewCanvas(currentScene.id, data);
     }
@@ -2631,7 +3915,7 @@ const AppUI = (() => {
     });
   };
 
-  const drawSlotBasedPreviewCanvas = (scene, data, videoStyle, currentTimeSec) => {
+  const drawSlotBasedPreviewCanvas = (scene, data, videoStyle, currentTimeSec, previewRatio = "9:16") => {
     const canvas = document.getElementById("preview-canvas");
     if (!canvas || !scene || !scene.sceneTemplate) return;
 
@@ -2653,6 +3937,31 @@ const AppUI = (() => {
     const getSlotValue = (slotId) => scene.slots && scene.slots[slotId] ? scene.slots[slotId] : {};
     const isVisible = (value) => value.enabled !== false && Number(value.delay || 0) <= currentTimeSec;
     const slotClass = (value) => `preview-slot ${isVisible(value) ? "is-visible" : "is-pending"} anim-${escapeText(value.animation || "none")}`;
+    const supportedRatios = getSceneTemplateAspectRatios(scene.sceneTemplate);
+    const layoutRatio = supportedRatios.includes(previewRatio)
+      ? previewRatio
+      : supportedRatios.includes("16:9") && !supportedRatios.includes("9:16")
+        ? "16:9"
+        : "9:16";
+    const slotStyle = (slot, index) => getSceneSlotStyle(slot, index, layoutRatio);
+    const getSlotTextValue = (slot, value) => {
+      if (slot.type === "list") {
+        return "";
+      }
+      if (value.text) {
+        return value.text;
+      }
+      if (slot.id === "title") {
+        return scene.segment && scene.segment.name || "";
+      }
+      if (slot.id === "description" || slot.id === "note") {
+        return scene.segment && scene.segment.description || "";
+      }
+      if (slot.id === "tag" || slot.id === "kicker" || slot.id === "header" || slot.id === "cta") {
+        return scene.segment && (scene.segment.benefit || scene.segment.type) || slot.label;
+      }
+      return slot.label;
+    };
     const renderTextSlot = (slotId, className = "") => {
       const value = getSlotValue(slotId);
       if (!value.text && value.enabled === false) return "";
@@ -2677,6 +3986,37 @@ const AppUI = (() => {
         </div>
       `;
     };
+    const renderFreeSlot = (slot, index) => {
+      const value = getSlotValue(slot.id);
+      const className = `${slotClass(value)} preview-free-slot slot-${escapeAttribute(slot.type)} scene-item-style-${escapeAttribute(slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle)}`;
+      const style = slotStyle(slot, index);
+
+      if (slot.type === "asset" || slot.type === "media") {
+        const asset = getAsset(value.assetId);
+        const label = asset ? asset.name || asset.id : slot.label;
+        const src = asset && asset.url ? asset.url : "";
+        return `
+          <div class="${className}" style="${style}" data-delay="${escapeText(value.delay || 0)}">
+            ${src ? `<img src="${escapeText(src)}" alt="${escapeText(label)}">` : `<span>${escapeText(label)}</span>`}
+          </div>
+        `;
+      }
+
+      if (slot.type === "list") {
+        const items = Array.isArray(value.items) ? value.items.filter(Boolean) : [];
+        return `
+          <div class="${className} preview-free-list" style="${style}" data-delay="${escapeText(value.delay || 0)}">
+            ${items.length === 0 ? `<span>${escapeText(slot.label)}</span>` : items.slice(0, 6).map((item) => `<span>${escapeText(item)}</span>`).join("")}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="${className}" style="${style}" data-delay="${escapeText(value.delay || 0)}">
+          <span>${escapeText(getSlotTextValue(slot, value))}</span>
+        </div>
+      `;
+    };
     const renderMediaSlot = (slotId) => {
       const value = getSlotValue(slotId);
       const asset = getAsset(value.assetId);
@@ -2698,54 +4038,11 @@ const AppUI = (() => {
     canvas.style.backgroundColor = theme.background;
     canvas.style.color = theme.text;
 
-    const templateId = scene.sceneTemplate.id;
-    let body = "";
-    if (templateId === "media-showcase") {
-      body = `
-        <div class="preview-slot-layout layout-media-showcase">
-          <div class="preview-slot-topline">${renderTextSlot("header", "slot-kicker")}${renderAssetSlot("logo", "slot-logo")}</div>
-          ${renderTextSlot("title", "slot-title")}
-          ${renderMediaSlot("media")}
-          ${renderTextSlot("description", "slot-description")}
-        </div>
-      `;
-    } else if (templateId === "grid-feature") {
-      body = `
-        <div class="preview-slot-layout layout-grid-feature">
-          ${renderTextSlot("header", "slot-kicker")}
-          ${renderTextSlot("title", "slot-title")}
-          ${renderListSlot("grid")}
-          ${renderTextSlot("description", "slot-description")}
-        </div>
-      `;
-    } else if (templateId === "step-flow") {
-      body = `
-        <div class="preview-slot-layout layout-step-flow">
-          ${renderTextSlot("title", "slot-title")}
-          ${renderListSlot("steps")}
-          ${renderTextSlot("note", "slot-description")}
-        </div>
-      `;
-    } else if (templateId === "outro-cta") {
-      body = `
-        <div class="preview-slot-layout layout-outro-cta">
-          ${renderAssetSlot("logo", "slot-logo")}
-          ${renderTextSlot("title", "slot-title")}
-          ${renderTextSlot("cta", "slot-description")}
-          ${renderTextSlot("tag", "slot-tag")}
-        </div>
-      `;
-    } else {
-      body = `
-        <div class="preview-slot-layout layout-intro-stack">
-          ${renderAssetSlot("logo", "slot-logo")}
-          ${renderTextSlot("kicker", "slot-kicker")}
-          ${renderTextSlot("title", "slot-title")}
-          ${renderTextSlot("description", "slot-description")}
-          ${renderTextSlot("tag", "slot-tag")}
-        </div>
-      `;
-    }
+    const body = `
+      <div class="preview-slot-layout preview-free-layout">
+        ${(scene.sceneTemplate.slots || []).map(renderFreeSlot).join("")}
+      </div>
+    `;
 
     canvas.innerHTML = `
       ${body}
