@@ -1,5 +1,5 @@
 ---
-trigger: on_demand
+trigger: always_on
 description: Kiến trúc frontend dùng chung cho web project: layout, CSS variables, responsive, modal/toast, Grid.js, verification.
 ---
 

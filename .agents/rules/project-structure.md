@@ -1,5 +1,5 @@
 ---
-trigger: always
+trigger: always_on
 description: Rule ranh giới cấu trúc project Hyper Video Tool: frontend, backend, data, templates và agent workspace.
 ---
 

@@ -11,17 +11,17 @@ Rule này quy định cách liên kết giữa Video Style, Scene Item và Slot 
 
 ## Token Video Style
 
-| Token | Ý nghĩa | Ví dụ áp dụng |
-| --- | --- | --- |
-| `background` | Nền toàn frame/video | canvas scene |
-| `surface` | Nền block/card/container chính | media frame, logo box, list cell |
-| `surfaceAlt` | Nền phụ/layer phụ | placeholder, panel phụ, contrast layer |
-| `text` | Chữ chính | title, label chính, CTA chính |
-| `mutedText` | Chữ phụ | description, note, caption, metadata |
-| `accent` | Điểm nhấn | kicker, active tag, guide line, highlight |
-| `accentSoft` | Nền nhấn nhẹ | badge/tag soft, active background |
-| `border` | Màu viền cho item có border | outlined/surface/media frame/pill |
-| `glow` | Halo/shadow nhấn | frame hoặc item được bật glow |
+| Token        | Ý nghĩa                        | Ví dụ áp dụng                             |
+| ------------ | ------------------------------ | ----------------------------------------- |
+| `background` | Nền toàn frame/video           | canvas scene                              |
+| `surface`    | Nền block/card/container chính | media frame, logo box, list cell          |
+| `surfaceAlt` | Nền phụ/layer phụ              | placeholder, panel phụ, contrast layer    |
+| `text`       | Chữ chính                      | title, label chính, CTA chính             |
+| `mutedText`  | Chữ phụ                        | description, note, caption, metadata      |
+| `accent`     | Điểm nhấn                      | kicker, active tag, guide line, highlight |
+| `accentSoft` | Nền nhấn nhẹ                   | badge/tag soft, active background         |
+| `border`     | Màu viền cho item có border    | outlined/surface/media frame/pill         |
+| `glow`       | Halo/shadow nhấn               | frame hoặc item được bật glow             |
 
 ## Scene Item Fields
 

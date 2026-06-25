@@ -1,5 +1,5 @@
 ---
-trigger: always
+trigger: always_on
 description: Quy tắc giao tiếp bắt buộc cho agent khi làm việc trong Hyper Video Tool.
 ---
 

@@ -1,5 +1,5 @@
 ---
-trigger: always
+trigger: always_on
 description: Rule bắt buộc cho UI tĩnh Hyper Video Tool: multi-page HTML/CSS/JS thuần, không SPA gom view, không backend/build step ở phase hiện tại.
 ---
 
