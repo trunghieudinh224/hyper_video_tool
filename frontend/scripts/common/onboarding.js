@@ -111,12 +111,6 @@ const AppOnboarding = (() => {
         "top"
       ),
       createStep(
-        ".script-flow-panel",
-        "Cách hiển thị trong video",
-        "Chọn Lần lượt nếu muốn mỗi đoạn xuất hiện riêng theo thời gian. Chọn Cùng lúc nếu muốn toàn bộ item hiện trong một cảnh.",
-        "bottom"
-      ),
-      createStep(
         "#script-sortable-list",
         "Thứ tự xuất hiện",
         "Kéo tay nắm ở từng đoạn để đổi thứ tự. Thứ tự này sẽ đi vào render payload và template dùng đúng thứ tự đó.",

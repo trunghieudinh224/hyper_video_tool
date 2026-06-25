@@ -96,7 +96,7 @@ const AppValidation = (() => {
     }
 
     // 4. Missing visual asset
-    const activeVisual = (data.assets || []).some(a => ["logo", "screenshot", "video"].includes(a.type) && a.useInVideo);
+    const activeVisual = (data.assets || []).some(a => ["logo", "screenshot", "image", "background", "video"].includes(a.type) && a.useInVideo);
     if (!activeVisual) {
       warnings.push({
         id: "war_asset_missing",

@@ -116,6 +116,13 @@
   flex-shrink: 0;
 }
 
+.workspace-subtitle {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
 .workspace-content {
   flex: 1;
   min-height: 0;

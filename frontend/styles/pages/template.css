@@ -237,8 +237,6 @@ body[data-page="template"] .workspace-subtitle {
 
 .ratio-filter-btn {
   min-width: 0;
-  min-height: 36px;
-  font-weight: 700;
   white-space: normal;
 }
 
@@ -1667,7 +1665,6 @@ body[data-page="template"] .pcr-clear {
 
   .template-ratio-filter .filter-btn {
     flex: 1;
-    min-height: 44px;
   }
 
   body[data-page="template"] .modal-overlay.is-scene-template-editor {

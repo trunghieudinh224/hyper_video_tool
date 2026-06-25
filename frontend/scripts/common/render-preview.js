@@ -239,11 +239,11 @@ const AppRender = (() => {
     const selectedAssets = projectData.assets || [];
     const activeAssets = selectedAssets.filter((asset) => asset.useInVideo !== false);
     const logoSource = activeAssets.find((asset) => asset.type === "logo") || null;
-    const mediaSource = activeAssets.find((asset) => ["screenshot", "video"].includes(asset.type) && getUsableAssetUrl(asset))
-      || activeAssets.find((asset) => ["screenshot", "video"].includes(asset.type))
+    const mediaSource = activeAssets.find((asset) => ["screenshot", "image", "background", "video"].includes(asset.type) && getUsableAssetUrl(asset))
+      || activeAssets.find((asset) => ["screenshot", "image", "background", "video"].includes(asset.type))
       || null;
     const logoAsset = logoSource ? toDynamicAsset(logoSource, "logo") : null;
-    const mediaAsset = mediaSource ? toDynamicAsset(mediaSource, "screenshot") : createFallbackDynamicMedia(projectData);
+    const mediaAsset = mediaSource ? toDynamicAsset(mediaSource, "image") : createFallbackDynamicMedia(projectData);
     const dynamicAssets = [logoAsset, mediaAsset].filter(Boolean);
     const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
     const milestones = (projectData.milestones || []).slice(0, 5);
@@ -317,7 +317,7 @@ const AppRender = (() => {
 
     const selectedAssets = projectData.assets || [];
     const logo = selectedAssets.find((asset) => asset.type === "logo" && asset.useInVideo) || null;
-    const screenshots = selectedAssets.filter((asset) => asset.type === "screenshot" && asset.useInVideo);
+    const screenshots = selectedAssets.filter((asset) => ["screenshot", "image", "background"].includes(asset.type) && asset.useInVideo);
     const videos = selectedAssets.filter((asset) => asset.type === "video" && asset.useInVideo);
     const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
     const milestones = (projectData.milestones || []).slice(0, 5);

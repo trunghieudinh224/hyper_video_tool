@@ -186,6 +186,15 @@
   transform: translateY(1px);
 }
 
+.app-section-action.is-danger {
+  color: var(--color-danger);
+}
+
+.app-section-action.is-danger:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
 .app-section-action i {
   font-size: 13px;
 }
@@ -225,6 +234,51 @@
   .template-panel.is-compact {
     padding: var(--space-3);
   }
+}
+
+.overview-brief-list {
+  gap: var(--space-2);
+}
+
+.overview-brief-list p {
+  margin: 0;
+}
+
+.overview-health-list {
+  gap: var(--space-2);
+}
+
+.overview-health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.overview-health-row-total {
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+.overview-quick-actions,
+.content-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.content-header-actions {
+  gap: var(--space-2);
+}
+
+.content-form-stack {
+  gap: var(--space-6);
+}
+
+.content-voiceover-toggle {
+  margin: 0;
 }
 
 /* Form Styles */
@@ -955,17 +1009,28 @@ textarea.form-control {
 .asset-meta {
   font-size: var(--font-xs);
   display: flex;
+  align-items: center;
   gap: var(--space-2);
+  color: var(--color-text-muted);
+  line-height: 1;
 }
 
-.asset-meta .asset-type-badge,
+.asset-meta .asset-type-icon {
+  color: var(--color-primary);
+  font-size: var(--font-sm);
+  display: inline-flex;
+  align-items: center;
+}
+
+.asset-meta .asset-meta-divider {
+  color: var(--color-text-subtle);
+  user-select: none;
+  font-size: var(--font-xs);
+}
+
 .asset-meta .asset-size-badge {
-  background: var(--color-surface-alt);
   color: var(--color-text-muted);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  font-weight: 600;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
 }
@@ -1022,6 +1087,10 @@ textarea.form-control {
 
 .asset-action-btn.btn-toggle-use {
   color: var(--color-primary);
+}
+
+.asset-action-btn.btn-toggle-use:not(.is-active) {
+  color: var(--color-text-muted);
 }
 
 .asset-action-btn.btn-toggle-use:hover {

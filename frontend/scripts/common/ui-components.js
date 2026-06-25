@@ -34,7 +34,8 @@ const AppUI = (() => {
       shapes: "fa-shapes",
       image: "fa-image",
       list: "fa-list",
-      tag: "fa-tag"
+      tag: "fa-tag",
+      volume: "fa-volume-high"
     };
     const icon = icons[name] || icons.grid;
     const extraClass = className ? ` ${escapeAttribute(className)}` : "";
@@ -431,6 +432,18 @@ const AppUI = (() => {
     };
   };
 
+  const renderWorkspaceHeader = (title, subtitle = "", actionsHTML = "", extraClasses = "") => {
+    return `
+      <div class="workspace-header${extraClasses ? ` ${extraClasses}` : ""}">
+        <div>
+          <h1>${title}</h1>
+          ${subtitle ? `<p class="workspace-subtitle">${subtitle}</p>` : ""}
+        </div>
+        ${actionsHTML ? actionsHTML : ""}
+      </div>
+    `;
+  };
+
   const initDOM = () => {
     DOM.themeToggle = document.getElementById("theme-toggle");
     DOM.saveStatus = document.getElementById("save-status");
@@ -577,67 +590,77 @@ const AppUI = (() => {
     // Quick checks
     const checkBasic = (data.projectName && data.shortSummary) ? "success" : "danger";
     const checkFeatures = (data.features || []).filter(f => f.useInVideo).length >= 3 ? "success" : "warning";
-    const checkAssets = (data.assets || []).some(a => ["logo", "screenshot", "video"].includes(a.type) && a.useInVideo) ? "success" : "warning";
+    const checkAssets = (data.assets || []).some(a => ["logo", "screenshot", "image", "background", "video"].includes(a.type) && a.useInVideo) ? "success" : "warning";
     const checkTemplate = data.templateId ? "success" : "danger";
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Tổng quan video</h1>
-      </div>
+      ${renderWorkspaceHeader("Tổng quan video", "Xem tóm tắt thông tin brief và trạng thái sẵn sàng của video.")}
       <div class="grid-2 mb-6">
-        <div class="card">
-          <div class="card-header">
-            <h3>Thông tin chung</h3>
-            <button id="overview-edit-btn" class="btn btn-secondary btn-sm">Sửa brief</button>
+        <section class="app-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("file")} Thông tin chung</span>
+              <span class="app-section-helper">Các thông tin cơ bản về brief video hiện tại</span>
+            </div>
+            <button id="overview-edit-btn" class="app-section-action" type="button">
+              ${renderIcon("pen")}
+              <span>Sửa brief</span>
+            </button>
           </div>
-          <div class="card-body">
-            <p class="mb-2"><strong>Chủ đề video:</strong> ${data.projectName || '<span class="text-danger">Chưa nhập</span>'}</p>
-            <p class="mb-2"><strong>Mô tả ngắn:</strong> ${data.shortSummary || '<span class="text-danger">Chưa nhập</span>'}</p>
-            <p class="mb-2"><strong>Ngữ cảnh/team:</strong> ${data.ownerTeam || '<span class="text-subtle">Không có</span>'}</p>
-            <p class="mb-2"><strong>Template đang chọn:</strong> ${TEMPLATES_LIST.find(t => t.id === data.templateId)?.name || 'Chưa chọn'}</p>
-            <p class="mb-2"><strong>Trạng thái dự án:</strong> <span class="status-pill status-info">Cục bộ</span></p>
+          <div class="app-section-content overview-brief-list">
+            <p><strong>Chủ đề video:</strong> ${data.projectName || '<span class="text-danger">Chưa nhập</span>'}</p>
+            <p><strong>Mô tả ngắn:</strong> ${data.shortSummary || '<span class="text-danger">Chưa nhập</span>'}</p>
+            <p><strong>Ngữ cảnh/team:</strong> ${data.ownerTeam || '<span class="text-subtle">Không có</span>'}</p>
+            <p><strong>Template đang chọn:</strong> ${TEMPLATES_LIST.find(t => t.id === data.templateId)?.name || 'Chưa chọn'}</p>
+            <p><strong>Trạng thái dự án:</strong> <span class="status-pill status-info">Cục bộ</span></p>
           </div>
-        </div>
+        </section>
 
-        <div class="card">
-          <div class="card-header">
-            <h3>Kiểm tra sức khỏe Video</h3>
+        <section class="app-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("shapes")} Kiểm tra sức khỏe Video</span>
+              <span class="app-section-helper">Đánh giá các điều kiện cần thiết trước khi xuất bản</span>
+            </div>
           </div>
-          <div class="card-body" style="display:flex; flex-direction:column; gap: var(--space-3);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="app-section-content overview-health-list">
+            <div class="overview-health-row">
               <span>Brief cốt lõi</span>
               <span class="status-pill status-${checkBasic}">${checkBasic === 'success' ? 'Đủ' : 'Thiếu'}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="overview-health-row">
               <span>Số đoạn kịch bản đang dùng (3-6)</span>
               <span class="status-pill status-${checkFeatures}">${checkFeatures === 'success' ? 'Đủ' : 'Cần thêm'}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="overview-health-row">
               <span>Asset hình ảnh/video</span>
               <span class="status-pill status-${checkAssets}">${checkAssets === 'success' ? 'Đã chọn' : 'Nên thêm'}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="overview-health-row">
               <span>Chọn Template Video</span>
               <span class="status-pill status-${checkTemplate}">${checkTemplate === 'success' ? 'Đã chọn' : 'Chưa chọn'}</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid var(--color-border); padding-top: var(--space-2); margin-top: var(--space-1); font-weight:600;">
+            <div class="overview-health-row overview-health-row-total">
               <span>Trạng thái sẵn sàng render</span>
               <span class="status-pill status-info">Kiểm tra ở Render</span>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <h3>Hành động nhanh</h3>
+      <section class="app-section">
+        <div class="app-section-header">
+          <div>
+            <span class="app-section-eyebrow">${renderIcon("palette")} Hành động nhanh</span>
+            <span class="app-section-helper">Các thao tác cấu hình nhanh cho dự án</span>
+          </div>
         </div>
-        <div class="card-body" style="display:flex; gap: var(--space-3); flex-wrap: wrap;">
+        <div class="app-section-content overview-quick-actions">
           <button id="quick-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu thử nghiệm</button>
           <button id="quick-preview-btn" class="btn btn-secondary">Xem trước scene (16:9)</button>
           <button id="quick-render-btn" class="btn btn-primary">Đi tới Render Video</button>
         </div>
-      </div>
+      </section>
     `;
 
     // Event Handlers
@@ -691,30 +714,31 @@ const AppUI = (() => {
     const selectedOutputFilename = selectedVideoConfig.outputFilename || `${data.projectSlug || "project"}_video.mp4`;
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Thiết lập video</h1>
-        <div style="display:flex; gap: var(--space-2);">
+      ${renderWorkspaceHeader(
+        "Thiết lập video",
+        "Cấu hình thông tin brief chung và giọng đọc voiceover.",
+        `<div class="content-header-actions">
           <button id="content-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu</button>
           <button id="content-clear-btn" class="btn btn-secondary">Xóa form</button>
           <button id="content-save-btn" class="btn btn-primary">Lưu nháp</button>
-        </div>
-      </div>
+        </div>`
+      )}
 
-      <form id="content-form" class="page-form-stack">
-        <div class="render-voiceover-panel">
-          <div class="render-voiceover-header">
+      <form id="content-form" class="page-form-stack content-form-stack">
+        <section class="app-section">
+          <div class="app-section-header">
             <div>
-              <div class="render-voiceover-title">Voiceover toàn video</div>
-              <div class="render-voiceover-desc">Thiết lập giọng đọc mặc định. Nội dung đọc chi tiết sẽ nằm trong từng đoạn ở trang Kịch bản.</div>
+              <span class="app-section-eyebrow">${renderIcon("volume")} Voiceover toàn video</span>
+              <span class="app-section-helper">Thiết lập giọng đọc mặc định. Nội dung đọc chi tiết sẽ nằm trong từng đoạn ở trang Kịch bản.</span>
             </div>
-            <label class="render-voiceover-toggle">
+            <label class="render-voiceover-toggle content-voiceover-toggle">
               <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""}>
               <span class="render-voiceover-switch" aria-hidden="true"></span>
               <span class="render-voiceover-toggle-text">Bật voice</span>
             </label>
           </div>
 
-          <div class="render-voiceover-controls">
+          <div class="app-section-content render-voiceover-controls">
             <div class="form-group">
               <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
               <div class="form-hint">Ngôn ngữ dùng để chọn bộ giọng đọc phù hợp.</div>
@@ -744,14 +768,16 @@ const AppUI = (() => {
               <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}">
             </div>
           </div>
+        </section>
 
-        </div>
-
-        <section class="content-form-block">
-          <div class="content-form-block-header">
-            <h3>Brief video</h3>
-            <p>Thông tin chung để template hiểu video đang nói về nội dung gì.</p>
+        <section class="app-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("file")} Brief video</span>
+              <span class="app-section-helper">Thông tin chung để template hiểu video đang nói về nội dung gì.</span>
+            </div>
           </div>
+          <div class="app-section-content">
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label" for="field-contentType">Loại nội dung</label>
@@ -1023,7 +1049,6 @@ const AppUI = (() => {
     const getSegmentType = (typeId) => segmentTypes.find((type) => type.id === typeId) || segmentTypes.find((type) => type.id === "feature") || { id: "feature", label: "Tính năng" };
     const enabledCount = list.filter((item) => item.useInVideo).length;
     const voiceCount = list.filter((item) => String(item.voiceoverScript || "").trim()).length;
-    const scriptDisplayMode = data.scriptDisplayMode === "stack" ? "stack" : "sequence";
     const currentVoiceover = (data.audio && data.audio.voiceover) || {};
     const currentVoiceRate = currentVoiceover.rate || "+0%";
     const sceneTemplates = getProjectSceneTemplates(data);
@@ -1147,94 +1172,106 @@ const AppUI = (() => {
       selectedScriptSegmentId = null;
     }
 
-    let rowsHTML = "";
+    let contentHTML = "";
     if (list.length === 0) {
-      rowsHTML = `
+      contentHTML = `
         <div class="empty-state script-empty-state">
           <div class="empty-state-title">Chưa có đoạn nào trong video</div>
           <div class="empty-state-desc">Mỗi đoạn là một ý sẽ xuất hiện trong video: mở đầu, demo, workflow, kết quả hoặc kết thúc.</div>
-          <button id="features-empty-add-btn" class="btn btn-primary">Thêm đoạn đầu tiên</button>
+          <button id="features-empty-add-btn" class="btn btn-primary script-empty-add-btn" type="button">Thêm đoạn đầu tiên</button>
         </div>
       `;
     } else {
-      rowsHTML = `
-        <div class="script-list" id="script-sortable-list">
-          ${list.map((item, index) => {
-            const segmentType = getSegmentType(item.type);
-            const sceneTemplate = getSceneTemplate(item.sceneTemplateId);
-            const durationSec = Number.parseInt(item.durationSec, 10) || 8;
-            const voiceScript = String(item.voiceoverScript || "").trim();
-            return `
-            <article class="script-segment ${item.useInVideo ? "" : "is-disabled"} ${selectedItem && selectedItem.id === item.id ? "is-selected" : ""}" data-id="${item.id}" data-type="${escapeText(item.type || "feature")}">
-              <div class="script-order">
-                <span class="script-order-number">${index + 1}</span>
-                <button class="script-drag-handle" type="button" aria-label="Kéo để đổi thứ tự" title="Kéo để đổi thứ tự">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <circle cx="8" cy="6" r="1.5"></circle>
-                    <circle cx="16" cy="6" r="1.5"></circle>
-                    <circle cx="8" cy="12" r="1.5"></circle>
-                    <circle cx="16" cy="12" r="1.5"></circle>
-                    <circle cx="8" cy="18" r="1.5"></circle>
-                    <circle cx="16" cy="18" r="1.5"></circle>
-                  </svg>
-                </button>
-              </div>
-              <div class="script-segment-main">
-                <h3 class="script-title-wrapper">
-                  <span class="script-title">${escapeText(item.name || "Đoạn chưa đặt tên")}</span>
-                  <span class="script-duration">${durationSec}s</span>
-                </h3>
-                <div class="script-layout-chip">${escapeText(sceneTemplate ? sceneTemplate.name : "Chưa chọn layout")}</div>
-                <p class="script-body">${escapeText(item.description || "Chưa có nội dung chính.")}</p>
-                ${(item.benefit || voiceScript) ? `
-                  <div class="script-meta-group">
-                    ${item.benefit ? `
-                      <div class="script-meta-item is-highlight">
-                        <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <strong>Điểm nhấn:</strong>
-                        <span>${escapeText(item.benefit)}</span>
-                      </div>
-                    ` : ""}
-                    ${voiceScript ? `
-                      <div class="script-meta-item is-voice">
-                        <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
-                        <strong>Giọng đọc:</strong>
-                        <span>${escapeText(voiceScript)}</span>
+      contentHTML = `
+        <div class="script-timeline-container">
+          <div class="script-list" id="script-sortable-list">
+            ${list.map((item, index) => {
+              const segmentType = getSegmentType(item.type);
+              const sceneTemplate = getSceneTemplate(item.sceneTemplateId);
+              const durationSec = Number.parseInt(item.durationSec, 10) || 8;
+              const voiceScript = String(item.voiceoverScript || "").trim();
+              return `
+              <article class="script-segment ${item.useInVideo ? "" : "is-disabled"} ${selectedItem && selectedItem.id === item.id ? "is-selected" : ""}" data-id="${item.id}" data-type="${escapeText(item.type || "feature")}">
+                <div class="script-order">
+                  <button class="script-order-number" type="button" aria-label="Kéo đoạn ${index + 1} để đổi thứ tự" title="Kéo để đổi thứ tự">${index + 1}</button>
+                </div>
+                <div class="script-segment-card">
+                  <div class="script-segment-main">
+                    <h3 class="script-title-wrapper">
+                      <span class="script-title">${escapeText(item.name || "Đoạn chưa đặt tên")}</span>
+                      <span class="script-duration">${durationSec}s</span>
+                    </h3>
+                    <div class="script-layout-chip">${escapeText(sceneTemplate ? sceneTemplate.name : "Chưa chọn layout")}</div>
+                    <p class="script-body">${escapeText(item.description || "Chưa có nội dung chính.")}</p>
+                    ${(item.benefit || voiceScript) ? `
+                      <div class="script-meta-group">
+                        ${item.benefit ? `
+                          <div class="script-meta-item is-highlight">
+                            <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                            <strong>Điểm nhấn:</strong>
+                            <span>${escapeText(item.benefit)}</span>
+                          </div>
+                        ` : ""}
+                        ${voiceScript ? `
+                          <div class="script-meta-item is-voice">
+                            <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+                            <strong>Giọng đọc:</strong>
+                            <span>${escapeText(voiceScript)}</span>
+                          </div>
+                        ` : ""}
                       </div>
                     ` : ""}
                   </div>
-                ` : ""}
-              </div>
-              <div class="script-segment-side">
-                <label class="script-switch">
-                  <input type="checkbox" class="feature-use-toggle" data-id="${item.id}" ${item.useInVideo ? 'checked' : ''}>
-                  <span class="script-switch-track" aria-hidden="true"></span>
-                  <span class="script-switch-text">${item.useInVideo ? "Đang bật" : "Đang tắt"}</span>
-                </label>
-                <div class="script-actions">
-                  <button class="btn-action btn-view-feature" data-id="${item.id}" type="button" aria-label="Xem chi tiết đoạn" title="Xem chi tiết">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
-                    </svg>
-                  </button>
-                  <button class="btn-action btn-edit-feature" data-id="${item.id}" type="button" aria-label="Sửa đoạn" title="Sửa đoạn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75 1.84-1.83c-.39-.39-.39-1.02 0-1.41z"/>
-                    </svg>
-                  </button>
-                  <button class="btn-action btn-delete-feature" data-id="${item.id}" type="button" aria-label="Xóa đoạn" title="Xóa đoạn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                    </svg>
-                  </button>
+                  <div class="script-segment-side">
+                    <label class="script-switch">
+                      <input type="checkbox" class="feature-use-toggle" data-id="${item.id}" ${item.useInVideo ? 'checked' : ''}>
+                      <span class="script-switch-track" aria-hidden="true"></span>
+                      <span class="script-switch-text">${item.useInVideo ? "Đang bật" : "Đang tắt"}</span>
+                    </label>
+                    <div class="script-actions">
+                      <button class="btn-action btn-view-feature" data-id="${item.id}" type="button" aria-label="Xem chi tiết đoạn" title="Xem chi tiết">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+                        </svg>
+                      </button>
+                      <button class="btn-action btn-edit-feature" data-id="${item.id}" type="button" aria-label="Sửa đoạn" title="Sửa đoạn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75 1.84-1.83c-.39-.39-.39-1.02 0-1.41z"/>
+                        </svg>
+                      </button>
+                      <button class="btn-action btn-delete-feature" data-id="${item.id}" type="button" aria-label="Xóa đoạn" title="Xóa đoạn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </article>
-          `;
-          }).join("")}
+              </article>
+              `;
+            }).join("")}
+          </div>
         </div>
       `;
     }
+
+    let rowsHTML = `
+      <section class="app-section script-list-section" aria-label="Danh sách phân đoạn">
+        <div class="app-section-header">
+          <div>
+            <span class="app-section-eyebrow">${renderIcon("list")} Trình tự kịch bản</span>
+            <span class="app-section-helper">Sắp xếp dòng thời gian các phân đoạn xuất hiện trong video.</span>
+          </div>
+          <button id="features-add-btn" class="app-section-action" type="button">
+            ${renderIcon("plus")}
+            <span>Thêm đoạn</span>
+          </button>
+        </div>
+        <div class="app-section-content">
+          ${contentHTML}
+        </div>
+      </section>
+    `;
 
     const selectedType = selectedItem ? getSegmentType(selectedItem.type) : null;
     const selectedSceneTemplate = selectedItem ? getSceneTemplate(selectedItem.sceneTemplateId) : null;
@@ -1255,38 +1292,52 @@ const AppUI = (() => {
         </div>
 
         <div class="script-detail-metrics">
-          <div>
-            <span>Loại</span>
-            <strong>${escapeText(selectedType ? selectedType.label : "Tính năng")}</strong>
+          <div class="metric-item">
+            ${renderIcon("tag")}
+            <div class="metric-content">
+              <span>Loại</span>
+              <strong>${escapeText(selectedType ? selectedType.label : "Tính năng")}</strong>
+            </div>
           </div>
-          <div>
-            <span>Thời lượng</span>
-            <strong>${selectedDuration}s</strong>
+          <div class="metric-divider"></div>
+          <div class="metric-item">
+            <i class="fa-solid fa-clock app-icon" aria-hidden="true"></i>
+            <div class="metric-content">
+              <span>Thời lượng</span>
+              <strong>${selectedDuration}s</strong>
+            </div>
           </div>
-          <div>
-            <span>Voice</span>
-            <strong>${selectedVoice ? "Có" : "Chưa có"}</strong>
+          <div class="metric-divider"></div>
+          <div class="metric-item">
+            ${renderIcon("volume")}
+            <div class="metric-content">
+              <span>Voice</span>
+              <strong>${selectedVoice ? "Có" : "Chưa có"}</strong>
+            </div>
           </div>
         </div>
 
-        <div class="script-detail-section">
-          <h3>Scene template</h3>
-          <p>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn layout cho đoạn này.")}</p>
+        <div class="script-detail-group">
+          <span class="script-detail-label">Scene Template</span>
+          <div class="script-detail-template-value">
+            ${renderIcon("shapes")}
+            <strong>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn layout cho đoạn này.")}</strong>
+          </div>
         </div>
 
         ${selectedSceneTemplate ? `
-          <div class="script-detail-section">
-            <h3>Slots</h3>
-            <div class="script-slot-summary">
+          <div class="script-detail-group">
+            <span class="script-detail-label">Slots cấu hình</span>
+            <div class="script-slot-list">
               ${selectedSceneTemplate.slots.map((slot) => {
                 const value = selectedSlotValues[slot.id] || {};
                 return `
-                  <div class="script-slot-summary-item ${value.enabled === false ? "is-disabled" : ""}">
-                    <span>
+                  <div class="script-slot-row ${value.enabled === false ? "is-disabled" : ""}">
+                    <div class="script-slot-meta">
                       <strong>${escapeText(slot.label)}</strong>
-                      <small>${escapeText(getSlotTypeLabel(slot.type))} · ${escapeText(value.delay)}s · ${escapeText(value.animation || "none")}</small>
-                    </span>
-                    <em>${escapeText(getSlotValueSummary(slot, value))}</em>
+                      <small>${escapeText(getSlotTypeLabel(slot.type))} · ${escapeText(value.delay)}s</small>
+                    </div>
+                    <span class="script-slot-value">${escapeText(getSlotValueSummary(slot, value))}</span>
                   </div>
                 `;
               }).join("")}
@@ -1294,19 +1345,19 @@ const AppUI = (() => {
           </div>
         ` : ""}
 
-        <div class="script-detail-section">
-          <h3>Nội dung chính</h3>
-          <p>${escapeText(selectedItem.description || "Chưa có nội dung chính.")}</p>
+        <div class="script-detail-group">
+          <span class="script-detail-label">Nội dung chính</span>
+          <p class="script-detail-text">${escapeText(selectedItem.description || "Chưa có nội dung chính.")}</p>
         </div>
 
-        <div class="script-detail-section">
-          <h3>Điểm nhấn</h3>
-          <p>${escapeText(selectedItem.benefit || "Chưa nhập điểm nhấn cho đoạn này.")}</p>
+        <div class="script-detail-group">
+          <span class="script-detail-label">Điểm nhấn</span>
+          <p class="script-detail-text">${escapeText(selectedItem.benefit || "Chưa nhập điểm nhấn cho đoạn này.")}</p>
         </div>
 
-        <div class="script-detail-section">
-          <h3>Voice script</h3>
-          <p>${escapeText(selectedVoice || "Chưa có kịch bản giọng đọc riêng cho đoạn này.")}</p>
+        <div class="script-detail-group">
+          <span class="script-detail-label">Giọng đọc kịch bản</span>
+          <p class="script-detail-text is-voice">${escapeText(selectedVoice || "Chưa có kịch bản giọng đọc riêng cho đoạn này.")}</p>
         </div>
 
         <div class="script-detail-actions">
@@ -1322,27 +1373,13 @@ const AppUI = (() => {
     `;
 
     container.innerHTML = `
-      <div class="workspace-header script-workspace-header">
-        <div>
-          <h1>Kịch bản</h1>
-          <p class="workspace-subtitle">Sắp xếp các đoạn sẽ xuất hiện trong video. Nội dung chi tiết và voice từng đoạn nằm ở đây.</p>
-        </div>
-        ${list.length > 0 ? `<button id="features-add-btn" class="btn btn-primary">Thêm đoạn</button>` : ''}
-      </div>
+      ${renderWorkspaceHeader(
+        "Kịch bản",
+        "Sắp xếp các đoạn sẽ xuất hiện trong video. Nội dung chi tiết và voice từng đoạn nằm ở đây.",
+        "",
+        "script-workspace-header"
+      )}
       <div class="page-section-stack">
-        <section class="script-flow-panel" aria-label="Cách hiển thị trong video">
-          <div>
-            <span class="script-flow-eyebrow">Cách hiển thị</span>
-            <h2>Trong video render</h2>
-            <p>${scriptDisplayMode === "sequence"
-              ? "Các đoạn đang bật sẽ xuất hiện lần lượt theo thứ tự kéo thả."
-              : "Các đoạn đang bật sẽ xuất hiện cùng lúc trong một cảnh."}</p>
-          </div>
-          <div class="script-display-toggle" role="group" aria-label="Chọn cách hiển thị đoạn">
-            <button type="button" class="${scriptDisplayMode === "sequence" ? "is-active" : ""}" data-display-mode="sequence">Lần lượt</button>
-            <button type="button" class="${scriptDisplayMode === "stack" ? "is-active" : ""}" data-display-mode="stack">Cùng lúc</button>
-          </div>
-        </section>
         <section class="script-summary">
           <div class="script-stat-card stat-total">
             <span class="script-stat-icon" aria-hidden="true">
@@ -1814,18 +1851,17 @@ const AppUI = (() => {
     };
 
     // Attach Event Listeners
-    container.querySelectorAll(".script-display-toggle button").forEach((button) => {
-      button.addEventListener("click", () => {
-        AppState.updateProjectField("scriptDisplayMode", button.getAttribute("data-display-mode") || "sequence");
-        renderFeaturesScreen(container, AppState.getProjectData());
-      });
-    });
+    const addBtn = document.getElementById("features-add-btn");
+    if (addBtn) {
+      addBtn.addEventListener("click", () => showFeatureFormModal());
+    }
 
-    if (list.length === 0) {
-      document.getElementById("features-empty-add-btn").addEventListener("click", () => showFeatureFormModal());
-    } else {
-      document.getElementById("features-add-btn").addEventListener("click", () => showFeatureFormModal());
+    const emptyAddBtn = document.getElementById("features-empty-add-btn");
+    if (emptyAddBtn) {
+      emptyAddBtn.addEventListener("click", () => showFeatureFormModal());
+    }
 
+    if (list.length > 0) {
       container.querySelectorAll(".script-segment").forEach((segment) => {
         segment.addEventListener("click", (event) => {
           if (event.target.closest("button, label, input, select, textarea")) {
@@ -1846,7 +1882,7 @@ const AppUI = (() => {
       const sortableList = document.getElementById("script-sortable-list");
       if (sortableList && typeof Sortable !== "undefined") {
         Sortable.create(sortableList, {
-          handle: ".script-drag-handle",
+          handle: ".script-order-number",
           animation: 150,
           ghostClass: "script-segment-ghost",
           chosenClass: "script-segment-chosen",
@@ -1931,10 +1967,11 @@ const AppUI = (() => {
   // 4. Legacy Timeline Handoff View
   const renderTimelineScreen = (container, data) => {
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Timeline đã chuyển sang Kịch bản</h1>
-        <button id="timeline-to-script-btn" class="btn btn-primary">Mở Kịch bản</button>
-      </div>
+      ${renderWorkspaceHeader(
+        "Timeline đã chuyển sang Kịch bản",
+        "Trang cấu hình mốc thời gian (đã được tích hợp vào Kịch bản).",
+        `<button id="timeline-to-script-btn" class="btn btn-primary">Mở Kịch bản</button>`
+      )}
       <div class="page-section-stack">
         <div class="empty-state">
           <svg class="empty-state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -1954,6 +1991,9 @@ const AppUI = (() => {
 
     const filterList = (filter) => {
       if (filter === "all") return list;
+      if (filter === "image") {
+        return list.filter(a => a.type === "image" || a.type === "screenshot");
+      }
       return list.filter(a => a.type === filter);
     };
 
@@ -1988,10 +2028,45 @@ const AppUI = (() => {
         return;
       }
 
+      const getAssetTypeIconHTML = (type) => {
+        let icon = "fa-image";
+        let label = "Hình ảnh";
+
+        if (type === "logo") {
+          icon = "fa-shapes";
+          label = "Logo";
+        } else if (type === "background") {
+          icon = "fa-layer-group";
+          label = "Ảnh nền";
+        } else if (type === "video") {
+          icon = "fa-video";
+          label = "Video";
+        } else if (type === "screenshot") {
+          icon = "fa-image";
+          label = "Hình ảnh";
+        }
+
+        return `<i class="fa-solid ${icon} asset-type-icon" title="Loại: ${label}"></i>`;
+      };
+
+      const getAssetTypeOptionsHTML = (selectedType) => {
+        const assetTypes = [
+          { id: "logo", label: "Logo" },
+          { id: "background", label: "Ảnh nền" },
+          { id: "image", label: "Hình ảnh" },
+          { id: "screenshot", label: "Screenshot" },
+          { id: "video", label: "Video" }
+        ];
+
+        return assetTypes.map((type) => (
+          `<option value="${type.id}" ${type.id === selectedType ? "selected" : ""}>${type.label}</option>`
+        )).join("");
+      };
+
       grid.innerHTML = filtered.map(item => {
         let thumbContent = "";
         if (item.url) {
-          thumbContent = `<img src="${item.url}" alt="${item.name}">`;
+          thumbContent = `<img src="${escapeAttribute(item.url)}" alt="${escapeAttribute(item.name)}">`;
         } else {
           // Fallback SVG icon
           thumbContent = `
@@ -2001,34 +2076,28 @@ const AppUI = (() => {
           `;
         }
 
-        const isVideo = item.type === "video";
-
         return `
           <div class="asset-card" data-id="${item.id}">
             <div class="asset-thumb">
-              <input type="checkbox" class="asset-checkbox" data-id="${item.id}" title="Chọn tài nguyên" ${selectedAssetIds.includes(item.id) ? 'checked' : ''}>
+              <input type="checkbox" class="asset-checkbox" data-id="${escapeAttribute(item.id)}" title="Chọn tài nguyên" ${selectedAssetIds.includes(item.id) ? 'checked' : ''}>
               ${thumbContent}
-              ${item.useInVideo ? `<div class="asset-use-badge" title="Đang được sử dụng trong video">✓</div>` : ''}
             </div>
             <div class="asset-info">
-              <div class="asset-name" title="${item.name}">${item.name}</div>
+              <div class="asset-name" title="${escapeAttribute(item.name)}">${escapeText(item.name)}</div>
               <div class="asset-meta">
-                ${isVideo ? `
-                  <span class="asset-type-badge">Video demo</span>
-                ` : `
-                  <select class="asset-type-select" data-id="${item.id}" title="Xác nhận phân loại tài nguyên">
-                    <option value="screenshot" ${item.type === "screenshot" ? "selected" : ""}>Screenshot</option>
-                    <option value="logo" ${item.type === "logo" ? "selected" : ""}>Logo</option>
-                  </select>
-                `}
-                <span class="asset-size-badge">${item.size}</span>
+                ${getAssetTypeIconHTML(item.type)}
+                <span class="asset-meta-divider">-</span>
+                <span class="asset-size-badge">${escapeText(item.size || "")}</span>
               </div>
+              <select class="form-control asset-type-select" data-id="${escapeAttribute(item.id)}" aria-label="Đổi loại tài nguyên ${escapeAttribute(item.name)}">
+                ${getAssetTypeOptionsHTML(item.type)}
+              </select>
             </div>
             <div class="asset-actions">
-              <button class="asset-action-btn btn-toggle-use" data-id="${item.id}">
-                ${item.useInVideo ? "Bỏ dùng" : "Sử dụng"}
+              <button class="asset-action-btn btn-toggle-use ${item.useInVideo !== false ? "is-active" : ""}" data-id="${escapeAttribute(item.id)}" type="button">
+                ${item.useInVideo !== false ? "Đang dùng" : "Không dùng"}
               </button>
-              <button class="asset-action-btn btn-delete-asset" data-id="${item.id}">Xóa</button>
+              <button class="asset-action-btn btn-delete-asset" data-id="${escapeAttribute(item.id)}" type="button">Xóa</button>
             </div>
           </div>
         `;
@@ -2046,37 +2115,6 @@ const AppUI = (() => {
             selectedAssetIds = selectedAssetIds.filter(x => x !== id);
           }
           updateBulkDeleteButton();
-        });
-      });
-
-      // Bind Grid Action Events
-      grid.querySelectorAll(".asset-type-select").forEach(select => {
-        select.addEventListener("change", (e) => {
-          const id = select.getAttribute("data-id");
-          const newType = e.target.value;
-          const assets = data.assets.map(a => {
-            if (a.id === id) {
-              return { ...a, type: newType };
-            }
-            return a;
-          });
-          AppState.updateProjectField("assets", assets);
-          renderAssetsScreen(container, AppState.getProjectData());
-          showToast("Đã cập nhật loại tài nguyên!");
-        });
-      });
-
-      grid.querySelectorAll(".btn-toggle-use").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          const assets = data.assets.map(a => {
-            if (a.id === id) {
-              return { ...a, useInVideo: !a.useInVideo };
-            }
-            return a;
-          });
-          AppState.updateProjectField("assets", assets);
-          renderAssetsScreen(container, AppState.getProjectData());
         });
       });
 
@@ -2103,39 +2141,81 @@ const AppUI = (() => {
           );
         });
       });
+
+      grid.querySelectorAll(".btn-toggle-use").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const assets = (data.assets || []).map((asset) => (
+            asset.id === id ? { ...asset, useInVideo: asset.useInVideo === false } : asset
+          ));
+          AppState.updateProjectField("assets", assets);
+          renderAssetsScreen(container, AppState.getProjectData());
+        });
+      });
+
+      grid.querySelectorAll(".asset-type-select").forEach(select => {
+        select.addEventListener("change", () => {
+          const id = select.getAttribute("data-id");
+          const assets = (data.assets || []).map((asset) => (
+            asset.id === id ? { ...asset, type: select.value } : asset
+          ));
+          AppState.updateProjectField("assets", assets);
+          renderAssetsScreen(container, AppState.getProjectData());
+        });
+      });
+    };
+
+    const getAcceptAttribute = (filter) => {
+      if (filter === "logo" || filter === "background" || filter === "image") {
+        return "image/*";
+      }
+      if (filter === "video") {
+        return "video/*";
+      }
+      return "image/*,video/*";
     };
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Tài nguyên dự án (${list.length})</h1>
-      </div>
+      ${renderWorkspaceHeader(`Tài nguyên dự án (${list.length})`, "Quản lý hình ảnh, logo và video demo phục vụ việc render.")}
 
-      <input type="file" id="real-file-input" style="display:none;" accept="image/*,video/*" multiple>
+      <input type="file" id="real-file-input" class="d-none" accept="${getAcceptAttribute(currentFilter)}" multiple>
 
-      <div class="assets-filter-row">
-        <div class="filter-group">
-          <button class="filter-btn active" data-filter="all">Tất cả</button>
-          <button class="filter-btn" data-filter="logo">Logo</button>
-          <button class="filter-btn" data-filter="screenshot">Ảnh chụp màn hình</button>
-          <button class="filter-btn" data-filter="video">Video demo</button>
+      <section class="app-section">
+        <div class="app-section-header">
+          <div>
+            <span class="app-section-eyebrow">${renderIcon("shapes")} Thư mục tài nguyên</span>
+            <span class="app-section-helper">Thêm mới, chọn lọc và xem các tệp tin trong dự án của bạn.</span>
+          </div>
+          <div class="assets-action-buttons">
+            <button id="assets-delete-selected-btn" class="app-section-action assets-delete-selected d-none" type="button">
+              <i class="fa-solid fa-trash app-icon" aria-hidden="true"></i>
+              <span>Xóa đã chọn (<span id="selected-assets-count">0</span>)</span>
+            </button>
+            <button id="assets-upload-btn" class="app-section-action" type="button">
+              <i class="fa-solid fa-upload app-icon" aria-hidden="true"></i>
+              <span>Tải tệp lên</span>
+            </button>
+          </div>
         </div>
-        <div class="assets-action-buttons">
-          <button id="assets-delete-selected-btn" class="btn btn-danger d-none">
-            <svg class="assets-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
-            Xóa đã chọn (<span id="selected-assets-count">0</span>)
-          </button>
-          <button id="assets-upload-btn" class="btn btn-primary">
-            <svg class="assets-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            Tải tệp lên
-          </button>
+
+        <div class="app-section-content assets-section-content">
+          <div class="assets-filter-row">
+            <div class="filter-group">
+              <button class="filter-btn active" data-filter="all">Tất cả</button>
+              <button class="filter-btn" data-filter="logo">Logo</button>
+              <button class="filter-btn" data-filter="background">Ảnh nền</button>
+              <button class="filter-btn" data-filter="image">Hình ảnh</button>
+              <button class="filter-btn" data-filter="video">Video</button>
+            </div>
+          </div>
+
+          <div class="assets-hint-row">
+            <span class="text-subtle">* Chỉ logo, ảnh nền và hình ảnh dùng trong video mới được render. Kéo thả file vào đây để tải lên nhanh.</span>
+          </div>
+
+          <div class="assets-grid"></div>
         </div>
-      </div>
-
-      <div class="assets-hint-row">
-        <span class="text-subtle">* Chỉ ảnh và logo dùng trong video mới được render. Kéo thả file vào đây để tải lên nhanh.</span>
-      </div>
-
-      <div class="assets-grid"></div>
+      </section>
     `;
 
     renderGrid(currentFilter);
@@ -2146,6 +2226,12 @@ const AppUI = (() => {
         container.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.getAttribute("data-filter");
+
+        const realInput = document.getElementById("real-file-input");
+        if (realInput) {
+          realInput.setAttribute("accept", getAcceptAttribute(currentFilter));
+        }
+
         selectedAssetIds = [];
         updateBulkDeleteButton();
         renderGrid(currentFilter);
@@ -2189,7 +2275,7 @@ const AppUI = (() => {
       const originalHTML = uploadBtn ? uploadBtn.innerHTML : "Tải tệp lên";
       if (uploadBtn) {
         uploadBtn.disabled = true;
-        uploadBtn.innerHTML = `⏳ Đang xử lý...`;
+        uploadBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin app-icon" aria-hidden="true"></i><span>Đang xử lý...</span>`;
       }
 
       showToast(`Đang tải lên ${files.length} tệp tin...`, "info");
@@ -2199,11 +2285,18 @@ const AppUI = (() => {
 
         files.forEach((file, index) => {
           const isImage = file.type.startsWith("image/");
-          const isLogo = file.name.toLowerCase().includes("logo");
+          const isVideo = file.type.startsWith("video/");
 
-          let type = "screenshot";
-          if (isLogo) type = "logo";
-          else if (file.type.startsWith("video/")) type = "video";
+          let type = "image";
+          if (currentFilter !== "all") {
+            type = currentFilter;
+          } else {
+            if (isVideo) {
+              type = "video";
+            } else if (isImage) {
+              type = "image";
+            }
+          }
 
           let url = "";
           if (isImage) {
@@ -2221,6 +2314,11 @@ const AppUI = (() => {
           };
           assets.push(newAsset);
         });
+
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = originalHTML;
+        }
 
         AppState.updateProjectField("assets", assets);
         showToast(`Đã tải lên thành công ${files.length} tệp tài nguyên!`);
@@ -2254,9 +2352,17 @@ const AppUI = (() => {
       e.preventDefault();
       container.classList.remove("dragover-active");
 
-      const files = Array.from(e.dataTransfer.files).filter(file =>
-        file.type.startsWith("image/") || file.type.startsWith("video/")
-      );
+      const files = Array.from(e.dataTransfer.files).filter(file => {
+        const isImage = file.type.startsWith("image/");
+        const isVideo = file.type.startsWith("video/");
+        if (currentFilter === "logo" || currentFilter === "background" || currentFilter === "image") {
+          return isImage;
+        }
+        if (currentFilter === "video") {
+          return isVideo;
+        }
+        return isImage || isVideo;
+      });
 
       handleFilesUpload(files);
     });
@@ -3472,12 +3578,12 @@ const AppUI = (() => {
     };
 
     container.innerHTML = `
-      <div class="workspace-header template-workspace-header">
-        <div>
-          <h1>Template</h1>
-          <p class="workspace-subtitle">Chọn style chung của video và xem thư viện layout cho từng phân đoạn.</p>
-        </div>
-      </div>
+      ${renderWorkspaceHeader(
+        "Template",
+        "Chọn style chung của video và xem thư viện layout cho từng phân đoạn.",
+        "",
+        "template-workspace-header"
+      )}
 
       <div class="template-workspace-grid">
         <div class="template-main-column">
@@ -3744,16 +3850,15 @@ const AppUI = (() => {
     const activeSlotCount = currentScene && currentScene.sceneTemplate ? currentScene.sceneTemplate.slots.length : 0;
 
     container.innerHTML = `
-      <div class="workspace-header preview-workspace-header">
-        <div>
-          <h1>Xem trước</h1>
-          <p class="workspace-subtitle">Kiểm tra nhanh template, scene và nội dung kịch bản trước khi render.</p>
-        </div>
-        <div class="preview-header-meta">
+      ${renderWorkspaceHeader(
+        "Xem trước",
+        "Kiểm tra nhanh template, scene và nội dung kịch bản trước khi render.",
+        `<div class="preview-header-meta">
           <span>${activeTemplate.ratio}</span>
           <strong>${escapeText(activeTemplate.name)}</strong>
-        </div>
-      </div>
+        </div>`,
+        "preview-workspace-header"
+      )}
 
       <div class="preview-layout">
         <section class="preview-pane" aria-label="Khung xem trước scene">
@@ -4217,9 +4322,7 @@ const AppUI = (() => {
     }
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Render xuất bản Video</h1>
-      </div>
+      ${renderWorkspaceHeader("Render xuất bản Video", "Kiểm tra môi trường và tiến hành xuất bản video MP4.")}
 
       <div class="render-workflow-grid">
         <div class="card render-preflight-card">
@@ -4660,9 +4763,7 @@ const AppUI = (() => {
     }
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Video đã xuất (${list.length})</h1>
-      </div>
+      ${renderWorkspaceHeader(`Video đã xuất (${list.length})`, "Danh sách các file video MP4 đã render thành công.")}
       <div class="card">
         <div class="card-body">
           ${contentHTML}
@@ -4746,9 +4847,7 @@ const AppUI = (() => {
     const settings = AppStorage.loadSettings();
 
     container.innerHTML = `
-      <div class="workspace-header">
-        <h1>Cài đặt hệ thống</h1>
-      </div>
+      ${renderWorkspaceHeader("Cài đặt hệ thống", "Cấu hình môi trường local và import/export dữ liệu dự án.")}
 
       <div class="grid-2 mb-6">
         <!-- Local Folders Mock configuration -->
