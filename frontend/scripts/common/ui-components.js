@@ -2055,20 +2055,6 @@ const AppUI = (() => {
         return `<i class="fa-solid ${icon} asset-type-icon" title="Loại: ${label}"></i>`;
       };
 
-      const getAssetTypeOptionsHTML = (selectedType) => {
-        const assetTypes = [
-          { id: "logo", label: "Logo" },
-          { id: "background", label: "Ảnh nền" },
-          { id: "image", label: "Hình ảnh" },
-          { id: "screenshot", label: "Screenshot" },
-          { id: "video", label: "Video" }
-        ];
-
-        return assetTypes.map((type) => (
-          `<option value="${type.id}" ${type.id === selectedType ? "selected" : ""}>${type.label}</option>`
-        )).join("");
-      };
-
       grid.innerHTML = filtered.map(item => {
         let thumbContent = "";
         if (item.url) {
@@ -2095,14 +2081,9 @@ const AppUI = (() => {
                 <span class="asset-meta-divider">-</span>
                 <span class="asset-size-badge">${escapeText(item.size || "")}</span>
               </div>
-              <select class="form-control asset-type-select" data-id="${escapeAttribute(item.id)}" aria-label="Đổi loại tài nguyên ${escapeAttribute(item.name)}">
-                ${getAssetTypeOptionsHTML(item.type)}
-              </select>
+
             </div>
             <div class="asset-actions">
-              <button class="asset-action-btn btn-toggle-use ${item.useInVideo !== false ? "is-active" : ""}" data-id="${escapeAttribute(item.id)}" type="button">
-                ${item.useInVideo !== false ? "Đang dùng" : "Không dùng"}
-              </button>
               <button class="asset-action-btn btn-delete-asset" data-id="${escapeAttribute(item.id)}" type="button">Xóa</button>
             </div>
           </div>
@@ -2148,27 +2129,6 @@ const AppUI = (() => {
         });
       });
 
-      grid.querySelectorAll(".btn-toggle-use").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          const assets = (data.assets || []).map((asset) => (
-            asset.id === id ? { ...asset, useInVideo: asset.useInVideo === false } : asset
-          ));
-          AppState.updateProjectField("assets", assets);
-          renderAssetsScreen(container, AppState.getProjectData());
-        });
-      });
-
-      grid.querySelectorAll(".asset-type-select").forEach(select => {
-        select.addEventListener("change", () => {
-          const id = select.getAttribute("data-id");
-          const assets = (data.assets || []).map((asset) => (
-            asset.id === id ? { ...asset, type: select.value } : asset
-          ));
-          AppState.updateProjectField("assets", assets);
-          renderAssetsScreen(container, AppState.getProjectData());
-        });
-      });
     };
 
     const getAcceptAttribute = (filter) => {
