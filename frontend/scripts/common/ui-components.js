@@ -11,6 +11,89 @@ const AppUI = (() => {
 
   const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
 
+  const escapeAttribute = (value) => String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+  const getVideoStylePreset = (styleId) => {
+    const styles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
+    return styles.find((style) => style.id === styleId) || styles[0] || null;
+  };
+
+  const getVideoStyleOverride = (data, styleId) => {
+    const overrides = data && data.videoStyleOverrides && typeof data.videoStyleOverrides === "object"
+      ? data.videoStyleOverrides
+      : {};
+    return overrides[styleId] && typeof overrides[styleId] === "object" ? overrides[styleId] : {};
+  };
+
+  const resolveVideoStyle = (styleId, data = AppState.getProjectData()) => {
+    const preset = getVideoStylePreset(styleId);
+    if (!preset) {
+      return null;
+    }
+
+    const override = getVideoStyleOverride(data, preset.id);
+    return {
+      ...preset,
+      ...override,
+      id: preset.id,
+      name: preset.name,
+      description: preset.description,
+      aspectRatios: preset.aspectRatios,
+      colorTheme: {
+        ...(preset.colorTheme || {}),
+        ...(override.colorTheme || {})
+      },
+      fontStyle: {
+        ...(preset.fontStyle || {}),
+        ...(override.fontStyle || {})
+      },
+      isCustomized: Boolean(Object.keys(override).length)
+    };
+  };
+
+  const getStyleTemplateConfig = (styleId) => {
+    if (styleId === "clean-report") {
+      return { theme: "light", accentColor: "blue", fontSize: "default", logoPosition: "top-left" };
+    }
+    if (styleId === "product-demo") {
+      return { theme: "dark", accentColor: "green", fontSize: "default", logoPosition: "top-left" };
+    }
+    return { theme: "dark", accentColor: "blue", fontSize: "default", logoPosition: "top-left" };
+  };
+
+  const isLightHexColor = (value) => {
+    const hex = String(value || "").replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(hex)) {
+      return false;
+    }
+
+    const red = Number.parseInt(hex.slice(0, 2), 16);
+    const green = Number.parseInt(hex.slice(2, 4), 16);
+    const blue = Number.parseInt(hex.slice(4, 6), 16);
+    return ((red * 299) + (green * 587) + (blue * 114)) / 1000 > 180;
+  };
+
+  const applyStylePreviewVariables = (root, style) => {
+    if (!root || !style || !style.colorTheme) {
+      return;
+    }
+
+    const theme = style.colorTheme;
+    root.style.setProperty("--style-bg", theme.background || "#05070a");
+    root.style.setProperty("--style-surface", theme.surface || "#101722");
+    root.style.setProperty("--style-surface-alt", theme.surfaceAlt || theme.surface || "#162033");
+    root.style.setProperty("--style-text", theme.text || "#f8fafc");
+    root.style.setProperty("--style-muted", theme.mutedText || "#94a3b8");
+    root.style.setProperty("--style-accent", theme.accent || "#22d3ee");
+    root.style.setProperty("--style-accent-soft", theme.accentSoft || theme.accent || "#164e63");
+    root.style.setProperty("--style-border", theme.border || "#1e3a5f");
+    root.style.setProperty("--style-glow", theme.glow || "rgba(34, 211, 238, 0.28)");
+  };
+
   const parseVoiceRatePercent = (value) => {
     const parsed = Number.parseInt(String(value || "0").replace("%", ""), 10);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -1898,12 +1981,177 @@ const AppUI = (() => {
     });
   };
 
+  const openVideoStyleModal = (container, styleId) => {
+    const currentData = AppState.getProjectData();
+    const preset = getVideoStylePreset(styleId || currentData.videoStyleId);
+    const resolvedStyle = resolveVideoStyle(styleId || currentData.videoStyleId, currentData);
+
+    if (!preset || !resolvedStyle) {
+      showToast("Chưa có video style để chỉnh.", "warning");
+      return;
+    }
+
+    const theme = resolvedStyle.colorTheme || {};
+    const modalBody = document.createElement("div");
+    modalBody.innerHTML = `
+      <div class="style-editor-modal">
+        <div class="style-editor-preview" id="style-editor-preview">
+          <span class="style-editor-preview-surface"></span>
+          <span class="style-editor-preview-title"></span>
+          <span class="style-editor-preview-line"></span>
+          <span class="style-editor-preview-accent"></span>
+        </div>
+        <div class="style-editor-grid">
+          <div class="form-group">
+            <label class="form-label" for="style-color-background">Background</label>
+            <input id="style-color-background" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.background || "#05070A")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-surface">Surface</label>
+            <input id="style-color-surface" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.surface || "#101722")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-surface-alt">Surface phụ</label>
+            <input id="style-color-surface-alt" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.surfaceAlt || theme.surface || "#162033")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-text">Text</label>
+            <input id="style-color-text" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.text || "#F8FAFC")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-muted">Muted text</label>
+            <input id="style-color-muted" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.mutedText || "#94A3B8")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-accent">Accent</label>
+            <input id="style-color-accent" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.accent || "#22D3EE")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-accent-soft">Accent mềm</label>
+            <input id="style-color-accent-soft" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.accentSoft || "#164E63")}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-color-border">Border</label>
+            <input id="style-color-border" class="form-control form-control-color" type="color" value="${escapeAttribute(theme.border || "#1E3A5F")}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="style-color-glow">Glow</label>
+          <input id="style-color-glow" class="form-control" type="text" value="${escapeAttribute(theme.glow || "rgba(34, 211, 238, 0.28)")}" placeholder="rgba(34, 211, 238, 0.28)">
+          <div class="form-hint">Dùng giá trị CSS hợp lệ, ví dụ rgba(...).</div>
+        </div>
+        <div class="form-grid two-cols">
+          <div class="form-group">
+            <label class="form-label" for="style-motion-style">Motion style</label>
+            <select id="style-motion-style" class="form-control">
+              ${["minimal", "dynamic", "soft", "sharp"].map((motion) => `
+                <option value="${motion}" ${resolvedStyle.motionStyle === motion ? "selected" : ""}>${motion}</option>
+              `).join("")}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="style-background-style">Background style</label>
+            <select id="style-background-style" class="form-control">
+              ${["dark-grid", "clean-surface", "media-focus", "plain", "subtle-grid"].map((background) => `
+                <option value="${background}" ${resolvedStyle.backgroundStyle === background ? "selected" : ""}>${background}</option>
+              `).join("")}
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const getEditedTheme = () => ({
+      background: document.getElementById("style-color-background").value,
+      surface: document.getElementById("style-color-surface").value,
+      surfaceAlt: document.getElementById("style-color-surface-alt").value,
+      text: document.getElementById("style-color-text").value,
+      mutedText: document.getElementById("style-color-muted").value,
+      accent: document.getElementById("style-color-accent").value,
+      accentSoft: document.getElementById("style-color-accent-soft").value,
+      border: document.getElementById("style-color-border").value,
+      glow: document.getElementById("style-color-glow").value.trim() || (theme.glow || "rgba(34, 211, 238, 0.28)")
+    });
+
+    const getEditedStyle = () => ({
+      colorTheme: getEditedTheme(),
+      motionStyle: document.getElementById("style-motion-style").value,
+      backgroundStyle: document.getElementById("style-background-style").value
+    });
+
+    const refreshModalPreview = () => {
+      const preview = document.getElementById("style-editor-preview");
+      if (!preview) {
+        return;
+      }
+
+      applyStylePreviewVariables(preview, {
+        ...resolvedStyle,
+        ...getEditedStyle(),
+        colorTheme: getEditedTheme()
+      });
+    };
+
+    showModal(`Chi tiết style: ${preset.name}`, modalBody, [
+      {
+        text: "Khôi phục preset",
+        class: "btn-secondary",
+        onClick: () => {
+          const projectData = AppState.getProjectData();
+          const nextOverrides = { ...(projectData.videoStyleOverrides || {}) };
+          delete nextOverrides[preset.id];
+          AppState.setProjectData({
+            ...projectData,
+            videoStyleOverrides: nextOverrides,
+            templateConfig: getStyleTemplateConfig(preset.id)
+          });
+          closeModal();
+          renderTemplateScreen(container, AppState.getProjectData());
+          showToast("Đã khôi phục style preset.");
+        }
+      },
+      { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+      {
+        text: "Lưu style",
+        class: "btn-primary",
+        onClick: () => {
+          const editedStyle = getEditedStyle();
+          const nextData = AppState.getProjectData();
+          const nextOverrides = {
+            ...(nextData.videoStyleOverrides || {}),
+            [preset.id]: editedStyle
+          };
+          const nextTemplateConfig = {
+            ...getStyleTemplateConfig(preset.id),
+            theme: isLightHexColor(editedStyle.colorTheme.background) ? "light" : "dark"
+          };
+
+          AppState.setProjectData({
+            ...nextData,
+            videoStyleId: preset.id,
+            videoStyleOverrides: nextOverrides,
+            templateConfig: nextTemplateConfig
+          });
+          closeModal();
+          renderTemplateScreen(container, AppState.getProjectData());
+          showToast("Đã lưu style video.");
+        }
+      }
+    ]);
+
+    modalBody.querySelectorAll("input, select").forEach((input) => {
+      input.addEventListener("input", refreshModalPreview);
+      input.addEventListener("change", refreshModalPreview);
+    });
+    refreshModalPreview();
+  };
+
   // 6. Template & Theme Picker View
   const renderTemplateScreen = (container, data) => {
     const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
     const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
     const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
-    const selectedVideoStyle = videoStyles.find((style) => style.id === data.videoStyleId) || videoStyles[0];
+    const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0];
     const selectedSceneTemplate = sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId) || sceneTemplates[0];
     const filteredSceneTemplates = templateRatioFilter === "all"
       ? sceneTemplates
@@ -1918,17 +2166,10 @@ const AppUI = (() => {
       return slotType ? slotType.label : typeId;
     };
     const getLegacyTemplate = () => TEMPLATES_LIST.find((template) => template.id === data.templateId) || TEMPLATES_LIST[0];
-    const getStyleTemplateConfig = (styleId) => {
-      if (styleId === "clean-report") {
-        return { theme: "light", accentColor: "blue", fontSize: "default", logoPosition: "top-left" };
-      }
-      if (styleId === "product-demo") {
-        return { theme: "dark", accentColor: "green", fontSize: "default", logoPosition: "top-left" };
-      }
-      return { theme: "dark", accentColor: "blue", fontSize: "default", logoPosition: "top-left" };
-    };
     const renderSceneWireframe = (template) => `
-      <div class="scene-wireframe" aria-hidden="true">
+      <div class="scene-wireframe scene-wireframe-${template.id}" aria-hidden="true">
+        <span class="scene-wire-safe-area is-top"></span>
+        <span class="scene-wire-safe-area is-bottom"></span>
         ${template.slots.slice(0, 7).map((slot) => `
           <span class="scene-wire-slot slot-${slot.type} ${slot.required ? "is-required" : ""}">
             ${escapeText(slot.label)}
@@ -1953,23 +2194,31 @@ const AppUI = (() => {
                 <span class="template-section-eyebrow">Video Style</span>
                 <h2>Style chung toàn video</h2>
               </div>
-              <span class="template-helper-text">Áp dụng cho màu, font, motion và nền.</span>
+              <span class="template-helper-text">Chọn preset hoặc chỉnh màu trong từng style.</span>
             </div>
             <div class="video-style-grid">
               ${videoStyles.map((style) => `
-                <button class="video-style-card style-${style.id} ${selectedVideoStyle && selectedVideoStyle.id === style.id ? "active" : ""}" type="button" data-style-id="${style.id}">
-                  <span class="video-style-preview">
-                    <span class="video-style-preview-surface"></span>
-                    <span class="video-style-preview-line is-strong"></span>
-                    <span class="video-style-preview-line"></span>
-                    <span class="video-style-preview-accent"></span>
-                  </span>
-                  <span class="video-style-copy">
-                    <strong>${escapeText(style.name)}</strong>
-                    <small>${escapeText(style.description)}</small>
-                  </span>
-                  <span class="video-style-meta">${escapeText(style.motionStyle)} · ${escapeText(style.backgroundStyle)}</span>
-                </button>
+                <div class="video-style-card style-${style.id} ${selectedVideoStyle && selectedVideoStyle.id === style.id ? "active" : ""}" data-style-id="${style.id}">
+                  <button class="video-style-select-area" type="button" data-style-id="${style.id}">
+                    <span class="video-style-preview">
+                      <span class="video-style-preview-surface"></span>
+                      <span class="video-style-preview-line is-strong"></span>
+                      <span class="video-style-preview-line"></span>
+                      <span class="video-style-preview-accent"></span>
+                    </span>
+                    <span class="video-style-copy">
+                      <strong>${escapeText(style.name)}</strong>
+                      <small>${escapeText(style.description)}</small>
+                    </span>
+                    <span class="video-style-meta">${escapeText((resolveVideoStyle(style.id, data) || style).motionStyle)} · ${escapeText((resolveVideoStyle(style.id, data) || style).backgroundStyle)}${(resolveVideoStyle(style.id, data) || style).isCustomized ? " · đã chỉnh" : ""}</span>
+                  </button>
+                  <button class="video-style-edit-btn" type="button" data-style-id="${style.id}" aria-label="Sửa style ${escapeText(style.name)}">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="m16.5 3.5 4 4L8 20H4v-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
               `).join("")}
             </div>
           </section>
@@ -2018,6 +2267,10 @@ const AppUI = (() => {
             </div>
             <div class="template-summary-list">
               <div>
+                <span>Trạng thái style</span>
+                <strong>${selectedVideoStyle && selectedVideoStyle.isCustomized ? "Đã chỉnh trong project" : "Đang dùng preset gốc"}</strong>
+              </div>
+              <div>
                 <span>Scene template mặc định</span>
                 <strong>${escapeText(selectedSceneTemplate ? selectedSceneTemplate.name : "Chưa chọn")}</strong>
               </div>
@@ -2062,7 +2315,7 @@ const AppUI = (() => {
       </div>
     `;
 
-    container.querySelectorAll(".video-style-card").forEach((card) => {
+    container.querySelectorAll(".video-style-select-area").forEach((card) => {
       card.addEventListener("click", () => {
         const id = card.getAttribute("data-style-id");
         const nextData = {
@@ -2072,6 +2325,17 @@ const AppUI = (() => {
         };
         AppState.setProjectData(nextData);
         renderTemplateScreen(container, nextData);
+      });
+    });
+
+    container.querySelectorAll(".video-style-card").forEach((card) => {
+      applyStylePreviewVariables(card, resolveVideoStyle(card.getAttribute("data-style-id"), AppState.getProjectData()));
+    });
+
+    container.querySelectorAll(".video-style-edit-btn").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openVideoStyleModal(container, button.getAttribute("data-style-id"));
       });
     });
 
@@ -2123,7 +2387,7 @@ const AppUI = (() => {
     const activeSegments = (data.features || []).filter((item) => item.useInVideo);
     const sceneTemplates = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
     const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
-    const selectedVideoStyle = videoStyles.find((style) => style.id === data.videoStyleId) || videoStyles[0] || null;
+    const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0] || null;
     const getSceneTemplate = (templateId) => sceneTemplates.find((template) => template.id === templateId)
       || sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId)
       || sceneTemplates[0]

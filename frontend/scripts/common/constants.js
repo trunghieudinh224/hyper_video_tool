@@ -24,6 +24,7 @@ const INITIAL_PROJECT_DATA = {
   milestones: [],
   assets: [],
   videoStyleId: "dark-tech",
+  videoStyleOverrides: {},
   defaultSceneTemplateId: "intro-stack",
   templateId: "project-showcase-90s",
   templateConfig: {

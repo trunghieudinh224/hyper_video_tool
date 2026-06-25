@@ -4,6 +4,51 @@
 
 in_progress
 
+## Roadmap Phase 4.5 Slice 1 - Style Detail Popup Và Vertical Scene Wireframe
+
+### Objective
+
+Sửa lại concept Template page trước khi nối render thật: Video Style có popup chỉnh giá trị style trong project, và Scene Template wireframe hiển thị như frame dọc 9:16 để user hình dung layout rõ hơn.
+
+### Summary
+
+- Thêm `videoStyleOverrides` vào project data để lưu custom style theo project hiện tại.
+- Mỗi video style card có icon edit solid ở góc phải dưới.
+- Click card vẫn chọn style; click icon mở popup detail style.
+- Popup detail style dùng modal chung, chỉnh được màu background, surface, surface phụ, text, muted text, accent, accent mềm, border, glow, motion style và background style.
+- Save style cập nhật state/localStorage và render lại Template screen, không reload page.
+- Có hành động khôi phục preset cho style đang chỉnh.
+- Template page và Preview page cùng resolve style bằng preset + override.
+- Scene wireframe đổi sang frame dọc 9:16, cao hơn và có safe-area line.
+- Scene template library đổi từ grid 2 cột sang một hàng scroll ngang có padding, card fixed width.
+- Scene wireframe trong card kéo full width theo card content.
+- Slot trong wireframe nằm ở vùng giữa, không phủ hết màn hình.
+- Slot được tô màu theo type: asset, text, tag, media, list.
+- Chưa làm tạo mới style.
+- Chưa làm scene template detail kéo thả/chỉnh vị trí.
+- Chưa đụng Phase 5 render payload.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "gradient|blob|orb|console\\.log\\(|debugger|alert\\(|confirm\\(|prompt\\(" frontend/styles/pages/template.css frontend/scripts/common/ui-components.js frontend/scripts/common/constants.js frontend/scripts/common/storage.js` không có hit.
+- `npm --prefix backend run check` pass.
+- Desktop Playwright/Chrome smoke pass:
+  - Template page có 3 icon edit style.
+  - Icon edit solid nằm ở bottom-right của style card.
+  - Scene template library là horizontal scroller, không còn grid 2 cột, có padding và card width `260px`.
+  - Scene wireframe cao dạng dọc, ratio khoảng `1.78`.
+  - Mở popup, đổi accent, bấm lưu.
+  - `videoStyleOverrides.dark-tech.colorTheme.accent` được lưu vào localStorage.
+  - Page không reload sau khi save.
+  - Modal đóng và trạng thái `đã chỉnh` hiển thị.
+- Desktop screenshot: `/private/tmp/hvt-template-style-wireframe.png`.
+
 ## Roadmap Phase 4 Slice 1 - Slot-Based Preview UI
 
 ### Objective

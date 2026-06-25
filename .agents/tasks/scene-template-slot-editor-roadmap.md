@@ -722,6 +722,115 @@ Test Report:
   - slot timing hiển thị các mốc `0.0s`, `0.5s`, `2.0s`, `4.0s`.
 - Desktop screenshot: `/private/tmp/hvt-phase4-slot-preview.png`.
 
+## Phase 4.5 - Template Style Editor Và Vertical Scene Wireframe Polish
+
+### Objective
+
+Chỉnh lại Template page trước khi nối render thật: Video Style không chỉ là preset cố định mà có thể chỉnh giá trị trong project, và Scene Template wireframe phải giống frame video dọc 9:16 để user hình dung đúng layout.
+
+### Scope
+
+Sẽ làm:
+
+- Mỗi video style card có icon edit solid ở bottom-right.
+- Popup detail style dùng modal chung.
+- Cho chỉnh các màu chính của style:
+  - background
+  - surface
+  - surface phụ
+  - text
+  - muted text
+  - accent
+  - accent mềm
+  - border
+  - glow
+- Cho chỉnh `motionStyle` và `backgroundStyle`.
+- Lưu custom style vào project data bằng `videoStyleOverrides`.
+- Save popup chỉ reload data/render lại Template screen, không reload page.
+- Template page và Preview page resolve style bằng preset + override.
+- Scene wireframe đổi sang frame dọc 9:16.
+- Scene template library dùng một hàng scroll ngang có padding, card fixed width, không scale theo grid 2 cột.
+- Scene wireframe kéo full width theo card content.
+- Slot trong wireframe nằm ở vùng giữa và có màu theo type.
+
+Không làm:
+
+- Chưa cho tạo mới style.
+- Chưa làm style library CRUD.
+- Chưa làm frame ngang cho scene wireframe.
+- Chưa làm scene template detail kéo thả/chỉnh vị trí.
+- Chưa đụng render payload hoặc HyperFrames.
+
+### Files Impact
+
+- MODIFY `frontend/scripts/common/constants.js` - thêm field default `videoStyleOverrides`.
+- MODIFY `frontend/scripts/common/storage.js` - sample data có `videoStyleOverrides`.
+- MODIFY `frontend/scripts/common/ui-components.js` - style resolver, style popup, template page event handling, preview style resolution.
+- MODIFY `frontend/styles/pages/template.css` - style card icon button, vertical wireframe, style popup CSS.
+- MODIFY `.agents/tasks/current-task.md`.
+- MODIFY `.agents/tasks/scene-template-slot-editor-roadmap.md`.
+
+### Logic Changes
+
+- `videoStyleId` vẫn là preset đang chọn.
+- `videoStyleOverrides[videoStyleId]` chứa custom values của preset đó trong project hiện tại.
+- UI resolve style theo thứ tự:
+
+```text
+VIDEO_STYLES preset
+-> videoStyleOverrides[presetId]
+-> resolved style dùng cho Template/Preview
+```
+
+- Click style card chọn preset.
+- Click icon edit mở popup detail style.
+- Save style cập nhật state/localStorage rồi render lại Template screen.
+
+### Risk Assessment
+
+- Tier Auto: UI/data localStorage, chưa đụng render thật.
+- Side effect: project export/import sẽ có thêm field `videoStyleOverrides`.
+- Rollback: revert 4 file frontend và docs.
+
+### Verification
+
+- `node --check frontend/scripts/common/constants.js`
+- `node --check frontend/scripts/common/storage.js`
+- `node --check frontend/scripts/common/ui-components.js`
+- `git diff --check`
+- `npm --prefix backend run check`
+- Desktop browser smoke:
+  - có icon edit trên từng style card.
+  - icon nằm bottom-right.
+  - popup mở/sửa/lưu được.
+  - save không reload page.
+  - localStorage có `videoStyleOverrides`.
+  - wireframe scene là khung dọc 9:16.
+
+### Status
+
+Completed.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/constants.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `rg -n "gradient|blob|orb|console\\.log\\(|debugger|alert\\(|confirm\\(|prompt\\(" frontend/styles/pages/template.css frontend/scripts/common/ui-components.js frontend/scripts/common/constants.js frontend/scripts/common/storage.js` không có hit.
+- `npm --prefix backend run check` pass.
+- Desktop Playwright/Chrome smoke:
+  - 3 style edit icons rendered.
+  - solid edit icon bottom-right check pass.
+  - scene template library uses a horizontal scroller instead of a two-column grid.
+  - first scene wireframe height `360px`, ratio `1.78`.
+  - style popup save stores `videoStyleOverrides.dark-tech.colorTheme.accent`.
+  - page marker survives save, proving no page reload.
+  - modal closes and customized status is visible.
+- Desktop screenshot: `/private/tmp/hvt-template-style-wireframe.png`.
+
 ## Phase 5 - Render Payload Mapping Cho Slot-Based Scenes
 
 ### Objective
