@@ -38,6 +38,14 @@ Tránh:
 - Spacing có rhythm, không cảm tính mỗi section.
 - Màu có vai trò: background, surface, text, border, accent, semantic states.
 
+## Icon Buttons
+
+- Action icon buttons trong app phải dùng icon dạng solid/filled, không dùng stroke-only outline icon.
+- Icon-only action button phải có `aria-label` hoặc `title` rõ ràng.
+- Icon-only action button nên có nền solid khi là hành động trực tiếp; hover chỉ được làm màu/icon/border đậm hơn hoặc nhấc nhẹ, không đổi sang background trang trí mới.
+- Active/pressed state nên có hiệu ứng lún nhẹ để người dùng thấy phản hồi.
+- Không dùng icon chỉ để trang trí nếu không giúp scan hoặc thao tác.
+
 ## Responsive
 
 - Mobile không chỉ là desktop thu nhỏ.

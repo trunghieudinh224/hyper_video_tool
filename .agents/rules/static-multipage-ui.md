@@ -146,6 +146,7 @@ Ví dụ:
 - Không dùng gradient trong app UI.
 - Không dùng hero marketing.
 - Không dùng emoji trang trí.
+- Action icon button phải dùng icon solid/filled, không dùng stroke-only outline icon. Icon-only button phải có `aria-label` hoặc `title`, ưu tiên nền solid cho hành động trực tiếp, hover chỉ đổi màu/border đậm hơn hoặc nhấc nhẹ.
 
 ## JavaScript
 

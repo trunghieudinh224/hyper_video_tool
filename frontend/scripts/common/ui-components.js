@@ -2213,9 +2213,8 @@ const AppUI = (() => {
                     <span class="video-style-meta">${escapeText((resolveVideoStyle(style.id, data) || style).motionStyle)} · ${escapeText((resolveVideoStyle(style.id, data) || style).backgroundStyle)}${(resolveVideoStyle(style.id, data) || style).isCustomized ? " · đã chỉnh" : ""}</span>
                   </button>
                   <button class="video-style-edit-btn" type="button" data-style-id="${style.id}" aria-label="Sửa style ${escapeText(style.name)}">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M12 20h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      <path d="m16.5 3.5 4 4L8 20H4v-4L16.5 3.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M19.07 4.93a1 1 0 0 0-1.41 0L16.24 6.36l2.83 2.83 1.41-1.41a1 1 0 0 0 0-1.42l-1.41-1.43zM14.83 7.78 4 18.61V21h2.39l10.83-10.83-2.39-2.39z"/>
                     </svg>
                   </button>
                 </div>
