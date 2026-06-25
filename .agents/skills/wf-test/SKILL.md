@@ -1,6 +1,6 @@
 ---
 name: wf-test
-description: Chạy và báo cáo test/verification cho Hyper Video Tool: JS syntax, static pages, browser checks, preview/render smoke và backend local.
+description: "Chạy và báo cáo test/verification cho Hyper Video Tool: JS syntax, static pages, browser checks, preview/render smoke và backend local."
 ---
 
 # Workflow: Test

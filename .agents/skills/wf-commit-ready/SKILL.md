@@ -1,6 +1,6 @@
 ---
 name: wf-commit-ready
-description: Chuẩn bị commit cho Hyper Video Tool: review diff, chạy verification phù hợp, kiểm secrets/runtime output, chia phase commit và soạn commit message tiếng Anh.
+description: "Chuẩn bị commit cho Hyper Video Tool: review diff, chạy verification phù hợp, kiểm secrets/runtime output, chia phase commit và soạn commit message tiếng Anh."
 ---
 
 # Workflow: Commit Ready

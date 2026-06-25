@@ -1,6 +1,6 @@
 ---
 name: wf-review
-description: Review toàn bộ thay đổi chưa commit trong Hyper Video Tool: frontend HTML/CSS/JS, backend local, templates render, rules/docs và dữ liệu mẫu.
+description: "Review toàn bộ thay đổi chưa commit trong Hyper Video Tool: frontend HTML/CSS/JS, backend local, templates render, rules/docs và dữ liệu mẫu."
 ---
 
 # Workflow: Review
