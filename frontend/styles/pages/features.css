@@ -891,18 +891,9 @@
   color: color-mix(in srgb, var(--color-primary) 65%, var(--color-text-subtle));
 }
 
-.btn-action.btn-view-feature {
-  color: color-mix(in srgb, var(--color-text-muted) 75%, var(--color-primary));
-}
-
-.btn-action.btn-view-feature:hover {
-  color: var(--color-text);
-  transform: translateY(1px);
-}
-
 .btn-action.btn-edit-feature:hover {
   color: var(--color-primary-hover);
-  transform: translateY(1px);
+  transform: translateY(-1px);
 }
 
 .btn-action.btn-delete-feature {
@@ -911,7 +902,7 @@
 
 .btn-action.btn-delete-feature:hover {
   color: var(--color-danger);
-  transform: translateY(1px);
+  transform: translateY(-1px);
 }
 
 .btn-action:active {

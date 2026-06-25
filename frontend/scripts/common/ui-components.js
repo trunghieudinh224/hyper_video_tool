@@ -8,6 +8,7 @@ const AppUI = (() => {
   // Internal view states
   let templateRatioFilter = "9:16";
   let selectedScriptSegmentId = null;
+  let modalTimeoutId = null;
 
   const normalizeText = (value) => String(value || "").replace(/\s+/g, " ").trim();
 
@@ -493,8 +494,15 @@ const AppUI = (() => {
 
   // Modal Helper
   const showModal = (title, bodyContent, buttons = []) => {
+    if (modalTimeoutId) {
+      clearTimeout(modalTimeoutId);
+      modalTimeoutId = null;
+    }
     DOM.modalContainer.classList.remove("is-style-editor");
     DOM.modalContainer.classList.remove("is-scene-template-editor");
+    DOM.modalContainer.classList.remove("is-active");
+    DOM.modalContainer.classList.remove("is-leaving");
+
     DOM.modalTitle.textContent = title;
     DOM.modalBody.innerHTML = typeof bodyContent === 'string' ? `<p>${bodyContent}</p>` : "";
     if (typeof bodyContent === 'object') {
@@ -517,12 +525,25 @@ const AppUI = (() => {
     });
 
     DOM.modalContainer.classList.remove("d-none");
+    // Trigger reflow to start transition
+    void DOM.modalContainer.offsetWidth;
+    DOM.modalContainer.classList.add("is-active");
   };
 
   const closeModal = () => {
-    DOM.modalContainer.classList.add("d-none");
-    DOM.modalContainer.classList.remove("is-style-editor");
-    DOM.modalContainer.classList.remove("is-scene-template-editor");
+    if (modalTimeoutId) {
+      clearTimeout(modalTimeoutId);
+    }
+    DOM.modalContainer.classList.remove("is-active");
+    DOM.modalContainer.classList.add("is-leaving");
+
+    modalTimeoutId = setTimeout(() => {
+      DOM.modalContainer.classList.add("d-none");
+      DOM.modalContainer.classList.remove("is-leaving");
+      DOM.modalContainer.classList.remove("is-style-editor");
+      DOM.modalContainer.classList.remove("is-scene-template-editor");
+      modalTimeoutId = null;
+    }, 300); // Wait for transition out (300ms)
   };
 
   // Switch App Tab
@@ -1229,20 +1250,11 @@ const AppUI = (() => {
                       <span class="script-switch-text">${item.useInVideo ? "Đang bật" : "Đang tắt"}</span>
                     </label>
                     <div class="script-actions">
-                      <button class="btn-action btn-view-feature" data-id="${item.id}" type="button" aria-label="Xem chi tiết đoạn" title="Xem chi tiết">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
-                        </svg>
-                      </button>
                       <button class="btn-action btn-edit-feature" data-id="${item.id}" type="button" aria-label="Sửa đoạn" title="Sửa đoạn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 5.63l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75 1.84-1.83c-.39-.39-.39-1.02 0-1.41z"/>
-                        </svg>
+                        ${renderIcon("pen")}
                       </button>
                       <button class="btn-action btn-delete-feature" data-id="${item.id}" type="button" aria-label="Xóa đoạn" title="Xóa đoạn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                        </svg>
+                        ${renderIcon("trash")}
                       </button>
                     </div>
                   </div>
@@ -1872,12 +1884,6 @@ const AppUI = (() => {
         });
       });
 
-      container.querySelectorAll(".btn-view-feature").forEach(btn => {
-        btn.addEventListener("click", () => {
-          selectedScriptSegmentId = btn.getAttribute("data-id");
-          renderFeaturesScreen(container, AppState.getProjectData());
-        });
-      });
 
       const sortableList = document.getElementById("script-sortable-list");
       if (sortableList && typeof Sortable !== "undefined") {
