@@ -23,6 +23,9 @@ Tài liệu này là entrypoint hướng dẫn AI agent khi làm việc trong pr
 Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/skills đã cài trong project nếu request khớp.
 
 ### Engineering
+- Review toàn bộ diff trước commit hoặc trước khi sửa tiếp: dùng `wf-review`.
+- Chạy test/verification theo scope thay đổi: dùng `wf-test`.
+- Chuẩn bị/chia phase commit hoặc commit/push: dùng `wf-commit-ready`.
 - Bug, test fail, runtime error, performance regression: dùng `wf-diagnose`.
 - Feature/fix cần test-first hoặc logic rủi ro cao: dùng `wf-tdd-slice`.
 - Review/refactor kiến trúc: dùng `wf-architecture-review`.
@@ -33,7 +36,7 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 - UI cần responsive: dùng `responsive-ui`.
 - Polish UI sau khi chạy được: dùng `wf-ui-taste-polish`.
 - Test web app hoặc browser smoke test: dùng `webapp-testing`.
-- Review thay đổi form/UI/HTML/CSS/JS: dùng `wf-web-review`. API/backend chỉ xét ở phase sau.
+- Review thay đổi form/UI/HTML/CSS/JS riêng lẻ: dùng `wf-web-review`. Review toàn bộ diff thì dùng `wf-review`.
 - Với Hyper Video Tool UI tĩnh trong `frontend/`: tuân thủ `.agents/rules/static-multipage-ui.md`; không gom nhiều màn hình vào một HTML dạng SPA.
 - Với cấu trúc project: tuân thủ `.agents/rules/project-structure.md`; không tạo lại `app/`, không đặt backend ở root.
 

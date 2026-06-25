@@ -12,6 +12,9 @@
 
 ## Engineering
 
+- `wf-review` — Rà soát toàn bộ diff chưa commit: frontend, backend, preview/render, templates, data và docs/rules.
+- `wf-test` — Chạy verification phù hợp theo scope thay đổi: JS syntax, static UI smoke, browser check, backend/render smoke.
+- `wf-commit-ready` — Kiểm diff, secrets/output rác, chạy verification phù hợp, chia phase commit và soạn Conventional Commit.
 - `wf-diagnose` — Debug lỗi runtime, test fail hoặc hành vi khó hiểu.
 - `wf-tdd-slice` — Làm feature/fix theo lát cắt nhỏ có kiểm thử.
 - `wf-architecture-review` — Rà soát kiến trúc trước refactor hoặc khi code bắt đầu khó sửa.
