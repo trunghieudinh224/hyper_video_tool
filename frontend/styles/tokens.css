@@ -25,13 +25,13 @@
   --color-danger: #c2410c;
 
   /* Font Sizes */
-  --font-xs: 0.75rem;     /* 12px */
-  --font-sm: 0.875rem;    /* 14px */
-  --font-base: 1rem;      /* 16px */
-  --font-lg: 1.125rem;    /* 18px */
-  --font-xl: 1.25rem;     /* 20px */
-  --font-2xl: 1.5rem;     /* 24px */
-  --font-3xl: 1.875rem;   /* 30px */
+  --font-xs: 0.8rem;   /* 12.5px */
+  --font-sm: 0.9375rem;   /* 15px */
+  --font-base: 1.0625rem; /* 17px */
+  --font-lg: 1.1875rem;   /* 19px */
+  --font-xl: 1.3125rem;   /* 21px */
+  --font-2xl: 1.5625rem;  /* 25px */
+  --font-3xl: 1.9375rem;  /* 31px */
 
   /* Spacing System */
   --space-1: 0.25rem;     /* 4px */
