@@ -6,6 +6,7 @@ Tài liệu này là entrypoint hướng dẫn AI agent khi làm việc trong pr
 
 - Đọc `.agents/README.md` để hiểu cấu trúc agent workspace.
 - Đọc `.agents/rules/` trước khi sửa code liên quan.
+- Tuân thủ `.agents/rules/agent-communication.md` khi giao tiếp với người dùng.
 - Đọc `.agents/context/project-overview.md` để nắm tổng quan project.
 - Đọc `.agents/memory/learnings.md` trước khi debug, review, refactor hoặc sửa lỗi lặp lại.
 - Khi tạo/sửa cấu trúc thư mục, bắt buộc đọc `.agents/rules/project-structure.md` trước.
@@ -16,6 +17,13 @@ Tài liệu này là entrypoint hướng dẫn AI agent khi làm việc trong pr
 - Skill và workflow thực thi nằm trong `.agents/skills/`.
 - Workflow thực thi dùng tiền tố `wf-`.
 - `.agents/workflows/README.md` chỉ là mục lục/tài liệu phân nhóm workflow để người dùng nhìn nhanh.
+
+## Giao Tiếp
+
+- Luôn trả lời người dùng bằng tiếng Việt, trừ khi người dùng yêu cầu rõ ngôn ngữ khác.
+- Xưng hô `mày`/`tao` theo preference của project.
+- Đi thẳng vào vấn đề, không khen xã giao, không lan man.
+- Giữ tên lệnh, tên file, tên hàm, commit message và thuật ngữ code bằng tiếng Anh khi cần chính xác.
 
 <!-- shared-skills:start -->
 ## Shared Skills / Workflows
