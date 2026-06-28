@@ -7,6 +7,8 @@ const AppStorage = (() => {
   const ACTIVE_RENDER_KEY = "hyper_video_active_render";
   const BACKEND_SAVE_DEBOUNCE_MS = 500;
   let backendSaveTimer = null;
+  let activeProjectMeta = null;
+  let projectListCache = [];
   const DEFAULT_SETTINGS = {
     theme: "light",
     renderFolder: "outputs/",
@@ -531,11 +533,15 @@ const AppStorage = (() => {
   const loadProjectData = async () => {
     if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
       try {
-        const project = await AppBackendApi.loadCurrentProject();
+        const activeProject = AppBackendApi.loadActiveProject
+          ? await AppBackendApi.loadActiveProject()
+          : { project: await AppBackendApi.loadCurrentProject(), meta: null };
+        const project = activeProject.project;
         if (project) {
+          activeProjectMeta = activeProject.meta || null;
           let backendAssets = null;
           try {
-            backendAssets = await AppBackendApi.loadAssets("current");
+            backendAssets = await AppBackendApi.loadAssets(getActiveProjectId());
           } catch (_assetError) {}
           const normalized = normalizeProjectData({
             ...project,
@@ -552,6 +558,21 @@ const AppStorage = (() => {
     return loadLocalData();
   };
 
+  const saveProjectData = async (data) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable()) {
+      return data;
+    }
+
+    if (AppBackendApi.saveProject && getActiveProjectId()) {
+      const saved = await AppBackendApi.saveProject(getActiveProjectId(), data);
+      activeProjectMeta = saved.meta || activeProjectMeta;
+      return saved.project || data;
+    }
+
+    const savedProject = await AppBackendApi.saveCurrentProject(data);
+    return savedProject || data;
+  };
+
   const scheduleBackendProjectSave = (data) => {
     if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable()) {
       return;
@@ -564,7 +585,7 @@ const AppStorage = (() => {
     const snapshot = JSON.parse(JSON.stringify(data));
     backendSaveTimer = window.setTimeout(async () => {
       try {
-        await AppBackendApi.saveCurrentProject(snapshot);
+        await saveProjectData(snapshot);
         window.dispatchEvent(new CustomEvent("backendProjectSaved"));
       } catch (error) {
         window.dispatchEvent(new CustomEvent("backendProjectSaveFailed", {
@@ -698,6 +719,55 @@ const AppStorage = (() => {
     return JSON.parse(JSON.stringify(STATIC_SAMPLE_DATA));
   };
 
+  const getActiveProjectMeta = () => activeProjectMeta ? { ...activeProjectMeta } : null;
+
+  const getActiveProjectId = () => activeProjectMeta && activeProjectMeta.id ? activeProjectMeta.id : "current";
+
+  const loadProjectList = async (options = {}) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.listProjects) {
+      projectListCache = [];
+      return projectListCache;
+    }
+
+    projectListCache = await AppBackendApi.listProjects(options);
+    return projectListCache.slice();
+  };
+
+  const getProjectListCache = () => projectListCache.slice();
+
+  const activateProject = async (projectId) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.setActiveProject) {
+      throw new Error("Backend API is not available.");
+    }
+
+    const result = await AppBackendApi.setActiveProject(projectId);
+    activeProjectMeta = result.meta || activeProjectMeta;
+    let backendAssets = null;
+    try {
+      backendAssets = await AppBackendApi.loadAssets(getActiveProjectId());
+    } catch (_assetError) {}
+    const normalized = normalizeProjectData({
+      ...(result.project || {}),
+      assets: Array.isArray(backendAssets) ? backendAssets : result.project && result.project.assets
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+  };
+
+  const createProjectData = async (project = loadSampleData(), options = {}) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.createProject) {
+      throw new Error("Backend API is not available.");
+    }
+
+    const result = await AppBackendApi.createProject(project, {
+      activate: options.activate !== false
+    });
+    activeProjectMeta = result.meta || activeProjectMeta;
+    const normalized = normalizeProjectData(result.project || project);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+  };
+
   const exportProjectJSON = (data) => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -716,8 +786,15 @@ const AppStorage = (() => {
 
   return {
     loadProjectData,
+    saveProjectData,
     loadLocalData,
     saveLocalData,
+    getActiveProjectMeta,
+    getActiveProjectId,
+    loadProjectList,
+    getProjectListCache,
+    activateProject,
+    createProjectData,
     loadSettingsData,
     loadSettings,
     saveSettings,

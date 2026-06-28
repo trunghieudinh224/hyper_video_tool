@@ -3977,7 +3977,7 @@ const AppUI = (() => {
                   let assets = data.assets.filter(a => a.id !== id);
                   if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
                     try {
-                      assets = await AppBackendApi.deleteAsset(id, "current");
+                      assets = await AppBackendApi.deleteAsset(id, AppStorage.getActiveProjectId ? AppStorage.getActiveProjectId() : "current");
                     } catch (error) {
                       showToast(`Không xóa được asset khỏi backend: ${error.message}`, "error");
                       return;
@@ -4088,7 +4088,7 @@ const AppUI = (() => {
                 if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
                   try {
                     for (const assetId of selectedAssetIds) {
-                      assets = await AppBackendApi.deleteAsset(assetId, "current");
+                      assets = await AppBackendApi.deleteAsset(assetId, AppStorage.getActiveProjectId ? AppStorage.getActiveProjectId() : "current");
                     }
                   } catch (error) {
                     showToast(`Không xóa được asset khỏi backend: ${error.message}`, "error");
@@ -4132,7 +4132,7 @@ const AppUI = (() => {
 
       try {
         const uploadedAssets = await AppBackendApi.uploadAssets(files, {
-          projectId: "current",
+          projectId: AppStorage.getActiveProjectId ? AppStorage.getActiveProjectId() : "current",
           type: currentFilter === "all" ? "" : currentFilter
         });
         const existingAssets = (AppState.getProjectData().assets || []).filter((asset) => {
@@ -4334,9 +4334,9 @@ const AppUI = (() => {
     const persistVideoStyleData = async (nextData) => {
       AppState.setProjectData(nextData);
       AppStorage.saveLocalData(nextData);
-      if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+      if (AppStorage.saveProjectData && typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
         try {
-          await AppBackendApi.saveCurrentProject(nextData);
+          await AppStorage.saveProjectData(nextData);
         } catch (_error) {
           // localStorage remains the fallback when the app is running without the backend.
         }

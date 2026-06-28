@@ -33,6 +33,64 @@ const AppBackendApi = (() => {
     return data.project || null;
   };
 
+  const loadActiveProject = async () => {
+    const data = await requestJson("/api/projects/active");
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
+  const listProjects = async (options = {}) => {
+    const includeArchived = options.includeArchived ? "?includeArchived=1" : "";
+    const data = await requestJson(`/api/projects${includeArchived}`);
+    return Array.isArray(data.projects) ? data.projects : [];
+  };
+
+  const createProject = async (project, options = {}) => {
+    const data = await requestJson("/api/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        project,
+        activate: options.activate !== false
+      })
+    });
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
+  const setActiveProject = async (projectId) => {
+    const data = await requestJson("/api/projects/active", {
+      method: "PUT",
+      body: JSON.stringify({ projectId })
+    });
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
+  const loadProject = async (projectId) => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}`);
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
+  const saveProject = async (projectId, project) => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}`, {
+      method: "PUT",
+      body: JSON.stringify({ project })
+    });
+    return {
+      project: data.project || project,
+      meta: data.meta || null
+    };
+  };
+
   const saveCurrentProject = async (project) => {
     const data = await requestJson("/api/projects/current", {
       method: "PUT",
@@ -93,6 +151,12 @@ const AppBackendApi = (() => {
   return {
     isBackendAvailable,
     loadCurrentProject,
+    loadActiveProject,
+    listProjects,
+    createProject,
+    setActiveProject,
+    loadProject,
+    saveProject,
     saveCurrentProject,
     loadSettings,
     saveSettings,
