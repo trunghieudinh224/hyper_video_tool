@@ -1,276 +1,141 @@
-# Roadmap Backend Database Và Lưu Trữ Bền Vững
+# Roadmap Database Và Multi-Project Persistence
 
-Roadmap này thay thế hướng lưu tạm bằng `localStorage`/JSON rời cho dữ liệu cốt lõi của Hyper Video Tool. Mục tiêu là đưa backend local thành source of truth, dùng SQLite cho dữ liệu có cấu trúc và file system cho binary asset/output.
+Roadmap này là kế hoạch chính thức cho phần lưu trữ bền vững của Hyper Video Tool. Mục tiêu không chỉ là lưu một project hiện tại, mà là quản lý nhiều video project độc lập: tạo mới, lưu nháp, mở lại từ lịch sử, chỉnh sửa, render lại và xem output cũ.
 
 ## Bối Cảnh Hiện Tại
 
-Backend hiện đã có Node HTTP server, static serve frontend, render preflight, voiceover preview, render job API và output MP4 thật. Tuy nhiên dữ liệu workflow chính vẫn chưa bền:
+Tool đã có backend local, SQLite, upload/output/render API ở mức cơ bản. Tuy nhiên persistence hiện vẫn chưa đúng mô hình sản phẩm:
 
-- Project/video brief đang lưu trong browser `localStorage` qua key `hyper_video_project`.
-- Settings đang lưu trong `localStorage` qua key `hyper_video_settings`.
-- Asset upload trên UI chưa upload thật; ảnh/video có thể bị nhét vào state dạng URL tạm hoặc data URL.
-- Output MP4 đã lưu file thật trong `outputs/`.
-- Output metadata backend lưu trong `outputs/manifest.json`.
-- Render job runtime state đang nằm trong memory process Node.
+- Backend đang dùng khái niệm `CURRENT_PROJECT_ID = "current"`.
+- Bảng `projects` hiện lưu một JSON blob chính trong `payload_json`.
+- Frontend vẫn dùng `localStorage` cho project data trong nhiều path.
+- Khi backend và browser storage lệch nhau, app có thể hiển thị lại sample cũ như `internal-analytics-dashboard`.
+- User cần làm nhiều project video khác nhau, không phải chỉ sửa một project duy nhất.
 
-Vấn đề chính: reload browser, đổi browser, clear storage, hoặc video asset lớn đều có thể làm mất dữ liệu hoặc nổ quota. Phần này không chấp nhận được cho workflow thật.
+Kết luận: phải chuyển sang thiết kế multi-project DB-first. `localStorage` chỉ được dùng cho UI preference hoặc fallback offline, không được là source of truth khi backend chạy.
 
-## Objective
+## Objective Tổng
 
-Chuyển dữ liệu làm video từ client-only storage sang backend database local. Sau roadmap này, người dùng chạy app qua backend URL, nhập brief, sửa kịch bản, chỉnh template, upload tài nguyên, reload hoặc restart backend vẫn giữ dữ liệu. `localStorage` chỉ còn là fallback cache hoặc dùng cho onboarding/UI preference rất nhỏ, không còn là nơi lưu chính của project.
+Sau khi roadmap này hoàn thành:
+
+- Người dùng có thể tạo nhiều video project.
+- Mỗi project có metadata riêng, project JSON riêng, asset riêng, output render riêng.
+- App mở lên sẽ load active project từ DB.
+- Người dùng có thể vào lịch sử project, chọn project cũ, load lại để chỉnh sửa hoặc render lại.
+- Clear browser localStorage không làm mất dữ liệu project.
+- Default/sample project chính là `Codegraph cho AI Agent`, không quay lại dashboard demo cũ.
 
 ## Nguyên Tắc Thiết Kế
 
-- Backend local là source of truth cho project/video/settings/assets.
-- SQLite là database mặc định vì local-first, dễ backup, không cần service ngoài.
-- File binary không lưu trong DB. Ảnh/video upload lưu trong `uploads/`, DB chỉ lưu metadata và path.
-- Output MP4 chưa cần DB hóa trong phase đầu; có thể tiếp tục dùng `outputs/` và `outputs/manifest.json`.
-- Không thêm auth, cloud sync, multi-user trong MVP.
-- Không phá render API đang chạy được.
-- Không xóa `localStorage` cũ tự động cho tới khi migration/fallback đã test xong.
+- SQLite là source of truth cho backend local.
+- File binary không lưu trong DB; DB chỉ lưu metadata/path.
+- Project content giai đoạn đầu vẫn lưu dạng JSON snapshot để giảm rủi ro phá UI/render.
+- Metadata cần tách ra column riêng để list/search nhanh mà không parse JSON.
+- Không xóa cứng project trong MVP; dùng archive.
+- Không destructive migration. Dữ liệu cũ `current` phải được migrate/copy an toàn.
+- Khi backend available, frontend không được lấy `localStorage` để override DB.
+- Khi backend unavailable, app có thể fallback offline nhưng UI phải báo rõ đang chạy local/offline.
 
 ## Source Of Truth Sau Khi Hoàn Thành
 
 | Dữ liệu | Source chính | Ghi chú |
 | --- | --- | --- |
-| Project/video brief | SQLite | Tên, slug, mục tiêu, message, tone, language, voiceover cơ bản |
-| Kịch bản/phân đoạn | SQLite hoặc JSON trong project row theo phase | Phase đầu dump JSON, phase sau tách table |
-| Template config | SQLite | `templateId`, `videoStyleId`, `templateConfig`, `videoStyleOverrides`, custom scene templates |
-| Settings | SQLite | Upload folder, render folder, validation settings, theme nếu cần |
-| Asset metadata | SQLite | Type, name, MIME, size, path, `useInVideo` |
-| Asset binary | `uploads/{projectId}/...` | Không lưu base64/data URL |
-| Output MP4 | `outputs/` | Giữ hiện trạng trong MVP |
-| Output metadata | `outputs/manifest.json` | Có thể DB hóa sau |
-| Render job active | Memory hiện tại | Có thể DB hóa sau nếu cần resume |
+| Project metadata | SQLite `projects` | List/history nhanh |
+| Full project content | SQLite `project_snapshots.payload_json` | JSON snapshot hiện tại |
+| Active project | SQLite `active_project` | Project đang mở |
+| App settings | SQLite `app_settings` | Theme, render/upload folder, validation |
+| Asset metadata | SQLite `assets` | Gắn theo `project_id` thật |
+| Asset binary | `uploads/{projectId}/...` | Không lưu base64 trong project |
+| Render output metadata | SQLite `render_outputs` | Gắn theo project |
+| Render output file | `outputs/{projectId}/...` hoặc current output path | Tối ưu sau |
+| UI preference nhỏ | `localStorage` | Chỉ theme/sidebar/onboarding nếu cần |
 
-## Phase 0 - Audit Và Contract Chốt Dữ Liệu
+## Data Model Đề Xuất
 
-### Objective
+### `projects`
 
-Chốt contract dữ liệu hiện tại trước khi thêm DB để không migrate mù. Phase này chỉ đọc code và viết tài liệu mapping; chưa sửa runtime.
-
-### In Scope
-
-- Liệt kê đầy đủ field hiện có trong `INITIAL_PROJECT_DATA`, sample data, UI save/load, render mapper.
-- Phân loại field nào thuộc project, video settings, segment, template, asset, app settings.
-- Xác định field nào phải giữ backward-compatible để render không vỡ.
-- Ghi mapping vào roadmap/task report.
-
-### Out Of Scope
-
-- Chưa thêm SQLite.
-- Chưa sửa frontend save/load.
-- Chưa thay asset upload.
-
-### Files Impact
-
-- `MODIFY .agents/tasks/backend-database-roadmap.md` - cập nhật audit result nếu cần.
-- `LIKELY MODIFY .agents/tasks/current-task.md` - ghi phase/test report khi triển khai thật.
-
-### Verification
-
-- `node --check` các file JS liên quan nếu có đọc/chạm helper.
-- Không có code runtime thay đổi ở phase này.
-
-## Phase 1 - SQLite Foundation Và Project Snapshot API
-
-### Objective
-
-Thêm SQLite local và API lưu/load project snapshot. Đây là thin slice đầu tiên để bỏ `localStorage` làm source chính mà chưa phải tách hết schema phức tạp.
-
-### In Scope
-
-- Thêm SQLite dependency.
-- Tạo DB file mặc định: `data/hyper-video-tool.sqlite`.
-- Tạo schema/version migration tối thiểu.
-- Tạo default project nếu DB trống.
-- API đọc project hiện tại.
-- API ghi project hiện tại.
-- Frontend boot load từ backend trước, fallback sample/localStorage chỉ khi API lỗi.
-- Autosave project gọi backend API.
-
-### Out Of Scope
-
-- Chưa upload asset binary thật.
-- Chưa tách segment/template ra table riêng.
-- Chưa DB hóa output.
-- Chưa xóa localStorage cũ.
-
-### Files Impact
-
-- `MODIFY backend/package.json` - thêm dependency và test/check script nếu cần.
-- `MODIFY backend/src/config.js` - thêm `databasePath`.
-- `NEW backend/src/db/database.js` - mở DB, init schema, helper query/transaction.
-- `NEW backend/src/db/schema.sql` - schema ban đầu.
-- `NEW backend/src/routes/projects.js` - API project snapshot.
-- `MODIFY backend/src/server.js` - mount route.
-- `NEW frontend/scripts/common/api.js` - helper gọi backend API.
-- `MODIFY frontend/scripts/common/storage.js` - ưu tiên backend load/save, fallback rõ ràng.
-
-> File impact phase này là 8 nếu làm cả frontend API mới. Nếu cần giữ đúng ngưỡng nhỏ, tách frontend API wiring thành Phase 1B.
-
-### Data Model MVP
+Lưu metadata nhẹ cho project history.
 
 ```sql
-app_meta(
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-)
-
-projects(
+CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT NOT NULL,
+  content_type TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  thumbnail_url TEXT,
+  last_rendered_output_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  archived_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_projects_updated_at
+  ON projects(updated_at);
+
+CREATE INDEX IF NOT EXISTS idx_projects_archived_at_updated_at
+  ON projects(archived_at, updated_at);
+```
+
+Trạng thái dự kiến:
+
+- `draft`: đang soạn.
+- `ready`: đủ dữ liệu để render.
+- `rendered`: đã có output.
+- `archived`: không hiện mặc định trong history chính.
+
+### `project_snapshots`
+
+Lưu full JSON project. Phase đầu chỉ cần một current snapshot mỗi project; phase sau có thể thêm version history.
+
+```sql
+CREATE TABLE IF NOT EXISTS project_snapshots (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  label TEXT,
   payload_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-)
+  is_current INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_snapshots_project_current
+  ON project_snapshots(project_id, is_current);
 ```
 
-`payload_json` lưu nguyên project object hiện tại trong phase đầu. Đây là lựa chọn cố ý để giảm rủi ro phá UI/render. Phase sau mới normalize dần.
+Quy tắc phase đầu:
 
-### API Contract
+- Save project sẽ update current snapshot in-place hoặc replace row current.
+- Không tạo version mới mỗi autosave để tránh DB phình.
+- Khi cần version history sau này, tạo snapshot mới theo mốc thủ công hoặc render checkpoint.
 
-```text
-GET /api/projects/current
--> { success, data: { project } }
+### `active_project`
 
-PUT /api/projects/current
-body: { project }
--> { success, data: { project } }
-```
-
-### Verification
-
-- `npm --prefix backend run check`
-- API smoke:
-  - start backend.
-  - `GET /api/projects/current` trả project.
-  - `PUT /api/projects/current` với project đã đổi tên.
-  - restart backend.
-  - `GET /api/projects/current` vẫn còn tên mới.
-- Browser smoke:
-  - mở qua backend URL.
-  - sửa brief hoặc segment.
-  - reload page.
-  - dữ liệu còn.
-  - restart backend.
-  - reload page dữ liệu vẫn còn.
-
-### Risk
-
-- 🟡 Thêm dependency SQLite có thể cần network/native build.
-- 🟡 Autosave quá thường xuyên có thể ghi DB nhiều; cần debounce hoặc chỉ save khi state change ổn định.
-- 🔴 Không được clear localStorage cũ tự động trong phase này.
-
-## Phase 2 - Settings API Và Backend-First Settings
-
-### Objective
-
-Chuyển settings từ `localStorage` sang SQLite để cấu hình không mất khi đổi browser hoặc clear storage.
-
-### In Scope
-
-- Lưu settings vào SQLite.
-- API đọc/ghi settings.
-- Frontend Settings page dùng API.
-- Validation settings đọc từ backend hoặc state đã load từ backend.
-
-### Out Of Scope
-
-- Không thêm UI settings mới ngoài field hiện có.
-- Không thay đổi ý nghĩa `renderFolder` nếu output vẫn dùng `outputs/`.
-
-### Files Impact
-
-- `MODIFY backend/src/db/schema.sql` - thêm table/settings migration.
-- `NEW backend/src/routes/settings.js` - API settings.
-- `MODIFY backend/src/server.js` - mount route.
-- `MODIFY frontend/scripts/common/storage.js` - `loadSettings/saveSettings` dùng backend path.
-- `MODIFY frontend/scripts/common/ui-components.js` - Settings page handle async nếu cần.
-
-### Data Model
+Lưu project đang mở.
 
 ```sql
-app_settings(
+CREATE TABLE IF NOT EXISTS active_project (
   key TEXT PRIMARY KEY,
-  value_json TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-)
+  project_id TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(project_id) REFERENCES projects(id)
+);
 ```
 
-Có thể dùng một row `key='default'` chứa settings object hiện tại:
-
-```json
-{
-  "theme": "light",
-  "renderFolder": "outputs/",
-  "uploadFolder": "uploads/",
-  "validation": {
-    "warnMaxActiveScriptSegments": false,
-    "maxActiveScriptSegments": 6
-  }
-}
-```
-
-### API Contract
+Row chính:
 
 ```text
-GET /api/settings
-PUT /api/settings
+key = 'default'
+project_id = '<project-id>'
 ```
 
-### Verification
+### `assets`
 
-- Đổi upload/render folder trong Settings.
-- Reload page còn settings.
-- Restart backend còn settings.
-- Validation warning settings vẫn ảnh hưởng panel validation.
-
-### Risk
-
-- 🟡 Frontend hiện nhiều chỗ gọi settings sync; cần đổi cẩn thận để không làm validation chạy trước khi settings load.
-
-## Phase 3 - Asset Upload Local Thật
-
-### Objective
-
-Tài nguyên upload phải được lưu bền trên disk và metadata trong DB. Không dùng `blob:` URL, không nhét base64/data URL vào project payload.
-
-### In Scope
-
-- API upload asset bằng multipart/form-data.
-- Lưu file vào `uploads/{projectId}/`.
-- Lưu metadata asset vào SQLite.
-- API list assets theo project.
-- API delete asset.
-- Serve asset qua URL backend an toàn.
-- Frontend Asset page upload qua API, render card từ metadata.
-- Project payload chỉ tham chiếu asset id/path, không chứa data URL.
-
-### Out Of Scope
-
-- Chưa generate thumbnail video phức tạp.
-- Chưa transcode/compress video.
-- Chưa deduplicate file.
-- Chưa cloud storage.
-
-### Files Impact
-
-- `MODIFY backend/src/config.js` - thêm `uploadsDir`, size limits.
-- `MODIFY backend/src/db/schema.sql` - thêm table assets.
-- `NEW backend/src/routes/assets.js` - upload/list/delete/serve metadata.
-- `NEW backend/src/storage/asset-store.js` - safe filename/path, write/delete file.
-- `MODIFY backend/src/server.js` - mount route và static asset serving có guard.
-- `MODIFY frontend/scripts/common/api.js` - asset API helper.
-- `MODIFY frontend/scripts/common/ui-components.js` - Asset page dùng API thay vì FileReader data URL.
-- `MODIFY frontend/scripts/common/render-preview.js` - đảm bảo render payload dùng URL backend asset.
-
-### Data Model
+Giữ bảng hiện có nhưng đổi usage: `project_id` phải là id project thật, không dùng `"current"`.
 
 ```sql
-assets(
+CREATE TABLE IF NOT EXISTS assets (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -283,309 +148,620 @@ assets(
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY(project_id) REFERENCES projects(id)
-)
+);
+
+CREATE INDEX IF NOT EXISTS idx_assets_project_id_created_at
+  ON assets(project_id, created_at);
 ```
 
-### API Contract
+### `render_outputs`
+
+Đưa output metadata vào DB để mở project cũ vẫn thấy video đã render.
+
+```sql
+CREATE TABLE IF NOT EXISTS render_outputs (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  public_url TEXT,
+  format_id TEXT,
+  width INTEGER,
+  height INTEGER,
+  duration_sec REAL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(project_id) REFERENCES projects(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_render_outputs_project_created_at
+  ON render_outputs(project_id, created_at);
+```
+
+### `app_settings`
+
+Giữ như hiện tại cho global settings.
+
+```sql
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+## API Contract Đề Xuất
+
+### Project history
 
 ```text
-GET /api/projects/:projectId/assets
-POST /api/projects/:projectId/assets
-DELETE /api/projects/:projectId/assets/:assetId
-GET /api/assets/:assetId/file
+GET /api/projects
 ```
 
-### Validation Rules
+Query tương lai:
 
-- Chỉ cho `image/*` và `video/*`.
-- Default max size đề xuất:
-  - image: 15 MB.
-  - video: 300 MB.
-- Safe filename, chặn path traversal.
-- Delete asset mặc định xóa metadata và file local nếu file nằm trong `uploads/`.
+- `?includeArchived=1`
+- `?q=codegraph`
+- `?limit=50`
 
-### Verification
+Response:
 
-- Upload PNG/JPG thành công, reload còn preview.
-- Upload MP4 thành công, reload còn video card.
-- Restart backend, asset vẫn còn.
-- File tồn tại trong `uploads/{projectId}/`.
-- Delete asset xóa khỏi DB và file.
-- File sai type bị reject.
-- File vượt size bị reject.
+```json
+{
+  "success": true,
+  "data": {
+    "projects": [
+      {
+        "id": "proj_...",
+        "name": "Codegraph cho AI Agent",
+        "slug": "codegraph-ai-agent-intro",
+        "contentType": "technical-module",
+        "status": "draft",
+        "thumbnailUrl": null,
+        "lastRenderedOutputId": null,
+        "createdAt": "...",
+        "updatedAt": "...",
+        "archivedAt": null
+      }
+    ]
+  }
+}
+```
 
-### Risk
+### Create project
 
-- 🟡 Multipart parsing cần dependency hoặc parser tự viết. Nên dùng dependency nhỏ, không tự parse multipart thủ công nếu không cần.
-- 🟡 Video lớn cần tránh đọc toàn bộ vào memory nếu parser hỗ trợ stream.
-- 🔴 Không được xóa file ngoài `uploads/`.
+```text
+POST /api/projects
+```
 
-## Phase 4 - Normalize Video Detail, Segments Và Template Tables
+Body tạo từ full JSON:
+
+```json
+{
+  "project": { "...": "full project json" },
+  "activate": true
+}
+```
+
+Body tạo từ default:
+
+```json
+{
+  "template": "default",
+  "activate": true
+}
+```
+
+Backend behavior:
+
+- Tạo `projects` metadata.
+- Tạo `project_snapshots` current.
+- Nếu `activate = true`, set active project.
+
+### Load project
+
+```text
+GET /api/projects/:id
+```
+
+Trả metadata + current snapshot:
+
+```json
+{
+  "success": true,
+  "data": {
+    "project": { "...": "full project json" },
+    "meta": { "...": "project metadata" }
+  }
+}
+```
+
+### Save project
+
+```text
+PUT /api/projects/:id
+```
+
+Body:
+
+```json
+{
+  "project": { "...": "full project json" }
+}
+```
+
+Backend behavior:
+
+- Validate body có `project` object.
+- Update `projects.name`, `slug`, `content_type`, `updated_at`.
+- Update current snapshot `payload_json`.
+- Không archive/xóa dữ liệu.
+
+### Active project
+
+```text
+GET /api/projects/active
+PUT /api/projects/active
+```
+
+PUT body:
+
+```json
+{
+  "projectId": "proj_..."
+}
+```
+
+### Archive project
+
+```text
+POST /api/projects/:id/archive
+```
+
+Behavior:
+
+- Set `archived_at`.
+- Nếu archived project đang active, backend nên chọn project active khác hoặc trả warning để frontend chọn.
+
+### Duplicate project
+
+```text
+POST /api/projects/:id/duplicate
+```
+
+Behavior:
+
+- Copy current snapshot.
+- Tạo project metadata mới.
+- Reset output refs.
+- Tên mặc định: `<old name> Copy`.
+
+### Project outputs
+
+```text
+GET /api/projects/:id/outputs
+```
+
+Trả output đã render của project đó.
+
+## Frontend Flow Đề Xuất
+
+### App boot
+
+1. Detect backend available.
+2. Nếu backend available:
+   - `GET /api/projects/active`.
+   - Nếu có active project, load full project.
+   - Nếu chưa có project nào, `POST /api/projects { template: "default", activate: true }`.
+   - Set `AppState.projectData` từ DB.
+   - Không đọc `localStorage.hyper_video_project` để override.
+3. Nếu backend unavailable:
+   - Dùng `localStorage` hoặc static sample.
+   - Hiển thị trạng thái offline/localStorage.
+
+### Autosave
+
+Khi `projectDataChanged`:
+
+- Backend available:
+  - debounce `PUT /api/projects/:activeId`;
+  - status: `Đang lưu DB`, `Đã lưu DB`, hoặc `Lưu DB lỗi`.
+- Backend unavailable:
+  - save `localStorage`;
+  - status: `Đang lưu local`.
+
+### Load project từ history
+
+1. User chọn project trong history.
+2. `PUT /api/projects/active`.
+3. `GET /api/projects/:id`.
+4. `AppState.setProjectData(project)`.
+5. Re-render current page.
+
+### New project
+
+Phase đầu nên có:
+
+- `New from default`: tạo project Codegraph/default mới.
+- `Duplicate current`: copy project hiện tại.
+
+Không cần blank project nếu flow nhập liệu chưa tối ưu.
+
+### Project history UI
+
+Vị trí đề xuất phase đầu:
+
+- Thêm section trong `overview.html` / `renderOverviewScreen`.
+- Table/card gồm:
+  - tên project;
+  - slug/content type;
+  - updated time;
+  - status;
+  - last output nếu có;
+  - buttons: `Load`, `Duplicate`, `Archive`.
+
+Sau này nếu nhiều project hơn thì tách page `projects.html`.
+
+## Migration Strategy
+
+Không drop dữ liệu cũ.
+
+### Migration từ `projects.id = "current"`
+
+1. Init schema mới.
+2. Tìm row `projects.id = 'current'`.
+3. Nếu chưa có project thật nào:
+   - tạo id mới `proj_<timestamp>` hoặc random id;
+   - copy payload JSON sang `project_snapshots`;
+   - insert metadata vào `projects` với id mới;
+   - set `active_project.default = new id`.
+4. Giữ row `current` trong phase đầu để rollback dễ.
+5. Sau vài phase ổn định mới tính cleanup.
+
+### Migration default sample
+
+- `data/sample-project.json` là Codegraph default.
+- Nếu DB trống, seed bằng file này.
+- Nếu localStorage còn legacy sample (`internal-analytics-dashboard`, `codegraph-migration-agent`), frontend không được dùng nó khi backend available.
+
+## Implementation Slices
+
+Plan tổng này lớn, không implement một lần. Chia thành 4 slice để mỗi slice có thể test độc lập.
+
+## Slice 0 - Ổn Định Default Codegraph Và Contract Hiện Tại
 
 ### Objective
 
-Tách dần dữ liệu quan trọng ra khỏi `payload_json` để backend query/update được từng phần: video brief, phân đoạn kịch bản, template config, custom scene template.
+Đảm bảo default/sample hiện tại là Codegraph và backend check pass trước khi bắt đầu schema multi-project.
 
 ### In Scope
 
-- Tạo tables cho video detail/settings.
-- Tạo tables cho script segments.
-- Tạo tables cho template config/custom scene templates.
-- API update từng phần để UI không phải PUT toàn bộ project payload mỗi lần.
-- Giữ payload snapshot làm backup/cache trong giai đoạn chuyển tiếp.
+- `data/sample-project.json` là Codegraph general intro.
+- Static sample trong `storage.js` là Codegraph.
+- Backend payload converter build được dynamic project.
+- Tests liên quan default sample pass.
 
 ### Out Of Scope
 
-- Không làm multi-project dashboard nâng cao nếu chưa cần.
-- Không đổi render template logic lớn.
-- Không DB hóa output.
+- Chưa thêm multi-project API.
+- Chưa thay frontend history UI.
+
+### Files Impact
+
+- `MODIFY data/sample-project.json`
+- `NEW data/codegraph-intro-project.json`
+- `MODIFY frontend/scripts/common/storage.js`
+- `MODIFY backend/src/render/project-to-render-payload.js`
+- `MODIFY backend/scripts/test-render-payload.js`
+- `MODIFY backend/scripts/test-audio-voiceover.js`
+
+### Verification
+
+- `npm --prefix backend run check`
+- Render payload từ `data/sample-project.json` phải là `dynamic-story-vertical`, 7 scenes.
+
+## Slice 1 - Backend Multi-Project DB Và API
+
+### Objective
+
+Thêm schema/API multi-project, nhưng chưa đổi frontend flow lớn. Backend phải tự quản lý nhiều project, active project, current snapshot và archive.
+
+### In Scope
+
+- Add schema:
+  - `project_snapshots`
+  - `active_project`
+  - `render_outputs` nếu scope vẫn <= 7 file; nếu không, đẩy output sang Slice 4.
+- Refactor database helper:
+  - create project
+  - list projects
+  - get project
+  - save project
+  - set/get active project
+  - archive project
+  - duplicate project
+  - migrate legacy `current`
+- Add/extend `/api/projects` routes.
+- Add backend tests.
+
+### Out Of Scope
+
+- Chưa làm UI history.
+- Chưa đổi asset upload theo project thật nếu đang vượt scope; nhưng DB helper nên chừa project id.
+- Chưa version history UI.
 
 ### Files Impact
 
 - `MODIFY backend/src/db/schema.sql`
-- `NEW backend/src/routes/video.js`
-- `NEW backend/src/routes/segments.js`
-- `NEW backend/src/routes/templates.js`
-- `MODIFY backend/src/render/project-to-render-payload.js` nếu cần đọc structured shape.
-- `MODIFY frontend/scripts/common/api.js`
-- `MODIFY frontend/scripts/common/ui-components.js`
-- `MODIFY frontend/scripts/common/render-preview.js`
-
-### Data Model Đề Xuất
-
-```sql
-video_details(
-  project_id TEXT PRIMARY KEY,
-  content_type TEXT,
-  content_language TEXT,
-  content_tone TEXT,
-  tagline TEXT,
-  short_summary TEXT,
-  video_goal TEXT,
-  main_message TEXT,
-  problem_context TEXT,
-  solution_what TEXT,
-  target_users TEXT,
-  use_case TEXT,
-  key_highlight TEXT,
-  result_impact TEXT,
-  ending_note TEXT,
-  voiceover_json TEXT,
-  updated_at TEXT NOT NULL
-)
-
-script_segments(
-  id TEXT PRIMARY KEY,
-  project_id TEXT NOT NULL,
-  sort_order INTEGER NOT NULL,
-  type TEXT NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT,
-  benefit TEXT,
-  voiceover_script TEXT,
-  duration_sec INTEGER NOT NULL,
-  use_in_video INTEGER NOT NULL DEFAULT 1,
-  scene_template_id TEXT,
-  slots_json TEXT,
-  background_json TEXT,
-  scene_template_override_json TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-)
-
-project_template_settings(
-  project_id TEXT PRIMARY KEY,
-  template_id TEXT NOT NULL,
-  video_style_id TEXT,
-  default_scene_template_id TEXT,
-  template_config_json TEXT,
-  video_style_overrides_json TEXT,
-  scene_item_views_json TEXT,
-  updated_at TEXT NOT NULL
-)
-
-scene_templates(
-  id TEXT PRIMARY KEY,
-  project_id TEXT,
-  name TEXT NOT NULL,
-  description TEXT,
-  aspect_ratio TEXT NOT NULL,
-  category TEXT,
-  recommended_duration_sec INTEGER,
-  slots_json TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-)
-```
-
-### API Contract Đề Xuất
-
-```text
-GET /api/projects/:projectId/video
-PUT /api/projects/:projectId/video
-
-GET /api/projects/:projectId/segments
-POST /api/projects/:projectId/segments
-PUT /api/projects/:projectId/segments/:segmentId
-DELETE /api/projects/:projectId/segments/:segmentId
-PUT /api/projects/:projectId/segments/order
-
-GET /api/projects/:projectId/template-settings
-PUT /api/projects/:projectId/template-settings
-
-GET /api/projects/:projectId/scene-templates
-POST /api/projects/:projectId/scene-templates
-PUT /api/projects/:projectId/scene-templates/:templateId
-DELETE /api/projects/:projectId/scene-templates/:templateId
-```
-
-### Verification
-
-- Thêm segment, reload vẫn còn.
-- Sửa segment slots, reload vẫn còn.
-- Reorder segments, reload vẫn đúng thứ tự.
-- Đổi template/style, reload vẫn đúng.
-- Tạo custom scene template, reload vẫn còn.
-- Render preview đọc đúng structured data.
-- Render MP4 vẫn nhận payload đúng.
-
-### Risk
-
-- 🟡 Đây là phase rủi ro nhất vì chạm cả UI state và render mapping.
-- 🟡 Cần migration từ `payload_json` sang tables.
-- 🔴 Không được xóa `payload_json` backup cho tới khi structured read/write pass qua nhiều smoke test.
-
-## Phase 5 - Migration Từ localStorage Và JSON Cũ
-
-### Objective
-
-Cho người dùng đang có dữ liệu trong browser hoặc file sample cũ chuyển sang DB mà không mất việc.
-
-### In Scope
-
-- Detect `localStorage.hyper_video_project` nếu DB trống.
-- Hỏi user hoặc hiển thị UI import một lần, không auto overwrite DB.
-- API import project snapshot.
-- Backup DB hoặc export JSON trước khi overwrite.
-- Tài liệu migration trong README.
-
-### Out Of Scope
-
-- Không tự merge nhiều project phức tạp.
-- Không import output MP4 history nếu chưa cần.
-
-### Files Impact
-
-- `MODIFY frontend/scripts/common/page-bootstrap.js`
-- `MODIFY frontend/scripts/common/storage.js`
-- `MODIFY frontend/scripts/common/ui-components.js`
+- `MODIFY backend/src/db/database.js`
 - `MODIFY backend/src/routes/projects.js`
-- `MODIFY backend/README.md`
+- `MODIFY backend/src/server.js`
+- `NEW backend/scripts/test-projects.js`
+- `MODIFY backend/package.json`
+
+### Checklist
+
+- [ ] Thêm schema mới không phá bảng cũ.
+- [ ] Viết helper `createProject(project, options)`.
+- [ ] Viết helper `listProjects({ includeArchived })`.
+- [ ] Viết helper `getProject(projectId)`.
+- [ ] Viết helper `saveProject(projectId, project)`.
+- [ ] Viết helper `getActiveProject()` / `setActiveProject(projectId)`.
+- [ ] Viết helper `archiveProject(projectId)`.
+- [ ] Viết helper `duplicateProject(projectId)`.
+- [ ] Viết migration legacy `current` sang project thật.
+- [ ] Thêm API routes.
+- [ ] Thêm tests backend.
 
 ### Verification
 
-- DB trống + localStorage có project: UI báo có dữ liệu cũ để import.
-- Import xong reload còn dữ liệu từ DB.
-- DB đã có project: localStorage cũ không overwrite DB.
-- Export/backup hoạt động trước overwrite.
+- `npm --prefix backend run check`
+- Test riêng:
+  - create/list/get/save;
+  - active project;
+  - archive;
+  - duplicate;
+  - legacy current migration.
 
 ### Risk
 
-- 🔴 Overwrite dữ liệu DB là destructive. Phải có confirm rõ trong UI.
+- 🟡 Schema migration phải non-destructive.
+- 🟡 Route ordering cần cẩn thận để `/api/projects/active` không bị match nhầm `/:id`.
+- 🔴 Không drop row `current`, không delete DB.
 
-## Phase 6 - Hardening, Backup Và Maintenance
+## Slice 2 - Frontend DB-First Storage
 
 ### Objective
 
-Làm database local đủ chắc cho workflow hằng ngày: backup được, diagnose được, lỗi dễ hiểu.
+Frontend dùng DB làm source of truth khi backend chạy. `localStorage` không override DB.
 
 ### In Scope
 
-- API health trả DB status.
-- Script backup DB sang timestamp file.
-- Script inspect DB summary.
-- DB migration version rõ.
-- Error response chuẩn cho DB locked, invalid JSON, disk full, path permission.
-- README cập nhật cách chạy, backup, reset, migration.
+- Update `AppBackendApi` cho project list/active/load/save.
+- Update `AppStorage.loadProjectData()` DB-first.
+- Update autosave theo active project id.
+- Update sample/import/reset actions để save DB nếu backend available.
+- Keep offline fallback.
 
 ### Out Of Scope
 
-- Không packaging app desktop.
-- Không sync cloud.
+- Chưa làm UI project history đầy đủ.
+- Chưa làm duplicate/archive button nếu history UI chưa có.
 
 ### Files Impact
 
-- `MODIFY backend/src/routes/render-preflight.js` hoặc `health` response.
-- `NEW backend/scripts/backup-database.js`
-- `NEW backend/scripts/inspect-database.js`
-- `MODIFY backend/README.md`
-- `MODIFY .gitignore`
+- `MODIFY frontend/scripts/common/api.js`
+- `MODIFY frontend/scripts/common/storage.js`
+- `MODIFY frontend/scripts/common/page-bootstrap.js`
+- `MODIFY frontend/scripts/common/ui-components.js`
+
+### Checklist
+
+- [ ] `loadProjectData()` gọi active project từ DB.
+- [ ] Nếu DB trống, tạo default Codegraph project qua backend.
+- [ ] Autosave DB theo active project id.
+- [ ] Save status phân biệt DB/local.
+- [ ] Import JSON save vào DB.
+- [ ] Tải sample save vào DB.
+- [ ] Clear/reset không xóa DB ngoài ý muốn; nếu reset thì update active project payload.
 
 ### Verification
 
-- Backup script tạo file DB copy.
-- Inspect script in được project count, asset count, DB path.
-- Health check báo DB ok.
-- App vẫn chạy khi `outputs/` trống.
+- `node --check` các JS liên quan.
+- `npm --prefix backend run check`
+- Browser smoke:
+  - clear localStorage;
+  - reload app;
+  - vẫn load active project từ DB;
+  - sửa field, reload, field còn.
 
-## Thứ Tự Ưu Tiên Đề Xuất
+### Risk
 
-1. Phase 1A: SQLite foundation + backend project snapshot API.
-2. Phase 1B: Frontend load/save project qua API.
-3. Phase 2: Settings API.
-4. Phase 3: Asset upload thật.
-5. Phase 4A: Segment table.
-6. Phase 4B: Template/style table.
-7. Phase 5: Migration UI.
-8. Phase 6: Backup/hardening.
+- 🟡 Frontend hiện nhiều flow sync state; phải tránh double save hoặc save stale data.
+- 🟢 Offline fallback giữ lại nên mở static không chết.
 
-Không nên làm Phase 3 trước Phase 1 vì asset metadata cần project id/source of truth. Không nên làm structured segment/template tables trước snapshot API vì sẽ làm phase đầu quá rộng và khó rollback.
+## Slice 3 - Project History UI
+
+### Objective
+
+Cho user thấy danh sách project đã làm và load lại project cũ.
+
+### In Scope
+
+- Add section `Project history` trong Overview.
+- List active/non-archived projects.
+- Buttons:
+  - `Load`
+  - `Duplicate`
+  - `Archive`
+  - `New from default`
+- Refresh list sau action.
+
+### Out Of Scope
+
+- Chưa có search/filter phức tạp.
+- Chưa có page riêng `projects.html`.
+- Chưa có version history trong từng project.
+
+### Files Impact
+
+- `MODIFY frontend/scripts/common/ui-components.js`
+- `MODIFY frontend/styles/pages/overview.css` hoặc `frontend/styles/components.css`
+- `MAYBE MODIFY frontend/pages/overview.html`
+- `MAYBE MODIFY frontend/scripts/pages/overview.js`
+
+### Checklist
+
+- [ ] Render project list từ `GET /api/projects`.
+- [ ] Button Load set active + load project.
+- [ ] Button Duplicate tạo project mới + active/load nếu user chọn.
+- [ ] Button Archive dùng modal confirm.
+- [ ] Button New from default tạo project mới.
+- [ ] Empty state nếu chưa có project.
+- [ ] Error state nếu backend unavailable.
+
+### Verification
+
+- Browser smoke 1440x900:
+  - tạo project mới;
+  - load project cũ;
+  - duplicate;
+  - archive;
+  - reload vẫn active đúng.
+- Không horizontal scroll.
+- Console không lỗi.
+
+### Risk
+
+- 🟡 UX action archive/load cần confirm rõ để tránh user tưởng mất dữ liệu.
+
+## Slice 4 - Outputs Theo Project
+
+### Objective
+
+Output render gắn với project để mở project cũ có thể xem output cũ và render lại.
+
+### In Scope
+
+- Add DB metadata `render_outputs` nếu chưa làm ở Slice 1.
+- Khi render xong, ghi output metadata với `project_id`.
+- API list outputs by project.
+- Outputs page filter theo active project.
+
+### Out Of Scope
+
+- Chưa move tất cả file output cũ.
+- Chưa thumbnail extraction nếu chưa có.
+
+### Files Impact
+
+- `MODIFY backend/src/db/schema.sql`
+- `MODIFY backend/src/db/database.js`
+- `MODIFY backend/src/render/output-manifest.js` hoặc route output liên quan
+- `MODIFY backend/src/routes/outputs.js`
+- `MODIFY frontend/scripts/common/ui-components.js`
+
+### Verification
+
+- Render một project, output gắn đúng project.
+- Load project khác, outputs page không lẫn output project cũ.
+- Load lại project đầu, output cũ hiện lại.
+
+## Slice 5 - Version History / Snapshots Nâng Cao
+
+### Objective
+
+Cho phép lưu các mốc snapshot thủ công hoặc theo render checkpoint.
+
+### In Scope
+
+- Create snapshot labels.
+- List snapshots of project.
+- Restore snapshot.
+
+### Out Of Scope
+
+- Realtime autosave history mỗi keystroke.
+- Branching/collaboration.
+
+### Risk
+
+- 🟡 Restore snapshot có thể overwrite current payload; cần confirm modal.
+
+## Decision: JSON Snapshot Trước, Normalize Sau
+
+Không nên normalize ngay toàn bộ `features`, `slots`, `sceneTemplateOverride`, `videoStyleOverrides` thành bảng riêng trong phase đầu.
+
+Lý do:
+
+- UI/render hiện đang dùng object JSON đầy đủ.
+- Slot/template data có cấu trúc linh hoạt, dễ thay đổi.
+- Normalize sớm sẽ làm migration phức tạp nhưng chưa tạo giá trị rõ.
+
+Điểm cần normalize trước:
+
+- `projects` metadata để list/history.
+- `assets` metadata vì có file binary.
+- `render_outputs` metadata vì cần xem output theo project.
+- `app_settings` global.
+
+## Test Strategy Tổng
+
+Backend automated:
+
+- `npm --prefix backend run check`
+- `backend/scripts/test-projects.js`
+- `backend/scripts/test-render-payload.js`
+- `backend/scripts/test-audio-voiceover.js`
+
+Frontend static:
+
+- `node --check frontend/scripts/common/api.js`
+- `node --check frontend/scripts/common/storage.js`
+- `node --check frontend/scripts/common/page-bootstrap.js`
+- `node --check frontend/scripts/common/ui-components.js`
+
+Browser smoke:
+
+- Backend running.
+- Clear localStorage.
+- Load app.
+- Confirm active project loads from DB.
+- Create project A.
+- Create project B.
+- Load project A again.
+- Edit A, reload, A persists.
+- Duplicate A, verify new project id.
+- Archive B, verify hidden from default list.
+
+Render smoke later:
+
+- Build render payload from loaded project.
+- Render MP4.
+- Confirm output metadata belongs to active project.
+
+## Rollback Strategy
+
+- Không drop old `projects.current` row in early slices.
+- Keep `data/sample-project.json` as seed.
+- If frontend DB-first breaks, backend API data still inspectable via SQLite/API.
+- All schema additions are additive.
+- Archive is reversible by clearing `archived_at` if needed.
+
+## Open Questions
+
+- Project id format: `proj_<timestamp>_<random>` hay UUID? Đề xuất dùng `crypto.randomUUID()` nếu Node version hỗ trợ.
+- Project history UI nằm tạm ở Overview hay tạo page `projects.html`? Đề xuất Overview trong Slice 3.
+- Output file path có nên chuyển sang `outputs/{projectId}/` ngay Slice 4 hay chỉ metadata gắn project trước? Đề xuất metadata trước.
+- Có cần `project_templates` table không? Chưa cần; default sample file đủ cho phase này.
 
 ## Approval Gates
 
-Mỗi phase phải dừng ở gate riêng:
+- Trước Slice 1: confirm schema/API.
+- Trước Slice 2: confirm frontend DB-first không dùng localStorage project khi backend available.
+- Trước Slice 3: confirm vị trí UI Project History.
+- Trước Slice 4: confirm output storage strategy.
 
-- Trước Phase 1: xác nhận chọn SQLite dependency và chấp nhận thêm DB file local.
-- Trước Phase 3: xác nhận giới hạn dung lượng upload image/video.
-- Trước Phase 4: xác nhận migration strategy từ `payload_json` sang structured tables.
-- Trước Phase 5: xác nhận cách xử lý dữ liệu `localStorage` cũ.
+## Current Recommended Next Step
 
-## Test Report Template
-
-Mỗi phase khi triển khai phải điền:
-
-```markdown
-### Test Report
-
-Status: passed | failed | partial
-
-- Total checks/tests:
-- Passed:
-- Failed:
-
-Commands run:
-- `npm --prefix backend run check`
-- `<api smoke command>`
-
-Manual/UI checks:
-- [ ] Load app through backend URL.
-- [ ] Save data.
-- [ ] Reload page.
-- [ ] Restart backend.
-- [ ] Confirm data remains.
-
-Artifacts:
-- Path to screenshot/log, or `None`.
-
-Remaining risks:
-- Risk description, or `None`.
-```
-
-## Future Scope
-
-- Render job history trong DB để resume sau restart.
-- Output metadata trong DB thay cho `outputs/manifest.json`.
-- Asset thumbnail generation bằng FFmpeg.
-- Project switcher nhiều project.
-- Export/import nguyên project gồm DB record + uploads folder.
-- Vacuum/compact DB command.
+Trước khi code tiếp, nên commit hoặc ổn định Slice 0 nếu chưa commit. Sau đó triển khai Slice 1: backend multi-project DB + API + tests.
