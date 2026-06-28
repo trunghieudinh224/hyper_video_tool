@@ -83,6 +83,35 @@ const context = vm.createContext({
         }
       });
     }
+    if (url === "/api/projects/proj_1/duplicate" && options.method === "POST") {
+      return jsonResponse({
+        success: true,
+        data: {
+          meta: { id: "proj_2", name: "Codegraph Copy", slug: "codegraph-copy" },
+          project: {
+            projectName: "Codegraph Copy",
+            projectSlug: "codegraph-copy",
+            contentType: "technical-module",
+            features: [],
+            assets: []
+          }
+        }
+      });
+    }
+    if (url === "/api/projects/proj_2/archive" && options.method === "POST") {
+      return jsonResponse({
+        success: true,
+        data: {
+          meta: { id: "proj_2", name: "Codegraph Copy", slug: "codegraph-copy", status: "archived" },
+          project: {
+            projectName: "Codegraph Copy",
+            projectSlug: "codegraph-copy",
+            features: [],
+            assets: []
+          }
+        }
+      });
+    }
     throw new Error(`Unexpected request: ${options.method || "GET"} ${url}`);
   }
 });
@@ -135,6 +164,16 @@ async function run() {
   assert.equal(outputs.length, 1);
   assert.equal(outputs[0].projectId, "proj_1");
   assert.equal(requests.at(-1).url, "/api/projects/proj_1/outputs");
+
+  const duplicated = await context.__AppStorage.duplicateProjectData("proj_1");
+  assert.equal(duplicated.projectName, "Codegraph Copy");
+  assert.equal(context.__AppStorage.getActiveProjectId(), "proj_2");
+  assert.equal(requests.at(-1).url, "/api/projects/proj_1/duplicate");
+
+  const archivedActive = await context.__AppStorage.archiveProjectData("proj_2");
+  assert.equal(archivedActive.projectName, "Codegraph");
+  assert.equal(requests.at(-2).url, "/api/projects/proj_2/archive");
+  assert.equal(requests.at(-1).url, "/api/projects/active");
 }
 
 run()

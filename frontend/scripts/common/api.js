@@ -91,6 +91,26 @@ const AppBackendApi = (() => {
     };
   };
 
+  const duplicateProject = async (projectId) => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/duplicate`, {
+      method: "POST"
+    });
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
+  const archiveProject = async (projectId) => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/archive`, {
+      method: "POST"
+    });
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
   const saveCurrentProject = async (project) => {
     const data = await requestJson("/api/projects/current", {
       method: "PUT",
@@ -162,6 +182,8 @@ const AppBackendApi = (() => {
     setActiveProject,
     loadProject,
     saveProject,
+    duplicateProject,
+    archiveProject,
     saveCurrentProject,
     loadSettings,
     saveSettings,

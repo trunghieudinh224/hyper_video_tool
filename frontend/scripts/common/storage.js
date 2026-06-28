@@ -768,6 +768,34 @@ const AppStorage = (() => {
     return normalized;
   };
 
+  const duplicateProjectData = async (projectId) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.duplicateProject) {
+      throw new Error("Backend API is not available.");
+    }
+
+    const result = await AppBackendApi.duplicateProject(projectId);
+    activeProjectMeta = result.meta || activeProjectMeta;
+    const normalized = normalizeProjectData(result.project || {});
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+  };
+
+  const archiveProjectData = async (projectId) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.archiveProject) {
+      throw new Error("Backend API is not available.");
+    }
+
+    await AppBackendApi.archiveProject(projectId);
+    if (getActiveProjectId() === projectId) {
+      const activeProject = await AppBackendApi.loadActiveProject();
+      activeProjectMeta = activeProject.meta || null;
+      const normalized = normalizeProjectData(activeProject.project || loadSampleData());
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      return normalized;
+    }
+    return null;
+  };
+
   const exportProjectJSON = (data) => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -795,6 +823,8 @@ const AppStorage = (() => {
     getProjectListCache,
     activateProject,
     createProjectData,
+    duplicateProjectData,
+    archiveProjectData,
     loadSettingsData,
     loadSettings,
     saveSettings,

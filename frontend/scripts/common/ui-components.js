@@ -7188,9 +7188,13 @@ const AppUI = (() => {
                 ${project.contentType ? `<span>${escapeHtml(project.contentType)}</span>` : ""}
                 ${project.updatedAt ? `<span>${escapeHtml(String(project.updatedAt).slice(0, 19).replace("T", " "))}</span>` : ""}
               </div>
-              <button class="btn btn-secondary btn-sm" type="button" data-project-load="${escapeHtml(project.id)}" ${isActive ? "disabled" : ""}>
-                ${isActive ? "Đang mở" : "Load"}
-              </button>
+              <div class="settings-project-actions">
+                <button class="btn btn-secondary btn-sm" type="button" data-project-load="${escapeHtml(project.id)}" ${isActive ? "disabled" : ""}>
+                  ${isActive ? "Đang mở" : "Load"}
+                </button>
+                <button class="btn btn-secondary btn-sm" type="button" data-project-duplicate="${escapeHtml(project.id)}">Duplicate</button>
+                <button class="btn btn-danger btn-sm" type="button" data-project-archive="${escapeHtml(project.id)}">Archive</button>
+              </div>
             </div>
           `;
         }).join("");
@@ -7210,6 +7214,57 @@ const AppUI = (() => {
               button.textContent = "Load";
               showToast(`Không load được project: ${error.message}`, "error");
             }
+          });
+        });
+
+        listEl.querySelectorAll("[data-project-duplicate]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const projectId = button.getAttribute("data-project-duplicate");
+            button.disabled = true;
+            button.textContent = "Đang copy...";
+            try {
+              const nextData = await AppStorage.duplicateProjectData(projectId);
+              AppState.setProjectData(nextData, true);
+              renderSettingsScreen(container, nextData);
+              showToast("Đã duplicate project và chuyển sang bản copy.");
+            } catch (error) {
+              button.disabled = false;
+              button.textContent = "Duplicate";
+              showToast(`Không duplicate được project: ${error.message}`, "error");
+            }
+          });
+        });
+
+        listEl.querySelectorAll("[data-project-archive]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const projectId = button.getAttribute("data-project-archive");
+            showModal(
+              "Archive project",
+              "Project sẽ bị ẩn khỏi danh sách mặc định nhưng không bị xóa khỏi database.",
+              [
+                { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+                {
+                  text: "Archive",
+                  class: "btn-danger",
+                  onClick: async () => {
+                    button.disabled = true;
+                    try {
+                      const nextData = await AppStorage.archiveProjectData(projectId);
+                      if (nextData) {
+                        AppState.setProjectData(nextData, true);
+                      }
+                      closeModal();
+                      renderSettingsScreen(container, AppState.getProjectData());
+                      showToast("Đã archive project.", "info");
+                    } catch (error) {
+                      button.disabled = false;
+                      closeModal();
+                      showToast(`Không archive được project: ${error.message}`, "error");
+                    }
+                  }
+                }
+              ]
+            );
           });
         });
       } catch (error) {
