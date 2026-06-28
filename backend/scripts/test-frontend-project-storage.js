@@ -172,10 +172,18 @@ vm.runInContext(`
 `, context);
 
 async function run() {
+  localStore.set("hyper_video_project", JSON.stringify({
+    projectName: "Internal Analytics Dashboard",
+    projectSlug: "internal-analytics-dashboard",
+    features: [],
+    assets: []
+  }));
+
   const project = await context.__AppStorage.loadProjectData();
   assert.equal(project.projectName, "Codegraph");
   assert.equal(project.assets.length, 1);
   assert.equal(context.__AppStorage.getActiveProjectId(), "proj_1");
+  assert.equal(JSON.parse(localStore.get("hyper_video_project")).projectName, "Codegraph");
   assert.deepEqual(requests.map((request) => request.url), [
     "/api/projects/active",
     "/api/projects/proj_1/assets"
