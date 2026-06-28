@@ -77,6 +77,10 @@ const AppValidation = (() => {
 
     // 3. Script segment count
     const activeFeatures = (data.features || []).filter(f => f.useInVideo);
+    const settings = typeof AppStorage !== "undefined" && AppStorage.loadSettings ? AppStorage.loadSettings() : {};
+    const validationSettings = settings.validation || {};
+    const shouldWarnMaxSegments = Boolean(validationSettings.warnMaxActiveScriptSegments);
+    const maxActiveSegments = Math.max(1, Number.parseInt(validationSettings.maxActiveScriptSegments, 10) || 6);
     if (activeFeatures.length < 1) {
       warnings.push({
         id: "war_features_count_low",
@@ -85,13 +89,13 @@ const AppValidation = (() => {
         title: "Chưa có đoạn kịch bản đang bật",
         message: "Video cần ít nhất 1 đoạn kịch bản đang bật để nội dung không bị trống."
       });
-    } else if (activeFeatures.length > 6) {
+    } else if (shouldWarnMaxSegments && activeFeatures.length > maxActiveSegments) {
       warnings.push({
         id: "war_features_count_high",
         tab: "features",
         field: "features-list",
-        title: "Quá nhiều đoạn kịch bản",
-        message: `Hiện có ${activeFeatures.length} đoạn đang bật. Video ngắn dễ bị kéo dài hoặc lướt quá nhanh.`
+        title: "Số đoạn kịch bản vượt ngưỡng",
+        message: `Hiện có ${activeFeatures.length} đoạn đang bật, vượt ngưỡng cảnh báo ${maxActiveSegments} đoạn trong Cài đặt.`
       });
     }
 

@@ -172,6 +172,7 @@ const VIDEO_STYLES = [
 
 const SCENE_SLOT_TYPES = [
   { id: "text", label: "Text", valueField: "text" },
+  { id: "icon", label: "Icon", valueField: "iconClass" },
   { id: "asset", label: "Asset", valueField: "assetId" },
   { id: "media", label: "Image / Video", valueField: "assetId" },
   { id: "list", label: "List / Grid", valueField: "items" },
@@ -185,6 +186,7 @@ const SCENE_ITEM_VIEW_PRESETS = [
   { id: "description", label: "Description", type: "text", enabled: true },
   { id: "tag", label: "Tag / Label", type: "tag", enabled: true },
   { id: "header", label: "Header", type: "text", enabled: true },
+  { id: "icon", label: "Icon", type: "icon", enabled: true, iconClass: "fa-solid fa-circle-info" },
   { id: "media", label: "Image / Video", type: "media", enabled: true },
   { id: "grid", label: "Grid Items", type: "list", enabled: true },
   { id: "steps", label: "Steps", type: "list", enabled: true },

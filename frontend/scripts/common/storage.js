@@ -5,6 +5,199 @@ const AppStorage = (() => {
   const SETTINGS_KEY = "hyper_video_settings";
   const OUTPUTS_KEY = "hyper_video_outputs";
   const ACTIVE_RENDER_KEY = "hyper_video_active_render";
+  const DEFAULT_SETTINGS = {
+    theme: "light",
+    renderFolder: "outputs/",
+    uploadFolder: "uploads/",
+    validation: {
+      warnMaxActiveScriptSegments: false,
+      maxActiveScriptSegments: 6
+    }
+  };
+  const HIEU1_FEATURE_CARD_ITEMS = [
+    {
+      id: "feat_1",
+      type: "intro",
+      name: "CodeGraph là bản đồ hiểu code",
+      description: "Index file, symbol và call edge thành graph cục bộ để agent tra cứu nhanh bằng MCP.",
+      benefit: "Agent có ngữ cảnh đúng trước khi sửa code, thay vì mở từng file bằng grep thủ công.",
+      voiceoverScript: "CodeGraph là bản đồ symbol và call graph cục bộ giúp agent hiểu code nhanh hơn trước khi migrate.",
+      durationSec: 8,
+      useInVideo: true
+    },
+    {
+      id: "feat_2",
+      type: "problem",
+      name: "G và S rất dễ đọc nhầm",
+      description: "Project có nhiều class trùng tên, nên phải phân biệt đúng path như MgsV3 và MgsV4.",
+      benefit: "Tránh lấy nhầm logic nguồn hoặc áp sai API vào bản đích.",
+      voiceoverScript: "Khi migrate, điểm nguy hiểm là đọc nhầm giữa G và S vì nhiều class có tên giống nhau.",
+      durationSec: 10,
+      useInVideo: true
+    },
+    {
+      id: "feat_3",
+      type: "workflow",
+      name: "Chọn đúng tool cho đúng câu hỏi",
+      description: "Dùng explore để hiểu flow, search + node để mở symbol chính xác, callers/callees/impact để kiểm quan hệ gọi.",
+      benefit: "Mỗi truy vấn có mục đích rõ, giảm việc đọc lan man và giảm sai context.",
+      voiceoverScript: "Không phải case nào cũng grep. CodeGraph có explore, search, node, callers, callees và impact cho từng kiểu câu hỏi.",
+      durationSec: 9,
+      useInVideo: true
+    },
+    {
+      id: "feat_4",
+      type: "result",
+      name: "Graph không thay thế build/test",
+      description: "Sau khi sửa code, agent vẫn phải kiểm staleness, build, test và review diff.",
+      benefit: "CodeGraph giúp định hướng nhanh, còn compiler và test mới xác nhận thay đổi đúng.",
+      voiceoverScript: "CodeGraph giúp hiểu nhanh hơn, nhưng không thay thế build, test và review migration diff.",
+      durationSec: 8,
+      useInVideo: true
+    }
+  ];
+  const HIEU1_VIDEO_SCENES = [
+    {
+      id: "scene_intro",
+      type: "intro",
+      name: "CodeGraph trong Migration Agent",
+      description: "Bản đồ symbol và call graph giúp agent đọc đúng code trước khi migrate.",
+      benefit: "Migration Agent",
+      voiceoverScript: "CodeGraph là bản đồ symbol và call graph cục bộ giúp agent hiểu code nhanh hơn trước khi migrate.",
+      durationSec: 6,
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      slots: {
+        logo: { type: "asset", assetId: "asset_1", delay: 0, animation: "scale-in", enabled: true },
+        kicker: { type: "text", text: "PROJECT SHOWCASE", delay: 0, animation: "fade-up", enabled: true },
+        title: { type: "text", text: "CodeGraph trong Migration Agent", delay: 0.4, animation: "fade-up", enabled: true },
+        description: { type: "text", text: "Bản đồ symbol và call graph giúp agent đọc đúng code trước khi migrate.", delay: 1.5, animation: "fade-up", enabled: true },
+        tag: { type: "tag", text: "Migration Agent", delay: 2.5, animation: "pop", enabled: true }
+      }
+    },
+    {
+      id: "scene_problem",
+      type: "problem",
+      name: "Vấn đề cần giải quyết",
+      description: "Trong project Java NetBeans có nhiều class và method trùng tên giữa G và S. Nếu agent đọc nhầm path, logic migrate rất dễ lệch.",
+      benefit: "Dùng khi cần hiểu feature, lần theo call flow, kiểm tra impact trước khi sửa hoặc xác nhận symbol đúng path.",
+      voiceoverScript: "Khi migrate, điểm nguy hiểm là đọc nhầm giữa G và S vì nhiều class có tên giống nhau.",
+      durationSec: 10,
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      slots: {
+        logo: { type: "asset", assetId: "asset_3", delay: 0, animation: "scale-in", enabled: true },
+        kicker: { type: "text", text: "THỰC TRẠNG", delay: 0, animation: "fade-up", enabled: true },
+        title: { type: "text", text: "Vấn đề cần giải quyết", delay: 0.4, animation: "fade-up", enabled: true },
+        description: { type: "text", text: "Trong project Java NetBeans có nhiều class và method trùng tên giữa G và S. Nếu agent đọc nhầm path, logic migrate rất dễ lệch.", delay: 1.5, animation: "fade-up", enabled: true },
+        tag: { type: "tag", text: "Migration risk", delay: 2.5, animation: "pop", enabled: true }
+      }
+    },
+    {
+      id: "scene_solution",
+      type: "solution",
+      name: "Cách sản phẩm tạo giá trị",
+      description: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.",
+      benefit: "CodeGraph tăng tốc đọc hiểu code, nhưng quyết định migrate cuối cùng vẫn phải theo style/API của bản S và được kiểm bằng build/test.",
+      voiceoverScript: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.",
+      durationSec: 10,
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      slots: {
+        logo: { type: "asset", assetId: "asset_2", delay: 0, animation: "scale-in", enabled: true },
+        kicker: { type: "text", text: "GIẢI PHÁP", delay: 0, animation: "fade-up", enabled: true },
+        title: { type: "text", text: "Cách sản phẩm tạo giá trị", delay: 0.4, animation: "fade-up", enabled: true },
+        description: { type: "text", text: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.", delay: 1.5, animation: "fade-up", enabled: true },
+        tag: { type: "tag", text: "MCP context", delay: 2.5, animation: "pop", enabled: true }
+      }
+    },
+    {
+      id: "scene_feature_cards",
+      type: "features",
+      name: "Các chức năng cốt lõi",
+      description: "CodeGraph gom symbol, path, tool query và guardrail build/test thành một flow đọc hiểu code trước khi migrate.",
+      benefit: "Không phải case nào cũng grep.",
+      voiceoverScript: "Không phải case nào cũng grep. CodeGraph có explore, search, node, callers, callees và impact cho từng kiểu câu hỏi.",
+      durationSec: 18,
+      useInVideo: true,
+      sceneTemplateId: "grid-feature",
+      featureItems: HIEU1_FEATURE_CARD_ITEMS,
+      slots: {
+        header: { type: "text", text: "TÍNH NĂNG NỔI BẬT", delay: 0, animation: "fade-up", enabled: true },
+        title: { type: "text", text: "Các chức năng cốt lõi", delay: 0.5, animation: "fade-up", enabled: true },
+        grid: {
+          type: "list",
+          items: [
+            "CodeGraph là bản đồ hiểu code",
+            "G và S rất dễ đọc nhầm",
+            "Chọn đúng tool cho đúng câu hỏi",
+            "Graph không thay thế build/test"
+          ],
+          delay: 1.2,
+          animation: "pop",
+          enabled: true
+        },
+        description: { type: "text", text: "Index đúng context, query đúng tool, rồi vẫn kiểm chứng bằng build/test.", delay: 4, animation: "fade-up", enabled: true }
+      }
+    },
+    {
+      id: "scene_timeline",
+      type: "timeline",
+      name: "Các cột mốc quan trọng",
+      description: "Link workspace, index graph, query đúng path, adapt vào S rồi build và review.",
+      benefit: "Index đúng -> hỏi đúng -> adapt đúng.",
+      voiceoverScript: "Quy trình nên đi từ link workspace, index graph, query đúng path, adapt vào S, rồi build và review.",
+      durationSec: 14,
+      useInVideo: true,
+      sceneTemplateId: "step-flow",
+      slots: {
+        title: { type: "text", text: "Các cột mốc quan trọng", delay: 0, animation: "fade-up", enabled: true },
+        steps: {
+          type: "list",
+          items: ["Link workspace", "Index graph", "Query đúng path", "Adapt vào S", "Build và review"],
+          delay: 1,
+          animation: "slide-left",
+          enabled: true
+        },
+        note: { type: "text", text: "Đọc hiểu nhanh hơn, nhưng vẫn phải kiểm diff và test.", delay: 4, animation: "fade-up", enabled: true }
+      }
+    },
+    {
+      id: "scene_impact",
+      type: "impact",
+      name: "Kết quả đạt được",
+      description: "Giảm thời gian mò file thủ công, giảm rủi ro copy nhầm logic G sang S và giúp review migration diff có cơ sở hơn.",
+      benefit: "Giảm thời gian mò file",
+      voiceoverScript: "CodeGraph giúp hiểu nhanh hơn, nhưng không thay thế build, test và review migration diff.",
+      durationSec: 10,
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      slots: {
+        logo: { type: "asset", assetId: "asset_1", delay: 0, animation: "scale-in", enabled: true },
+        kicker: { type: "text", text: "TÁC ĐỘNG", delay: 0, animation: "fade-up", enabled: true },
+        title: { type: "text", text: "Kết quả đạt được", delay: 0.4, animation: "fade-up", enabled: true },
+        description: { type: "text", text: "Giảm thời gian mò file thủ công, giảm rủi ro copy nhầm logic G sang S và giúp review migration diff có cơ sở hơn.", delay: 1.5, animation: "fade-up", enabled: true },
+        tag: { type: "tag", text: "Giảm thời gian mò file", delay: 2.5, animation: "pop", enabled: true }
+      }
+    },
+    {
+      id: "scene_outro",
+      type: "outro",
+      name: "Cảm ơn đã theo dõi",
+      description: "Dùng CodeGraph để giảm mù context, rồi vẫn phải build, test và review theo chuẩn migration.",
+      benefit: "Migration Agent",
+      voiceoverScript: "Dùng CodeGraph để giảm mù context, rồi vẫn phải build, test và review theo chuẩn migration.",
+      durationSec: 6,
+      useInVideo: true,
+      sceneTemplateId: "outro-cta",
+      slots: {
+        logo: { type: "asset", assetId: "asset_1", delay: 0, animation: "scale-in", enabled: true },
+        title: { type: "text", text: "Cảm ơn đã theo dõi", delay: 0.4, animation: "fade-up", enabled: true },
+        cta: { type: "text", text: "Dùng CodeGraph để giảm mù context, rồi vẫn build/test/review.", delay: 1.5, animation: "pop", enabled: true },
+        tag: { type: "tag", text: "Migration Agent", delay: 2.5, animation: "fade-up", enabled: true }
+      }
+    }
+  ];
 
   // Embedded sample data keeps the static app clean under file:// and simple static servers.
   const STATIC_SAMPLE_DATA = {
@@ -28,48 +221,7 @@ const AppStorage = (() => {
     keyHighlight: "Ưu tiên dùng explore để đọc một vùng/luồng chính; dùng search + node khi tên bị trùng; dùng callers/callees/impact để kiểm tra quan hệ gọi.",
     resultImpact: "Giảm thời gian mò file thủ công, giảm rủi ro copy nhầm logic G sang S và giúp review migration diff có cơ sở hơn.",
     endingNote: "Dùng CodeGraph để giảm mù context, rồi vẫn phải build, test và review theo chuẩn migration.",
-    features: [
-      {
-        id: "feat_1",
-        type: "intro",
-        name: "CodeGraph là bản đồ hiểu code",
-        description: "Index file, symbol và call edge thành graph cục bộ để agent tra cứu nhanh bằng MCP.",
-        benefit: "Agent có ngữ cảnh đúng trước khi sửa code, thay vì mở từng file bằng grep thủ công.",
-        voiceoverScript: "CodeGraph là bản đồ symbol và call graph cục bộ giúp agent hiểu code nhanh hơn trước khi migrate.",
-        durationSec: 8,
-        useInVideo: true
-      },
-      {
-        id: "feat_2",
-        type: "problem",
-        name: "G và S rất dễ đọc nhầm",
-        description: "Project có nhiều class trùng tên, nên phải phân biệt đúng path như MgsV3 và MgsV4.",
-        benefit: "Tránh lấy nhầm logic nguồn hoặc áp sai API vào bản đích.",
-        voiceoverScript: "Khi migrate, điểm nguy hiểm là đọc nhầm giữa G và S vì nhiều class có tên giống nhau.",
-        durationSec: 10,
-        useInVideo: true
-      },
-      {
-        id: "feat_3",
-        type: "workflow",
-        name: "Chọn đúng tool cho đúng câu hỏi",
-        description: "Dùng explore để hiểu flow, search + node để mở symbol chính xác, callers/callees/impact để kiểm quan hệ gọi.",
-        benefit: "Mỗi truy vấn có mục đích rõ, giảm việc đọc lan man và giảm sai context.",
-        voiceoverScript: "Không phải case nào cũng grep. CodeGraph có explore, search, node, callers, callees và impact cho từng kiểu câu hỏi.",
-        durationSec: 9,
-        useInVideo: true
-      },
-      {
-        id: "feat_4",
-        type: "result",
-        name: "Graph không thay thế build/test",
-        description: "Sau khi sửa code, agent vẫn phải kiểm staleness, build, test và review diff.",
-        benefit: "CodeGraph giúp định hướng nhanh, còn compiler và test mới xác nhận thay đổi đúng.",
-        voiceoverScript: "CodeGraph giúp hiểu nhanh hơn, nhưng không thay thế build, test và review migration diff.",
-        durationSec: 8,
-        useInVideo: true
-      }
-    ],
+    features: HIEU1_VIDEO_SCENES,
     milestones: [
       {
         id: "ms_1",
@@ -140,7 +292,7 @@ const AppStorage = (() => {
     videoStyleOverrides: {},
     defaultSceneTemplateId: "intro-stack",
     sceneItemViews: [],
-    templateId: "project-showcase-90s",
+    templateId: "dynamic-story-vertical",
     templateConfig: {
       theme: "dark",
       accentColor: "blue",
@@ -157,7 +309,26 @@ const AppStorage = (() => {
   const loadLocalData = () => {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : null;
+      if (!data) {
+        return null;
+      }
+      const normalizeVideoTemplate = (projectData = {}) => {
+        const formats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
+        const selectedFormat = formats.find((format) => format.id === (projectData.video && projectData.video.formatId))
+          || formats.find((format) => format.aspectRatio === (projectData.video && projectData.video.aspectRatio))
+          || formats.find((format) => format.templateId === projectData.templateId)
+          || null;
+        if (!selectedFormat || projectData.templateId === selectedFormat.templateId) {
+          return projectData;
+        }
+        return {
+          ...projectData,
+          templateId: selectedFormat.templateId
+        };
+      };
+      const parsed = normalizeVideoTemplate(JSON.parse(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      return parsed;
     } catch (e) {
       console.error("Lỗi khi load local data:", e);
       return null;
@@ -168,17 +339,27 @@ const AppStorage = (() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       AppState.setDirty(false);
+      return true;
     } catch (e) {
       console.error("Lỗi khi lưu local data:", e);
+      return false;
     }
   };
 
   const loadSettings = () => {
     try {
       const data = localStorage.getItem(SETTINGS_KEY);
-      return data ? JSON.parse(data) : { theme: "light", renderFolder: "outputs/", uploadFolder: "uploads/" };
+      const parsed = data ? JSON.parse(data) : {};
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        validation: {
+          ...DEFAULT_SETTINGS.validation,
+          ...(parsed.validation || {})
+        }
+      };
     } catch (e) {
-      return { theme: "light", renderFolder: "outputs/", uploadFolder: "uploads/" };
+      return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     }
   };
 
