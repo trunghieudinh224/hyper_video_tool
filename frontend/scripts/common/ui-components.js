@@ -748,7 +748,7 @@ const AppUI = (() => {
             <p><strong>Mô tả ngắn:</strong> ${data.shortSummary || '<span class="text-danger">Chưa nhập</span>'}</p>
             <p><strong>Ngữ cảnh/team:</strong> ${data.ownerTeam || '<span class="text-subtle">Không có</span>'}</p>
             <p><strong>Template đang chọn:</strong> ${TEMPLATES_LIST.find(t => t.id === data.templateId)?.name || 'Chưa chọn'}</p>
-            <p><strong>Trạng thái dự án:</strong> <span class="status-pill status-info">Cục bộ</span></p>
+            <p><strong>Trạng thái dự án:</strong> <span class="status-pill status-info">${backendEnabled ? "Database" : "Local fallback"}</span></p>
           </div>
         </section>
 

@@ -501,17 +501,17 @@ Thêm schema/API multi-project, nhưng chưa đổi frontend flow lớn. Backend
 
 ### Checklist
 
-- [ ] Thêm schema mới không phá bảng cũ.
-- [ ] Viết helper `createProject(project, options)`.
-- [ ] Viết helper `listProjects({ includeArchived })`.
-- [ ] Viết helper `getProject(projectId)`.
-- [ ] Viết helper `saveProject(projectId, project)`.
-- [ ] Viết helper `getActiveProject()` / `setActiveProject(projectId)`.
-- [ ] Viết helper `archiveProject(projectId)`.
-- [ ] Viết helper `duplicateProject(projectId)`.
-- [ ] Viết migration legacy `current` sang project thật.
-- [ ] Thêm API routes.
-- [ ] Thêm tests backend.
+- [x] Thêm schema mới không phá bảng cũ.
+- [x] Viết helper `createProject(project, options)`.
+- [x] Viết helper `listProjects({ includeArchived })`.
+- [x] Viết helper `getProject(projectId)`.
+- [x] Viết helper `saveProject(projectId, project)`.
+- [x] Viết helper `getActiveProject()` / `setActiveProject(projectId)`.
+- [x] Viết helper `archiveProject(projectId)`.
+- [x] Viết helper `duplicateProject(projectId)`.
+- [x] Viết migration legacy `current` sang project thật.
+- [x] Thêm API routes.
+- [x] Thêm tests backend.
 
 ### Verification
 
@@ -557,13 +557,13 @@ Frontend dùng DB làm source of truth khi backend chạy. `localStorage` không
 
 ### Checklist
 
-- [ ] `loadProjectData()` gọi active project từ DB.
-- [ ] Nếu DB trống, tạo default Codegraph project qua backend.
-- [ ] Autosave DB theo active project id.
-- [ ] Save status phân biệt DB/local.
-- [ ] Import JSON save vào DB.
-- [ ] Tải sample save vào DB.
-- [ ] Clear/reset không xóa DB ngoài ý muốn; nếu reset thì update active project payload.
+- [x] `loadProjectData()` gọi active project từ DB.
+- [x] Nếu DB trống, tạo default Codegraph project qua backend.
+- [x] Autosave DB theo active project id.
+- [x] Save status phân biệt DB/local.
+- [x] Import JSON save vào DB.
+- [x] Tải sample save vào DB.
+- [x] Clear/reset không xóa DB ngoài ý muốn; nếu reset thì update active project payload.
 
 ### Verification
 
@@ -612,13 +612,13 @@ Cho user thấy danh sách project đã làm và load lại project cũ.
 
 ### Checklist
 
-- [ ] Render project list từ `GET /api/projects`.
-- [ ] Button Load set active + load project.
-- [ ] Button Duplicate tạo project mới + active/load nếu user chọn.
-- [ ] Button Archive dùng modal confirm.
-- [ ] Button New from default tạo project mới.
-- [ ] Empty state nếu chưa có project.
-- [ ] Error state nếu backend unavailable.
+- [x] Render project list từ `GET /api/projects`.
+- [x] Button Load set active + load project.
+- [x] Button Duplicate tạo project mới + active/load nếu user chọn.
+- [x] Button Archive dùng modal confirm.
+- [x] Button New from default tạo project mới.
+- [x] Empty state nếu chưa có project.
+- [x] Error state nếu backend unavailable.
 
 ### Verification
 
@@ -630,6 +630,8 @@ Cho user thấy danh sách project đã làm và load lại project cũ.
   - reload vẫn active đúng.
 - Không horizontal scroll.
 - Console không lỗi.
+
+Status: implemented in Settings and Overview. Automated checks pass; browser smoke was partially blocked by approval quota in Codex, so manual/browser re-check remains recommended before a release build.
 
 ### Risk
 
@@ -666,6 +668,8 @@ Output render gắn với project để mở project cũ có thể xem output c�
 - Render một project, output gắn đúng project.
 - Load project khác, outputs page không lẫn output project cũ.
 - Load lại project đầu, output cũ hiện lại.
+
+Status: metadata/API/frontend filtering implemented. Automated DB/API tests cover per-project output isolation; full MP4 render smoke remains a release-gate check.
 
 ## Slice 5 - Version History / Snapshots Nâng Cao
 
