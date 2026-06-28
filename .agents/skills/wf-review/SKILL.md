@@ -51,7 +51,7 @@ Loại trừ khỏi review sâu nếu không liên quan trực tiếp:
 - Icon action tuân thủ `.agents/rules/ui-quality-rules.md`, đặc biệt FontAwesome solid cho edit/save/delete.
 - Modal/form có empty/error/loading state phù hợp.
 - Không tạo horizontal scroll ngoài vùng chủ đích.
-- Text không overlap/tràn trên desktop/tablet/mobile.
+- Text không overlap/tràn trên desktop/laptop target.
 
 ### JavaScript UI/State
 
@@ -98,7 +98,7 @@ Browser/static checks:
 
 - Mở trực tiếp page bị ảnh hưởng.
 - Kiểm console runtime.
-- Kiểm desktop 1440px, tablet 768px, mobile 390px nếu layout đổi.
+- Kiểm desktop/laptop `1440x900`; thêm `1366x768` nếu layout/modal thay đổi đáng kể. Không test tablet/mobile trừ khi người dùng yêu cầu rõ.
 - Với preview/render: kiểm DOM/canvas không blank và đúng ratio.
 
 Backend/render checks nếu liên quan:

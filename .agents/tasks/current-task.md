@@ -4,6 +4,162 @@
 
 in_progress
 
+## UI Fix - Slot Animation Và Appearance Settings
+
+### Objective
+
+Slot editor không còn toggle `Bật slot`. Mỗi slot có `Appear animation` cho lúc bắt đầu xuất hiện và `Display animation` cho trạng thái đang hiển thị. Slot không phải text có thể custom background và border; mặc định background là transparent và border là không.
+
+### Scope
+
+- Bỏ UI và logic liên quan toggle bật/tắt slot.
+- Đổi animation hiện tại thành `Appear animation`.
+- Thêm `Display animation` gồm `Không hiệu ứng`, `Nhấp nháy nhẹ`, `Zoom in/out nhẹ`, `Bounce nhẹ`, `Trôi nhẹ`, `Glow nhẹ`.
+- Default appear/display animation là `Không hiệu ứng`.
+- Thêm controls `Background` và `Border` cho slot không phải text.
+- Thêm `Border color`; disable khi border là `Không`.
+- Dùng chung color picker HEXA, hỗ trợ reset về transparent và đóng bằng phím Escape.
+- Áp dụng custom background/border và display animation trong popup preview và Preview page.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- Static scan pass:
+  - Không còn `data-slot-field="enabled"` hoặc text `Bật slot` trong slot editor.
+  - Có `Appear animation` và `Display animation`.
+  - Có `SCENE_SLOT_DISPLAY_ANIMATIONS`.
+- Có CSS loop animation cho popup preview và Preview page.
+- Browser smoke color picker pass: chọn màu cập nhật preview trực tiếp, reset về transparent, Escape đóng popup.
+- Browser smoke desktop/tablet/mobile (`1440/768/390`) pass: không horizontal overflow, picker nằm trong viewport, Escape chỉ đóng picker màu và giữ modal phân đoạn.
+- Mặc định background transparent, border `Không`; border color disable khi border là `Không` và enable khi chọn độ dày.
+- Legacy slot giữ nguyên `animation` khi chưa có field `displayAnimation`; display animation mới fallback về `none`.
+- Toàn bộ frontend JavaScript syntax, `git diff --check` và `npm --prefix backend run check` pass.
+
+## Feature Intake - Subtitle Style Và Subtitle Layout Item
+
+### Objective
+
+Popup thêm/sửa phân đoạn có cấu hình phụ đề gồm `fontSize`, `fontWeight`, `maxLines` với default `11`, `500`, `3`. Preview trong popup có một item riêng tên `Phụ đề`, kéo/resize được như slot nhưng không nằm trong danh sách slot, không đánh số và không xóa. Preview page render lại skeleton phụ đề theo cấu hình đã lưu.
+
+### Scope
+
+- Lưu config phụ đề trong `feature.subtitles`: `fontSize`, `fontWeight`, `maxLines`, `layout`.
+- Thêm input trong section Phụ đề: Font size, Font weight, Số dòng.
+- Render subtitle skeleton trong popup preview, title `Phụ đề`, số dòng theo `maxLines`.
+- Cho subtitle skeleton trong popup drag/resize độc lập với slot.
+- Render skeleton phụ đề ở trang Xem trước khi subtitle bật.
+- Không đổi DB schema, upload API, render MP4 runtime hoặc template HyperFrames trong phase này.
+
+### Checklist
+
+- [x] Thêm normalize/default subtitle style/layout.
+- [x] Thêm controls phụ đề trong popup.
+- [x] Thêm subtitle item drag/resize trong popup, không xuất hiện trong slot editor.
+- [x] Lưu/reopen giữ `fontSize`, `fontWeight`, `maxLines`, `layout`.
+- [x] Render subtitle skeleton ở Preview page.
+- [x] Chạy syntax/browser smoke và điền Test Report.
+
+### Verification Plan
+
+- `node --check frontend/scripts/common/ui-components.js`.
+- `git diff --check`.
+- Browser smoke trang Kịch bản: mở popup, kiểm default 11/500/3, kéo/resize subtitle, lưu, mở lại giữ layout.
+- Browser smoke trang Xem trước: subtitle skeleton render theo số dòng và không có console warning/error.
+
+### Test Report
+
+Status: partial
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- Browser smoke qua backend tạm `http://127.0.0.1:4186` pass:
+  - Popup phụ đề default đúng `fontSize=11`, `fontWeight=500`, `maxLines=3`.
+  - Subtitle item trong popup hiển thị title `Phụ đề`, không có index number, không xuất hiện trong slot editor.
+  - Đổi `fontSize=14`, `fontWeight=700`, `maxLines=4` thì skeleton đổi thành 4 dòng và CSS font đổi đúng.
+  - Save và mở lại popup giữ `14/700/4`.
+  - Preview page render `.preview-subtitle-overlay` với title `Phụ đề`, 4 dòng skeleton, `font-size: 14px`, `font-weight: 700`, không xuất hiện trong timing slot list.
+  - Console trang Kịch bản và Preview không có warning/error.
+- Browser smoke bổ sung qua backend tạm `http://127.0.0.1:4187` pass:
+  - Khi phụ đề tắt, popup preview không render `[data-preview-subtitle]`.
+  - Khi bật phụ đề, popup preview render đúng 1 item `Phụ đề`.
+  - Default layout mới: `left:5%; top:74%; width:90%; height:14%`.
+  - Title `Phụ đề` dùng `position:absolute`, nằm bên trái và có nền cùng màu box để đè lên skeleton.
+- Chưa smoke kéo/resize bằng browser vì in-app browser không scroll được modal body tới canvas phụ đề; code pointer handler đã thêm riêng cho `[data-preview-subtitle]` và không ghi vào slot/template.
+
+## Feature Intake - Video Asset Làm Nền Phân Đoạn
+
+### Objective
+
+Popup thêm/sửa phân đoạn có lựa chọn riêng `Video từ tài nguyên` trong mục nền phân đoạn. Danh sách chỉ lấy video asset của project hiện tại, preview phát video và dữ liệu lưu tiếp tục tương thích với render contract hiện có.
+
+### Scope
+
+- Thêm mode UI `Video từ tài nguyên` bên cạnh màu nền và hình ảnh từ tài nguyên.
+- Lọc dropdown theo mode: image/background/screenshot cho hình ảnh, video cho video.
+- Khi edit background asset là video, tự chọn đúng mode video.
+- Giữ dữ liệu lưu là `{ mode: "asset", assetId }`; không migration DB/project JSON.
+- Không sửa upload API, DB schema hoặc template render vì các lớp này đã hỗ trợ video asset.
+
+### Checklist
+
+- [x] Tách image assets và video assets trong popup.
+- [x] Đồng bộ option, empty state và selected asset theo mode nền.
+- [x] Verify save/reopen popup giữ đúng video background.
+- [x] Verify modal preview render thẻ video từ asset project.
+- [x] Chạy syntax/backend checks liên quan.
+- [x] Điền Test Report.
+
+### Verification Plan
+
+- `node --check frontend/scripts/common/ui-components.js`.
+- Browser smoke trang Kịch bản: mở popup, chọn video, lưu, mở lại và kiểm preview.
+- `npm --prefix backend run check` để bảo vệ render payload/template contract.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- `npm --prefix backend run check` pass, gồm asset/payload/audio/render media/voiceover tests.
+- Browser smoke qua backend tạm `http://127.0.0.1:4184/pages/features.html` pass:
+  - Popup có option `Video từ tài nguyên`.
+  - Mode video chỉ liệt kê `segment-background.mp4` từ project assets.
+  - Modal preview tạo `<video>` với `muted`, `loop`, `playsinline` và URL asset backend.
+  - Save ghi contract cũ `{ mode: "asset", assetId }` vào project backend.
+  - Reload và mở lại popup tự nhận diện mode `video`, giữ đúng asset ID và preview video.
+  - Browser console không có warning/error.
+- Không chạy full MP4 render vì template runtime xử lý video background đã có sẵn và backend render test không thay đổi; scope này chỉ tách UI mode/lọc asset.
+
+## UI Fix - Hoàn Thiện Safe-area Guide
+
+### Objective
+
+Preview popup phân đoạn và Scene Template hiển thị đủ bốn cạnh safe area thay vì chỉ có top/bottom. Các guide chỉ hỗ trợ bố cục, không thay đổi tọa độ slot hoặc render output.
+
+### Checklist
+
+- [x] Thêm guide trái/phải vào preview popup phân đoạn.
+- [x] Thêm guide trái/phải vào Scene Template editor và wireframe card.
+- [x] Verify desktop browser hiển thị đủ bốn cạnh và không cản kéo/resize.
+- [x] Chạy syntax/diff checks và điền Test Report.
+
+### Test Report
+
+Status: passed
+
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `git diff --check` pass.
+- Browser smoke qua backend tạm `http://127.0.0.1:4185` pass:
+  - Popup sửa phân đoạn có đủ `is-top`, `is-right`, `is-bottom`, `is-left`.
+  - Top/bottom là guide ngang, left/right là guide dọc.
+  - Safe-area guide trong popup có `aria-hidden="true"` và `pointer-events: none`.
+  - Wireframe card trang Template có đủ bốn cạnh, `aria-hidden="true"` và `pointer-events: none`.
+  - Console trang Kịch bản và Template không có warning/error.
+
 ## Backend Database Roadmap Phase 3 - Asset Upload Local Thật
 
 ### Objective

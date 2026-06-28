@@ -20,7 +20,7 @@ Suy luận từ diff hoặc hỏi ngắn nếu không rõ:
 
 - Chỉ docs/rules: không cần test runtime, kiểm link/nội dung là đủ.
 - JS frontend: `node --check` file liên quan, static/browser smoke page liên quan.
-- CSS/layout: browser screenshot/DOM check ở desktop/tablet/mobile nếu có thể.
+- CSS/layout: browser screenshot/DOM check ở desktop/laptop target.
 - Preview/template: kiểm template page + preview page, ratio dọc/ngang, console errors.
 - Backend/render: chạy script test/smoke backend tương ứng.
 - Template video/render output: cần smoke render và kiểm frame nếu feasible.
@@ -60,7 +60,7 @@ Kiểm:
 - Page load không runtime error.
 - DOM chính render đúng.
 - Modal/form/drag/drop/click workflow chính hoạt động nếu vừa sửa.
-- Responsive 1440px, 768px, 390px nếu layout đổi.
+- Desktop/laptop `1440x900`; thêm `1366x768` nếu layout/modal thay đổi đáng kể. Không test tablet/mobile trừ khi người dùng yêu cầu rõ.
 
 ### Backend/Render Smoke
 

@@ -148,6 +148,7 @@ Ví dụ:
 - Không dùng emoji trang trí.
 - Action icon button phải dùng icon solid/filled, không dùng stroke-only outline icon. Icon-only button phải có `aria-label` hoặc `title`. Không tự thêm background cho icon button nếu user không yêu cầu; hover chỉ đổi màu icon đậm hơn và/hoặc nhấc nhẹ/lún nhẹ, không đổi hoặc thêm background.
 - Section/panel nội dung phải dùng common component `app-section` trong `frontend/styles/components.css` với cấu trúc `app-section-header`, `app-section-eyebrow`, `app-section-helper`, `app-section-content`. Không tạo/copy style page-local `*-panel` nếu common section đáp ứng được.
+- Color picker phải đồng bộ toàn app: dùng cùng control dạng swatch + mã màu và cùng popup chọn màu đã duyệt. Nếu page không load thư viện picker, fallback không được rơi về native RGB picker của browser khi UX hiện tại đang dùng picker dạng gradient + hue + ô `HEXA`. Khi thêm field màu mới, phải tái dùng helper/component hiện có hoặc tách helper chung trước, không tự tạo một kiểu popup khác.
 
 ## JavaScript
 
@@ -167,6 +168,7 @@ Ví dụ:
 - Common JS không được phụ thuộc vào DOM chỉ tồn tại ở một page, trừ khi có guard rõ.
 - Không dùng `alert`, `confirm`, `prompt`; dùng modal/toast chung.
 - Không để console debug linh tinh khi bàn giao.
+- Khi thêm hoặc sửa color picker trong `frontend/scripts/common/ui-components.js`, phải kiểm cả các field màu hiện có trong cùng modal/page để không làm đổi popup đã được duyệt. Tối thiểu cần test: mở picker, đổi màu bằng vùng chọn/hue, nhập mã `HEXA`, đóng bằng `Esc`, và kiểm field disabled nếu setting liên quan đang tắt.
 
 ## Dữ Liệu Và State
 
@@ -192,6 +194,13 @@ Không được xóa `frontend/index.html` cũ hoặc logic cũ trước khi pag
 
 ## Verification Bắt Buộc
 
+### Phạm Vi Thiết Bị
+
+- Hyper Video Tool chỉ hỗ trợ PC/laptop; không coi tablet/mobile là target product.
+- Browser/UI smoke mặc định chỉ chạy viewport desktop/laptop, ưu tiên `1440x900`; có thể dùng thêm `1366x768` khi thay đổi ảnh hưởng layout hoặc modal.
+- Không test viewport tablet/mobile (`768px`, `390px`), không làm responsive mobile và không tốn thời gian sửa lỗi chỉ xuất hiện ngoài phạm vi PC/laptop.
+- Chỉ test tablet/mobile khi người dùng yêu cầu rõ hoặc task có scope riêng cho thiết bị đó.
+
 Trước khi bàn giao UI:
 
 - Mở `frontend/index.html`, xác nhận vào được `pages/overview.html`.
@@ -199,7 +208,7 @@ Trước khi bàn giao UI:
 - Click sidebar qua đủ 10 page.
 - Reload từng page, theme và dữ liệu vẫn ổn.
 - Light mode và dark mode đều đọc được.
-- Desktop 1440px, tablet 768px, mobile 390px không vỡ layout.
+- Desktop/laptop `1440x900` và khi cần `1366x768` không vỡ layout.
 - Không có horizontal scroll ngoài vùng có chủ đích.
 - Console không có lỗi runtime.
 - Không có gradient, hero marketing hoặc copy bán hàng.
