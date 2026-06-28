@@ -65,6 +65,11 @@ function renderScene(scene, payload) {
   root.id = scene.id || `scene-${Math.random().toString(16).slice(2)}`;
   root.dataset.sceneType = scene.type || "text";
 
+  if (scene.type === "slot") {
+    renderSlotScene(root, scene, payload);
+    return root;
+  }
+
   const shell = MotionCore.dom.createElement("div", "scene-shell");
   const kicker = MotionCore.dom.createElement("div", "scene-kicker", getSceneKicker(scene));
   const headline = MotionCore.dom.createElement("h1", "scene-headline", scene.headline || "Untitled scene");
@@ -99,6 +104,140 @@ function renderScene(scene, payload) {
 
   root.appendChild(shell);
   return root;
+}
+
+function renderSlotScene(root, scene, payload) {
+  applySceneBackground(root, scene, payload);
+  const shell = MotionCore.dom.createElement("div", "slot-scene-shell");
+  const slots = scene.sceneTemplate && Array.isArray(scene.sceneTemplate.slots)
+    ? scene.sceneTemplate.slots
+    : [];
+
+  if (!slots.length) {
+    shell.appendChild(MotionCore.dom.createElement("h1", "scene-headline", scene.headline || "Untitled scene"));
+    if (scene.body) {
+      shell.appendChild(MotionCore.dom.createElement("p", "scene-body", scene.body));
+    }
+    root.appendChild(shell);
+    return;
+  }
+
+  slots.forEach((slot, index) => {
+    shell.appendChild(renderSlotItem(slot, scene.slots && scene.slots[slot.id], payload, index));
+  });
+  root.appendChild(shell);
+}
+
+function applySceneBackground(root, scene, payload) {
+  const background = scene.background || {};
+  if (background.mode === "asset") {
+    const asset = MotionCore.dom.resolveAsset(payload, background.assetId);
+    if (!asset || !asset.url) {
+      return;
+    }
+    const media = asset.type === "video" ? document.createElement("video") : document.createElement("img");
+    media.className = "slot-scene-background";
+    media.src = asset.url;
+    if (asset.type === "video") {
+      media.muted = true;
+      media.loop = true;
+      media.playsInline = true;
+      media.autoplay = true;
+    } else {
+      media.alt = "";
+    }
+    root.appendChild(media);
+    return;
+  }
+
+  if (background.mode === "color" && background.colorType === "gradient") {
+    root.style.backgroundImage = `linear-gradient(${getGradientDirectionValue(background.gradientDirection)}, ${background.gradientFrom || background.color || "#020611"}, ${background.gradientTo || "#1f4fd8"})`;
+    return;
+  }
+
+  if (background.mode === "color" && background.color) {
+    root.style.backgroundColor = background.color;
+  }
+}
+
+function getGradientDirectionValue(direction) {
+  return ({
+    "to-right": "to right",
+    "to-left": "to left",
+    "to-bottom": "to bottom",
+    "to-top": "to top"
+  })[direction] || "to right";
+}
+
+function renderSlotItem(slot, value, payload, index) {
+  const slotValue = value || {};
+  const item = MotionCore.dom.createElement("div", `slot-scene-item slot-${slot.type || "text"}`);
+  item.style.cssText = getSlotLayoutStyle(slot, index);
+  if (slotValue.textColor) item.style.color = slotValue.textColor;
+  if (slotValue.fontSize) item.style.fontSize = `${Math.max(8, Math.min(96, Number.parseInt(slotValue.fontSize, 10) || 18))}px`;
+  if (slotValue.fontWeight) item.style.fontWeight = String(slotValue.fontWeight);
+  if (slotValue.textAlign) item.style.textAlign = slotValue.textAlign;
+
+  if (slot.type === "asset" || slot.type === "media") {
+    appendSlotMedia(item, slotValue, payload);
+  } else if (slot.type === "list") {
+    const list = MotionCore.dom.createElement("div", "slot-scene-list");
+    (Array.isArray(slotValue.items) ? slotValue.items : []).filter(Boolean).slice(0, 6).forEach((entry) => {
+      list.appendChild(MotionCore.dom.createElement("span", "", entry));
+    });
+    item.appendChild(list);
+  } else if (slot.type === "icon") {
+    item.textContent = "●";
+  } else {
+    item.textContent = slotValue.text || slot.label || "";
+  }
+
+  return item;
+}
+
+function appendSlotMedia(item, slotValue, payload) {
+  const asset = MotionCore.dom.resolveAsset(payload, slotValue.assetId);
+  if (!asset || !asset.url) {
+    item.textContent = "Missing media";
+    return;
+  }
+  const media = asset.type === "video" ? document.createElement("video") : document.createElement("img");
+  media.src = asset.url;
+  if (asset.type === "video") {
+    media.muted = true;
+    media.loop = true;
+    media.playsInline = true;
+    media.autoplay = true;
+  } else {
+    media.alt = asset.name || "";
+  }
+  item.appendChild(media);
+}
+
+function getSlotLayoutStyle(slot, index) {
+  const layout = slot && slot.layout ? slot.layout : getDefaultSlotLayout(slot, index);
+  const width = clamp(Number(layout.width), 12, 100);
+  const height = clamp(Number(layout.height), 5, 100);
+  const x = clamp(Number(layout.x), 0, 100 - width);
+  const y = clamp(Number(layout.y), 0, 100 - height);
+  return `left:${x}%;top:${y}%;width:${width}%;height:${height}%;`;
+}
+
+function getDefaultSlotLayout(slot, index) {
+  const type = slot && slot.type;
+  if (type === "asset") return { x: 36, y: 18, width: 28, height: 10 };
+  if (type === "media") return { x: 12, y: 52, width: 76, height: 26 };
+  if (type === "icon") return { x: 42, y: 24, width: 16, height: 10 };
+  if (type === "list") return { x: 16, y: 48, width: 68, height: 20 };
+  if (type === "tag") return { x: 22, y: 78, width: 56, height: 8 };
+  return { x: 16, y: Math.min(84, 22 + (index * 11)), width: 68, height: 8 };
+}
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, value));
 }
 
 function getSceneKicker(scene) {
@@ -221,7 +360,7 @@ function registerTimeline(payload) {
     MotionCore.animations.transitionScene(timeline, scene, sceneStart, sceneDuration);
     MotionCore.animations.revealText(
       timeline,
-      MotionCore.dom.queryAll(scene, ".scene-kicker, .title-badge, .scene-headline, .scene-subtitle, .scene-body"),
+      MotionCore.dom.queryAll(scene, ".scene-kicker, .title-badge, .scene-headline, .scene-subtitle, .scene-body, .slot-scene-item"),
       sceneStart + 0.18,
       { stagger: 0.075 }
     );

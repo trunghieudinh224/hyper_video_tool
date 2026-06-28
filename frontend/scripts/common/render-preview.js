@@ -74,6 +74,15 @@ const AppRender = (() => {
     return scripts.join("\n");
   };
 
+  const resolveFeatureCards = (projectData = {}) => {
+    const activeItems = (projectData.features || []).filter((feature) => feature.useInVideo !== false);
+    const featureScene = activeItems.find((feature) => Array.isArray(feature.featureItems) && feature.featureItems.length > 0);
+    if (featureScene) {
+      return featureScene.featureItems.filter((feature) => feature.useInVideo !== false).slice(0, 4);
+    }
+    return activeItems.slice(0, 4);
+  };
+
   const getUsableAssetUrl = (asset) => {
     const url = normalizeText(asset && asset.url);
     if (!url || url.startsWith("blob:")) {
@@ -101,6 +110,58 @@ const AppRender = (() => {
     alt: "Dynamic render placeholder",
     useInVideo: true
   });
+
+  const getProjectSceneTemplates = (projectData = {}) => {
+    const presets = Array.isArray(SCENE_TEMPLATES) ? SCENE_TEMPLATES : [];
+    const customTemplates = Array.isArray(projectData.customSceneTemplates) ? projectData.customSceneTemplates : [];
+    const merged = new Map();
+    presets.forEach((template) => {
+      if (template && template.id) merged.set(template.id, template);
+    });
+    customTemplates.forEach((template) => {
+      if (template && template.id) merged.set(template.id, template);
+    });
+    return Array.from(merged.values());
+  };
+
+  const getSceneTemplateForSegment = (segment = {}, projectData = {}) => {
+    const templates = getProjectSceneTemplates(projectData);
+    if (segment.sceneTemplateOverride && Array.isArray(segment.sceneTemplateOverride.slots)) {
+      const baseTemplate = templates.find((template) => template.id === (segment.sceneTemplateOverride.baseTemplateId || segment.sceneTemplateId)) || {};
+      return {
+        ...baseTemplate,
+        ...segment.sceneTemplateOverride,
+        id: segment.sceneTemplateId || segment.sceneTemplateOverride.id || baseTemplate.id
+      };
+    }
+    return templates.find((template) => template.id === segment.sceneTemplateId)
+      || templates.find((template) => template.id === projectData.defaultSceneTemplateId)
+      || null;
+  };
+
+  const buildDynamicSlotScenes = (projectData = {}) => {
+    return (projectData.features || [])
+      .filter((segment) => segment && segment.useInVideo !== false && segment.sceneTemplateId && segment.slots)
+      .map((segment, index) => {
+        const sceneTemplate = getSceneTemplateForSegment(segment, projectData);
+        const durationSec = Math.min(30, Math.max(3, Number.parseInt(segment.durationSec, 10) || (sceneTemplate && sceneTemplate.recommendedDurationSec) || 8));
+        return {
+          id: `scene-slot-${segment.id || index + 1}`,
+          type: "slot",
+          headline: segment.name || `Phân đoạn ${index + 1}`,
+          body: segment.description || "",
+          background: segment.background || null,
+          sceneTemplate: sceneTemplate ? {
+            id: sceneTemplate.id,
+            name: sceneTemplate.name,
+            slots: Array.isArray(sceneTemplate.slots) ? sceneTemplate.slots : []
+          } : null,
+          slots: segment.slots || {},
+          duration: { mode: "fixed", min: durationSec, max: durationSec },
+          voiceover: createSceneVoiceover(segment.type || "segment", durationSec, segment.voiceoverScript)
+        };
+      });
+  };
 
   const buildDynamicScenes = (projectData, activeFeatures, milestones, mediaAsset, logoAsset) => {
     const projectName = normalizeText(projectData.projectName) || "Untitled Project";
@@ -244,12 +305,20 @@ const AppRender = (() => {
       || null;
     const logoAsset = logoSource ? toDynamicAsset(logoSource, "logo") : null;
     const mediaAsset = mediaSource ? toDynamicAsset(mediaSource, "image") : createFallbackDynamicMedia(projectData);
-    const dynamicAssets = [logoAsset, mediaAsset].filter(Boolean);
-    const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
+    const dynamicAssets = activeAssets.length
+      ? activeAssets.map((asset) => toDynamicAsset(asset, asset.type || "media"))
+      : [];
+    [logoAsset, mediaAsset].filter(Boolean).forEach((asset) => {
+      if (!dynamicAssets.some((item) => item.id === asset.id)) {
+        dynamicAssets.push(asset);
+      }
+    });
+    const activeFeatures = resolveFeatureCards(projectData);
     const milestones = (projectData.milestones || []).slice(0, 5);
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
     const voiceoverScript = normalizeText(voiceover.script) || buildVoiceoverScriptFromProject(projectData);
+    const slotScenes = buildDynamicSlotScenes(projectData);
 
     return {
       version: "dynamic-motion-1.0.0",
@@ -301,7 +370,7 @@ const AppRender = (() => {
       assets: {
         all: dynamicAssets
       },
-      scenes: buildDynamicScenes(projectData, activeFeatures, milestones, mediaAsset, logoAsset)
+      scenes: slotScenes.length ? slotScenes : buildDynamicScenes(projectData, activeFeatures, milestones, mediaAsset, logoAsset)
     };
   };
 
@@ -319,7 +388,7 @@ const AppRender = (() => {
     const logo = selectedAssets.find((asset) => asset.type === "logo" && asset.useInVideo) || null;
     const screenshots = selectedAssets.filter((asset) => ["screenshot", "image", "background"].includes(asset.type) && asset.useInVideo);
     const videos = selectedAssets.filter((asset) => asset.type === "video" && asset.useInVideo);
-    const activeFeatures = (projectData.features || []).filter((feature) => feature.useInVideo).slice(0, 4);
+    const activeFeatures = resolveFeatureCards(projectData);
     const milestones = (projectData.milestones || []).slice(0, 5);
     const derivedHighlight = normalizeText(projectData.mainMessage)
       || normalizeText(projectData.keyHighlight)
