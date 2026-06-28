@@ -50,6 +50,7 @@ function getPayloadPath() {
 
 function updateTemplatePayload(payload) {
   const safePayload = payload && typeof payload === "object" ? payload : createFallbackPayload();
+  applyVideoStyleTheme(safePayload);
   const stage = document.getElementById("scene-stage");
   MotionCore.dom.clearChildren(stage);
   const scenes = Array.isArray(safePayload.scenes) ? safePayload.scenes : [];
@@ -58,6 +59,63 @@ function updateTemplatePayload(payload) {
   });
   registerTimeline(safePayload);
   showScene(scenes[0] && scenes[0].id);
+}
+
+function getVideoStyleTheme(payload) {
+  const videoStyle = payload && payload.template && payload.template.config && payload.template.config.videoStyle;
+  return videoStyle && videoStyle.colorTheme && typeof videoStyle.colorTheme === "object"
+    ? videoStyle.colorTheme
+    : {};
+}
+
+function applyVideoStyleTheme(payload) {
+  const videoStyle = payload && payload.template && payload.template.config && payload.template.config.videoStyle || {};
+  const theme = getVideoStyleTheme(payload);
+  const root = document.documentElement;
+  root.dataset.backgroundStyle = videoStyle.backgroundStyle || "plain";
+  root.dataset.motionStyle = videoStyle.motionStyle || "dynamic";
+  root.style.setProperty("--video-bg", theme.background || "#020611");
+  root.style.setProperty("--video-surface", theme.surface || "#101722");
+  root.style.setProperty("--video-surface-alt", theme.surfaceAlt || theme.surface || "#162033");
+  root.style.setProperty("--video-text", theme.text || "#f8fafc");
+  root.style.setProperty("--video-muted", theme.mutedText || "#cbd5e1");
+  root.style.setProperty("--video-accent", theme.accent || "#67e8f9");
+  root.style.setProperty("--video-accent-soft", theme.accentSoft || "#164e63");
+  root.style.setProperty("--video-border", theme.border || "#1e3a5f");
+  root.style.setProperty("--video-glow", theme.glow || "transparent");
+
+  let style = document.getElementById("video-style-theme");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "video-style-theme";
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+    html, body, .video-container, .scene { background-color: var(--video-bg); color: var(--video-text); }
+    .scene-kicker { color: var(--video-accent); }
+    .scene-headline { color: var(--video-text); }
+    .scene-subtitle, .scene-body { color: var(--video-muted); }
+    .title-badge, .feature-card, .step-item, .media-frame { background-color: var(--video-surface); border-color: var(--video-border); }
+    .feature-card:nth-child(even), .step-item:nth-child(even) { background-color: var(--video-surface-alt); }
+    .scene-tag, .scene-cta { background-color: var(--video-accent-soft); color: var(--video-accent); border-color: var(--video-border); }
+    .display-glow-soft { filter: drop-shadow(0 0 18px var(--video-glow)); }
+    .slot-scene-item { border-color: var(--video-border); }
+    [data-background-style="dark-grid"] .scene { background-image: linear-gradient(rgba(148, 163, 184, 0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.10) 1px, transparent 1px); background-size: 64px 64px; }
+    [data-background-style="subtle-grid"] .scene { background-image: linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px); background-size: 88px 88px; }
+    [data-background-style="clean-surface"] .scene, [data-background-style="plain"] .scene { background-image: none; }
+    [data-background-style="media-focus"] .scene { background-image: radial-gradient(circle at 50% 42%, var(--video-surface-alt), var(--video-bg) 68%); }
+  `;
+}
+
+function getMotionConfig(payload) {
+  const videoStyle = payload && payload.template && payload.template.config && payload.template.config.videoStyle || {};
+  const configs = {
+    minimal: { y: 14, duration: 0.4, stagger: 0.04, ease: "power1.out", filter: false },
+    soft: { y: 28, duration: 0.88, stagger: 0.12, ease: "power2.out" },
+    sharp: { y: 38, duration: 0.34, stagger: 0.05, ease: "power4.out" },
+    dynamic: { y: 52, duration: 0.68, stagger: 0.075, ease: "power3.out" }
+  };
+  return configs[videoStyle.motionStyle] || configs.dynamic;
 }
 
 function renderScene(scene, payload) {
@@ -171,12 +229,33 @@ function getGradientDirectionValue(direction) {
 
 function renderSlotItem(slot, value, payload, index) {
   const slotValue = value || {};
+  const theme = getVideoStyleTheme(payload);
+  const label = `${slot.id || ""} ${slot.label || ""}`.toLowerCase();
+  const defaultRole = slot.type === "tag" || label.includes("kicker") || label.includes("header") || label.includes("cta")
+    ? "accent"
+    : label.includes("description") || label.includes("note") || label.includes("caption")
+      ? "mutedText"
+      : "text";
+  const colorRole = slot.colorRole || defaultRole;
+  const displayStyle = slot.displayStyle || (slot.type === "tag" ? "pill" : ["asset", "list"].includes(slot.type) ? "surface" : slot.type === "media" ? "media-frame" : slot.type === "icon" ? "filled" : "plain");
   const item = MotionCore.dom.createElement("div", `slot-scene-item slot-${slot.type || "text"}`);
   item.style.cssText = getSlotLayoutStyle(slot, index);
-  if (slotValue.textColor) item.style.color = slotValue.textColor;
+  const legacyTextColors = new Set(["#0891B2", "#9333EA", "#D97706"]);
+  const explicitTextColor = String(slotValue.textColor || "").toUpperCase();
+  item.style.color = explicitTextColor && !legacyTextColors.has(explicitTextColor) ? explicitTextColor : (theme[colorRole] || theme.text || "#f8fafc");
   if (slotValue.fontSize) item.style.fontSize = `${Math.max(8, Math.min(96, Number.parseInt(slotValue.fontSize, 10) || 18))}px`;
   if (slotValue.fontWeight) item.style.fontWeight = String(slotValue.fontWeight);
   if (slotValue.textAlign) item.style.textAlign = slotValue.textAlign;
+  if (slotValue.backgroundColor) item.style.backgroundColor = slotValue.backgroundColor;
+  else if (["surface", "media-frame"].includes(displayStyle)) item.style.backgroundColor = theme.surface || "#101722";
+  else if (["filled", "pill"].includes(displayStyle)) item.style.backgroundColor = theme.accentSoft || "#164e63";
+  else item.style.backgroundColor = "transparent";
+  const borderWidths = { none: 0, thin: 1, medium: 2, thick: 3 };
+  const borderWidth = Object.prototype.hasOwnProperty.call(borderWidths, slotValue.borderWidth) ? borderWidths[slotValue.borderWidth] : 0;
+  item.style.borderStyle = "solid";
+  item.style.borderWidth = `${borderWidth}px`;
+  item.style.borderColor = slotValue.borderColor || theme.border || "#1e3a5f";
+  if (slotValue.displayAnimation === "glow-soft") item.style.filter = `drop-shadow(0 0 18px ${theme.glow || "transparent"})`;
 
   if (slot.type === "asset" || slot.type === "media") {
     appendSlotMedia(item, slotValue, payload);
@@ -334,6 +413,7 @@ function registerTimeline(payload) {
   }
 
   const plan = MotionCore.buildTimelinePlan(payload);
+  const motion = getMotionConfig(payload);
   const container = document.getElementById("video-container");
   if (container) {
     container.dataset.duration = String(plan.totalDuration);
@@ -362,7 +442,7 @@ function registerTimeline(payload) {
       timeline,
       MotionCore.dom.queryAll(scene, ".scene-kicker, .title-badge, .scene-headline, .scene-subtitle, .scene-body, .slot-scene-item"),
       sceneStart + 0.18,
-      { stagger: 0.075 }
+      motion
     );
 
     if (scenePlan.type === "media") {
@@ -377,7 +457,7 @@ function registerTimeline(payload) {
         MotionCore.dom.queryAll(scene, ".motion-card"),
         sceneStart + 1.55,
         Math.max(1, sceneDuration - 1.7),
-        { padding: 0.2 }
+        { padding: 0.2, enterY: motion.y, inDuration: motion.duration, ease: motion.ease }
       );
     }
 
@@ -386,7 +466,8 @@ function registerTimeline(payload) {
         timeline,
         MotionCore.dom.queryAll(scene, ".motion-step"),
         sceneStart + 1.4,
-        Math.max(1, sceneDuration - 1.7)
+        Math.max(1, sceneDuration - 1.7),
+        { enterY: motion.y, focusDuration: motion.duration, ease: motion.ease }
       );
     }
   });

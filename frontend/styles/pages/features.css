@@ -330,60 +330,6 @@
   overflow-wrap: anywhere;
 }
 
-.script-meta-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-  padding-top: var(--space-3);
-  border-top: 1px dashed var(--color-border);
-}
-
-.script-meta-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  font-size: var(--font-xs);
-  line-height: 1.45;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-}
-
-.script-meta-item strong {
-  color: var(--color-text);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.script-meta-item span {
-  color: var(--color-text-muted);
-}
-
-.script-meta-item .meta-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.script-meta-item.is-highlight {
-  background: color-mix(in srgb, var(--color-warning) 5%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--color-warning) 15%, var(--color-border));
-}
-.script-meta-item.is-highlight strong,
-.script-meta-item.is-highlight .meta-icon {
-  color: var(--color-warning);
-}
-
-.script-meta-item.is-voice {
-  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-border));
-}
-.script-meta-item.is-voice strong,
-.script-meta-item.is-voice .meta-icon {
-  color: var(--color-primary);
-}
-
 .script-segment-side {
   display: flex;
   flex-direction: column;
@@ -612,10 +558,10 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   flex: 0 0 auto;
   min-width: 0;
   overflow: hidden;
-  border: 1px dashed var(--color-border-strong);
+  border: 1px dashed var(--preview-theme-border, var(--color-border-strong));
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface-alt) 78%, var(--color-surface));
-  color: var(--color-text);
+  background: var(--preview-theme-bg, color-mix(in srgb, var(--color-surface-alt) 78%, var(--color-surface)));
+  color: var(--preview-theme-text, var(--color-text));
 }
 
 .script-segment-preview-canvas.is-drag-over {
@@ -631,6 +577,29 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   width: min(100%, 720px);
   aspect-ratio: 16 / 9;
 }
+
+.script-segment-preview-canvas.background-style-dark-grid {
+  background-image: linear-gradient(color-mix(in srgb, var(--preview-theme-border) 32%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--preview-theme-border) 32%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.script-segment-preview-canvas.background-style-subtle-grid {
+  background-image: linear-gradient(color-mix(in srgb, var(--preview-theme-border) 18%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--preview-theme-border) 18%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.script-segment-preview-canvas.background-style-media-focus {
+  background-image: radial-gradient(circle at 50% 42%, var(--preview-theme-surface), var(--preview-theme-bg) 68%);
+}
+
+.script-segment-preview-canvas.background-style-clean-surface,
+.script-segment-preview-canvas.background-style-plain {
+  background-image: none;
+}
+
+.script-segment-preview-canvas.motion-style-minimal .script-segment-preview-slot { animation-duration: 0.9s; }
+.script-segment-preview-canvas.motion-style-soft .script-segment-preview-slot { animation-duration: 3.2s; }
+.script-segment-preview-canvas.motion-style-sharp .script-segment-preview-slot { animation-duration: 1.1s; }
 
 .script-segment-preview-background {
   position: absolute;
@@ -652,21 +621,21 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   top: var(--space-5);
   right: var(--space-3);
   left: var(--space-3);
-  border-top: 1px dashed var(--color-border);
+  border-top: 1px dashed var(--preview-theme-border, var(--color-border));
 }
 
 .script-segment-preview-safe.is-bottom {
   right: var(--space-3);
   bottom: var(--space-5);
   left: var(--space-3);
-  border-top: 1px dashed var(--color-border);
+  border-top: 1px dashed var(--preview-theme-border, var(--color-border));
 }
 
 .script-segment-preview-safe.is-left,
 .script-segment-preview-safe.is-right {
   top: var(--space-5);
   bottom: var(--space-5);
-  border-left: 1px dashed var(--color-border);
+  border-left: 1px dashed var(--preview-theme-border, var(--color-border));
 }
 
 .script-segment-preview-safe.is-left {
@@ -694,8 +663,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   top: 0;
   bottom: 0;
   left: 50%;
-  border-left: 2px solid #22d3ee;
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18), 0 0 10px rgba(34, 211, 238, 0.28);
+  border-left: 2px solid var(--preview-theme-accent, #22d3ee);
   transform: translateX(-1px);
 }
 
@@ -703,8 +671,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   top: 50%;
   right: 0;
   left: 0;
-  border-top: 2px solid #22d3ee;
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18), 0 0 10px rgba(34, 211, 238, 0.28);
+  border-top: 2px solid var(--preview-theme-accent, #22d3ee);
   transform: translateY(-1px);
 }
 
@@ -724,8 +691,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
 .script-segment-edge-guide.is-left {
   top: 0;
   bottom: 0;
-  border-left: 2px solid #38bdf8;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.18), 0 0 10px rgba(56, 189, 248, 0.24);
+  border-left: 2px solid var(--preview-theme-accent, #38bdf8);
   transform: translateX(-1px);
 }
 
@@ -1009,7 +975,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
 
 @keyframes slot-display-glow-soft {
   0%, 100% { box-shadow: var(--shadow-sm); }
-  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--slot-border, var(--color-primary)) 34%, transparent), 0 0 18px color-mix(in srgb, var(--slot-border, var(--color-primary)) 28%, transparent); }
+  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--slot-border, var(--color-primary)) 34%, transparent), 0 0 18px var(--slot-glow, color-mix(in srgb, var(--slot-border, var(--color-primary)) 28%, transparent)); }
 }
 
 .scene-slot-editor-actions {

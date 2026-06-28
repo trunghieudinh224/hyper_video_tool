@@ -784,6 +784,8 @@ const AppUI = (() => {
 
   // 2. Content Form View
   const renderContentScreen = (container, data) => {
+    const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
+    const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0] || null;
     const voiceoverLanguages = Array.isArray(VOICEOVER_LANGUAGES) ? VOICEOVER_LANGUAGES : [];
     const voiceoverVoices = VOICEOVER_VOICES || {};
     const savedAudio = data.audio || {};
@@ -823,7 +825,7 @@ const AppUI = (() => {
     container.innerHTML = `
       ${renderWorkspaceHeader(
         "Thiết lập video",
-        "Cấu hình thông tin brief chung và giọng đọc voiceover.",
+        "Cấu hình style, thông tin brief chung và giọng đọc voiceover.",
         `<div class="content-header-actions">
           <button id="content-fill-btn" class="btn btn-secondary">Tải dữ liệu mẫu</button>
           <button id="content-clear-btn" class="btn btn-secondary">Xóa form</button>
@@ -832,6 +834,39 @@ const AppUI = (() => {
       )}
 
       <form id="content-form" class="page-form-stack content-form-stack">
+        <section class="app-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("palette")} Video Style</span>
+              <span class="app-section-helper">Chọn phong cách màu áp dụng cho preview và video render. Chỉnh preset chi tiết tại trang Template.</span>
+            </div>
+          </div>
+          <div class="app-section-content">
+            <div class="content-video-style-grid" role="radiogroup" aria-label="Video Style áp dụng cho video">
+              ${videoStyles.map((style) => {
+                const resolvedStyle = resolveVideoStyle(style.id, data) || style;
+                const isSelected = selectedVideoStyle && selectedVideoStyle.id === style.id;
+                return `
+                  <label class="content-video-style-option ${isSelected ? "is-selected" : ""}" data-style-id="${escapeAttribute(style.id)}">
+                    <input type="radio" name="video-style" value="${escapeAttribute(style.id)}" ${isSelected ? "checked" : ""}>
+                    <span class="content-video-style-preview" aria-hidden="true">
+                      <span class="content-video-style-surface"></span>
+                      <span class="content-video-style-line is-strong"></span>
+                      <span class="content-video-style-line"></span>
+                      <span class="content-video-style-accent"></span>
+                    </span>
+                    <span class="content-video-style-copy">
+                      <strong>${escapeText(style.name)}</strong>
+                      <small>${escapeText(style.description)}</small>
+                      <span>${escapeText(resolvedStyle.motionStyle)} · ${escapeText(resolvedStyle.backgroundStyle)}${resolvedStyle.isCustomized ? " · đã chỉnh" : ""}</span>
+                    </span>
+                  </label>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </section>
+
         <section class="app-section">
           <div class="app-section-header">
             <div>
@@ -1011,6 +1046,22 @@ const AppUI = (() => {
 
     bindCounter("tagline", 80);
     bindCounter("shortSummary", 200);
+
+    container.querySelectorAll(".content-video-style-option").forEach((option) => {
+      applyStylePreviewVariables(option, resolveVideoStyle(option.getAttribute("data-style-id"), data));
+    });
+    container.querySelectorAll("input[name='video-style']").forEach((input) => {
+      input.addEventListener("change", () => {
+        if (!input.checked) return;
+        const nextData = {
+          ...AppState.getProjectData(),
+          videoStyleId: input.value,
+          templateConfig: getStyleTemplateConfig(input.value)
+        };
+        AppState.setProjectData(nextData);
+        renderContentScreen(container, nextData);
+      });
+    });
 
     const voiceoverEnabledInput = document.getElementById("render-voiceover-enabled");
     const voiceoverLanguageInput = document.getElementById("render-voiceover-language");
@@ -1354,7 +1405,6 @@ const AppUI = (() => {
               const segmentType = getSegmentType(item.type);
               const sceneTemplate = getSceneTemplateForSegment(item);
               const durationSec = Number.parseInt(item.durationSec, 10) || 8;
-              const voiceScript = String(item.voiceoverScript || "").trim();
               return `
               <article class="script-segment ${item.useInVideo ? "" : "is-disabled"} ${selectedItem && selectedItem.id === item.id ? "is-selected" : ""}" data-id="${item.id}" data-type="${escapeText(item.type || "feature")}">
                 <div class="script-order">
@@ -1368,24 +1418,6 @@ const AppUI = (() => {
                     </h3>
                     <div class="script-layout-chip">${escapeText(sceneTemplate ? sceneTemplate.name : "Chưa chọn layout")}</div>
                     <p class="script-body">${escapeText(item.description || "Chưa có nội dung chính.")}</p>
-                    ${(item.benefit || voiceScript) ? `
-                      <div class="script-meta-group">
-                        ${item.benefit ? `
-                          <div class="script-meta-item is-highlight">
-                            <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            <strong>Điểm nhấn:</strong>
-                            <span>${escapeText(item.benefit)}</span>
-                          </div>
-                        ` : ""}
-                        ${voiceScript ? `
-                          <div class="script-meta-item is-voice">
-                            <svg class="meta-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
-                            <strong>Giọng đọc:</strong>
-                            <span>${escapeText(voiceScript)}</span>
-                          </div>
-                        ` : ""}
-                      </div>
-                    ` : ""}
                   </div>
                   <div class="script-segment-side">
                     <label class="script-switch">
@@ -1762,12 +1794,36 @@ const AppUI = (() => {
         const align = String(value || "").trim();
         return ["left", "center", "right"].includes(align) ? align : fallback;
       };
-      const getDefaultSlotTextColor = (slot = {}) => {
-        if (slot.type === "tag") return "#9333ea";
-        if (slot.type === "list") return "#d97706";
-        return "#0891b2";
+      const selectedSlotVideoStyle = resolveVideoStyle(data.videoStyleId, data) || getVideoStylePreset(data.videoStyleId) || {};
+      const selectedSlotTheme = selectedSlotVideoStyle.colorTheme || {};
+      const getSlotAppearance = (slot = {}) => ({
+        ...getSceneItemAppearanceDefaults(slot),
+        colorRole: slot.colorRole || getSceneItemAppearanceDefaults(slot).colorRole,
+        displayStyle: slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle
+      });
+      const getSlotRoleColor = (slot = {}) => {
+        const role = getSlotAppearance(slot).colorRole;
+        return normalizeHexColor(selectedSlotTheme[role] || selectedSlotTheme.text || "#F8FAFC", "#F8FAFC");
       };
-      const normalizeSlotTextColor = (value, fallback = "#0891b2") => normalizeHexColor(value, fallback);
+      const getSlotStyleBackground = (slot = {}) => {
+        const displayStyle = getSlotAppearance(slot).displayStyle;
+        if (["surface", "media-frame"].includes(displayStyle)) {
+          return normalizeHexColor(selectedSlotTheme.surface || "#101722", "#101722");
+        }
+        if (["filled", "pill"].includes(displayStyle)) {
+          return normalizeHexColor(selectedSlotTheme.accentSoft || "#164E63", "#164E63");
+        }
+        return "transparent";
+      };
+      const getDefaultSlotTextColor = (slot = {}) => {
+        return getSlotRoleColor(slot);
+      };
+      const legacyDefaultTextColors = new Set(["#0891B2", "#9333EA", "#D97706"]);
+      const normalizeSlotTextColor = (value, fallback = "") => {
+        if (!String(value || "").trim()) return "";
+        const normalized = normalizeHexColor(value, fallback || "#F8FAFC");
+        return legacyDefaultTextColors.has(normalized) ? "" : normalized;
+      };
       const normalizeSlotBackgroundColor = (value, fallback = "") => String(value || "").trim() ? normalizeHexColor(value, fallback || "#ffffff") : "";
       const normalizeSlotBorderColor = (value, fallback = "") => String(value || "").trim() ? normalizeHexColor(value, fallback || "#d9dee7") : "";
       const slotBorderWidthOptions = [
@@ -1784,8 +1840,6 @@ const AppUI = (() => {
         const option = slotBorderWidthOptions.find((item) => item.id === normalizeSlotBorderWidth(value));
         return option ? option.width : 1;
       };
-      const selectedSlotVideoStyle = resolveVideoStyle(data.videoStyleId, data) || getVideoStylePreset(data.videoStyleId) || {};
-      const selectedSlotTheme = selectedSlotVideoStyle.colorTheme || {};
       const getDefaultSlotBorderColor = () => normalizeHexColor(selectedSlotTheme.border || "#334155", "#334155");
       const getDefaultTextFontSize = (slot = {}) => {
         if (slot.type === "tag") return 16;
@@ -1846,7 +1900,7 @@ const AppUI = (() => {
                 `).join("")}
               </select>
             </label>
-            ${renderSlotColorButton("textColor", "Màu chữ", textColor, getDefaultSlotTextColor(slot))}
+            ${renderSlotColorButton("textColor", "Màu chữ", textColor, getDefaultSlotTextColor(slot), { emptyLabel: "Theo Video Style" })}
           </div>
         `;
       };
@@ -1869,7 +1923,7 @@ const AppUI = (() => {
                 `).join("")}
               </select>
             </label>
-            ${renderSlotColorButton("borderColor", "Border color", borderColor, getDefaultSlotBorderColor(), { disabled: isBorderDisabled })}
+            ${renderSlotColorButton("borderColor", "Border color", borderColor, getDefaultSlotBorderColor(), { disabled: isBorderDisabled, emptyLabel: "Theo Video Style" })}
           </div>
         `;
       };
@@ -1883,9 +1937,9 @@ const AppUI = (() => {
         mode: background.mode === "asset" ? "asset" : "color",
         assetId: background.assetId || "",
         colorType: background.colorType === "gradient" ? "gradient" : "solid",
-        color: normalizeHexColor(background.color || "#0f172a", "#0f172a"),
-        gradientFrom: normalizeHexColor(background.gradientFrom || background.color || "#0f172a", "#0f172a"),
-        gradientTo: normalizeHexColor(background.gradientTo || "#1f4fd8", "#1f4fd8"),
+        color: normalizeHexColor(background.color || selectedSlotTheme.background || "#0f172a", selectedSlotTheme.background || "#0f172a"),
+        gradientFrom: normalizeHexColor(background.gradientFrom || background.color || selectedSlotTheme.background || "#0f172a", selectedSlotTheme.background || "#0f172a"),
+        gradientTo: normalizeHexColor(background.gradientTo || selectedSlotTheme.accent || "#1f4fd8", selectedSlotTheme.accent || "#1f4fd8"),
         gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
       });
       let activeSegmentBackground = getSegmentBackgroundDefaults(feature && feature.background);
@@ -1943,6 +1997,16 @@ const AppUI = (() => {
         }
         return "";
       };
+      const getPreviewThemeStyle = () => [
+        `--preview-theme-bg:${normalizeHexColor(selectedSlotTheme.background || "#0f172a", "#0f172a")}`,
+        `--preview-theme-surface:${normalizeHexColor(selectedSlotTheme.surface || "#1e293b", "#1e293b")}`,
+        `--preview-theme-text:${normalizeHexColor(selectedSlotTheme.text || "#f8fafc", "#f8fafc")}`,
+        `--preview-theme-muted:${normalizeHexColor(selectedSlotTheme.mutedText || "#94a3b8", "#94a3b8")}`,
+        `--preview-theme-accent:${normalizeHexColor(selectedSlotTheme.accent || "#22d3ee", "#22d3ee")}`,
+        `--preview-theme-accent-soft:${normalizeHexColor(selectedSlotTheme.accentSoft || "#164e63", "#164e63")}`,
+        `--preview-theme-border:${getDefaultSlotBorderColor()}`,
+        `--preview-theme-glow:${selectedSlotTheme.glow || "rgba(34, 211, 238, 0.28)"}`
+      ].join(";");
       const renderSegmentBackgroundLayer = (background = activeSegmentBackground) => {
         const config = getSegmentBackgroundDefaults(background);
         if (config.mode !== "asset") {
@@ -2256,13 +2320,14 @@ const AppUI = (() => {
             : "center";
           const previewJustify = previewTextAlign === "left" ? "flex-start" : previewTextAlign === "right" ? "flex-end" : "center";
           const previewTextColor = isTextSceneItemType(slot.type)
-            ? normalizeSlotTextColor(value.textColor, getDefaultSlotTextColor(slot))
+            ? (normalizeSlotTextColor(value.textColor) || getDefaultSlotTextColor(slot))
             : "";
-          const slotBackgroundColor = !isTextSceneItemType(slot.type) ? normalizeSlotBackgroundColor(value.backgroundColor) : "";
-          const slotBorderColor = !isTextSceneItemType(slot.type) ? normalizeSlotBorderColor(value.borderColor) : "";
+          const slotBackgroundColor = !isTextSceneItemType(slot.type)
+            ? (normalizeSlotBackgroundColor(value.backgroundColor) || getSlotStyleBackground(slot))
+            : getSlotStyleBackground(slot);
+          const slotBorderColor = normalizeSlotBorderColor(value.borderColor) || getDefaultSlotBorderColor();
           const slotBorderWidth = !isTextSceneItemType(slot.type) ? getSlotBorderWidthPx(value.borderWidth) : 1;
-          const slotBackgroundStyle = !isTextSceneItemType(slot.type) ? `--slot-bg:${slotBackgroundColor || "transparent"};` : "";
-          const style = `${getSceneSlotStyle(slot, index, ratio)};--slot-preview-font:${previewFontSize}px;--slot-preview-weight:${previewFontWeight};--slot-preview-align:${previewTextAlign};--slot-preview-justify:${previewJustify};${previewTextColor ? `--slot-preview-color:${previewTextColor};` : ""}${slotBackgroundStyle}${slotBorderColor ? `--slot-border:${slotBorderColor};` : ""}${!isTextSceneItemType(slot.type) ? `--slot-border-width:${slotBorderWidth}px;` : ""}`;
+          const style = `${getSceneSlotStyle(slot, index, ratio)};--slot-preview-font:${previewFontSize}px;--slot-preview-weight:${previewFontWeight};--slot-preview-align:${previewTextAlign};--slot-preview-justify:${previewJustify};--slot-preview-color:${previewTextColor || getSlotRoleColor(slot)};--slot-color:${getSlotRoleColor(slot)};--slot-bg:${slotBackgroundColor};--slot-border:${slotBorderColor};--slot-glow:${selectedSlotTheme.glow || "rgba(34, 211, 238, 0.28)"};${!isTextSceneItemType(slot.type) ? `--slot-border-width:${slotBorderWidth}px;` : ""}`;
           return `
             <div
               class="${className}"
@@ -2282,7 +2347,7 @@ const AppUI = (() => {
 
         previewRoot.innerHTML = `
           <div class="scene-template-preview-shell script-segment-preview-shell">
-            <div class="scene-template-preview-stage script-segment-preview-canvas ${ratio === "16:9" ? "is-landscape" : "is-portrait"}" style="${getSegmentBackgroundStyle(segmentBackground)}">
+            <div class="scene-template-preview-stage script-segment-preview-canvas ${ratio === "16:9" ? "is-landscape" : "is-portrait"} background-style-${escapeAttribute(selectedSlotVideoStyle.backgroundStyle || "plain")} motion-style-${escapeAttribute(selectedSlotVideoStyle.motionStyle || "dynamic")}" style="${getPreviewThemeStyle()};${getSegmentBackgroundStyle(segmentBackground)}">
               ${renderSegmentBackgroundLayer(segmentBackground)}
               <span class="scene-template-preview-safe script-segment-preview-safe is-top" aria-hidden="true"></span>
               <span class="scene-template-preview-safe script-segment-preview-safe is-right" aria-hidden="true"></span>
@@ -4266,18 +4331,31 @@ const AppUI = (() => {
       });
     };
 
+    const persistVideoStyleData = async (nextData) => {
+      AppState.setProjectData(nextData);
+      AppStorage.saveLocalData(nextData);
+      if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+        try {
+          await AppBackendApi.saveCurrentProject(nextData);
+        } catch (_error) {
+          // localStorage remains the fallback when the app is running without the backend.
+        }
+      }
+    };
+
     showModal(`Chi tiết style: ${preset.name}`, modalBody, [
       {
         text: "Khôi phục preset",
         class: "btn-secondary",
-        onClick: () => {
+        onClick: async () => {
           const projectData = AppState.getProjectData();
           const nextOverrides = { ...(projectData.videoStyleOverrides || {}) };
           delete nextOverrides[preset.id];
-          AppState.setProjectData({
+          const isActiveStyle = projectData.videoStyleId === preset.id;
+          await persistVideoStyleData({
             ...projectData,
             videoStyleOverrides: nextOverrides,
-            templateConfig: getStyleTemplateConfig(preset.id)
+            templateConfig: isActiveStyle ? getStyleTemplateConfig(preset.id) : projectData.templateConfig
           });
           closeModal();
           renderTemplateScreen(container, AppState.getProjectData());
@@ -4288,7 +4366,7 @@ const AppUI = (() => {
       {
         text: "Lưu style",
         class: "btn-primary",
-        onClick: () => {
+        onClick: async () => {
           const editedStyle = getEditedStyle();
           const nextData = AppState.getProjectData();
           const nextOverrides = {
@@ -4299,12 +4377,12 @@ const AppUI = (() => {
             ...getStyleTemplateConfig(preset.id),
             theme: isLightHexColor(editedStyle.colorTheme.background) ? "light" : "dark"
           };
+          const isActiveStyle = nextData.videoStyleId === preset.id;
 
-          AppState.setProjectData({
+          await persistVideoStyleData({
             ...nextData,
-            videoStyleId: preset.id,
             videoStyleOverrides: nextOverrides,
-            templateConfig: nextTemplateConfig
+            templateConfig: isActiveStyle ? nextTemplateConfig : nextData.templateConfig
           });
           closeModal();
           renderTemplateScreen(container, AppState.getProjectData());
@@ -5377,15 +5455,15 @@ const AppUI = (() => {
           <section class="app-section">
             <div class="app-section-header">
               <div>
-                <span class="app-section-eyebrow">${renderIcon("palette")} Video Style</span>
-                <span class="app-section-helper">Style chung toàn video · Chọn preset hoặc chỉnh màu trong từng style.</span>
+                <span class="app-section-eyebrow">${renderIcon("palette")} Video Style Presets</span>
+                <span class="app-section-helper">Quản lý và chỉnh preset. Style áp dụng cho video được chọn tại trang Thiết lập video.</span>
               </div>
             </div>
             <div class="app-section-content">
               <div class="video-style-grid">
                 ${videoStyles.map((style) => `
                   <div class="video-style-card style-${style.id} ${selectedVideoStyle && selectedVideoStyle.id === style.id ? "active" : ""}" data-style-id="${style.id}">
-                    <button class="video-style-select-area" type="button" data-style-id="${style.id}">
+                    <div class="video-style-select-area" data-style-id="${style.id}">
                       <span class="video-style-preview">
                         <span class="video-style-preview-surface"></span>
                         <span class="video-style-preview-line is-strong"></span>
@@ -5397,7 +5475,7 @@ const AppUI = (() => {
                         <small>${escapeText(style.description)}</small>
                       </span>
                       <span class="video-style-meta">${escapeText((resolveVideoStyle(style.id, data) || style).motionStyle)} · ${escapeText((resolveVideoStyle(style.id, data) || style).backgroundStyle)}${(resolveVideoStyle(style.id, data) || style).isCustomized ? " · đã chỉnh" : ""}</span>
-                    </button>
+                    </div>
                     <button class="video-style-edit-btn" type="button" data-style-id="${style.id}" aria-label="Sửa style ${escapeText(style.name)}">
                       ${renderIcon("pen")}
                     </button>
@@ -5470,19 +5548,6 @@ const AppUI = (() => {
         </div>
       </div>
     `;
-
-    container.querySelectorAll(".video-style-select-area").forEach((card) => {
-      card.addEventListener("click", () => {
-        const id = card.getAttribute("data-style-id");
-        const nextData = {
-          ...AppState.getProjectData(),
-          videoStyleId: id,
-          templateConfig: getStyleTemplateConfig(id)
-        };
-        AppState.setProjectData(nextData);
-        renderTemplateScreen(container, nextData);
-      });
-    });
 
     container.querySelectorAll(".video-style-card").forEach((card) => {
       applyStylePreviewVariables(card, resolveVideoStyle(card.getAttribute("data-style-id"), AppState.getProjectData()));
@@ -6062,6 +6127,8 @@ const AppUI = (() => {
       text: "#f8fafc",
       mutedText: "#cbd5e1",
       accent: "#1f4fd8",
+      accentSoft: "#1e3a8a",
+      glow: "rgba(31, 79, 216, 0.24)",
       border: "#334155"
     };
     const getAsset = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
@@ -6081,6 +6148,10 @@ const AppUI = (() => {
       "to-top": "to top"
     })[direction] || "to right";
     const segmentBackground = getSegmentBackgroundDefaults(scene.segment && scene.segment.background);
+    ["minimal", "dynamic", "soft", "sharp"].forEach((style) => canvas.classList.remove(`motion-style-${style}`));
+    ["dark-grid", "clean-surface", "media-focus", "plain", "subtle-grid"].forEach((style) => canvas.classList.remove(`background-style-${style}`));
+    canvas.classList.add(`motion-style-${videoStyle && videoStyle.motionStyle || "dynamic"}`);
+    canvas.classList.add(`background-style-${videoStyle && videoStyle.backgroundStyle || "plain"}`);
     const renderSegmentBackgroundLayer = () => {
       if (segmentBackground.mode !== "asset") {
         return "";
@@ -6117,7 +6188,17 @@ const AppUI = (() => {
       const align = String(value || "").trim();
       return ["left", "center", "right"].includes(align) ? align : "center";
     };
-    const normalizePreviewTextColor = (value, fallback = "#0891b2") => normalizeHexColor(value, fallback);
+    const legacyPreviewTextColors = new Set(["#0891B2", "#9333EA", "#D97706"]);
+    const normalizePreviewTextColor = (value) => {
+      if (!String(value || "").trim()) return "";
+      const normalized = normalizeHexColor(value, theme.text);
+      return legacyPreviewTextColors.has(normalized) ? "" : normalized;
+    };
+    const getPreviewRoleColor = (slot = {}) => {
+      const appearance = getSceneItemAppearanceDefaults(slot);
+      const role = slot.colorRole || appearance.colorRole;
+      return theme[role] || theme.text;
+    };
     const normalizePreviewSlotColor = (value) => String(value || "").trim() ? normalizeHexColor(value, "#ffffff") : "";
     const getPreviewSlotBorderWidth = (value) => {
       if (value === "none") return 0;
@@ -6133,7 +6214,7 @@ const AppUI = (() => {
       const backgroundColor = normalizePreviewSlotColor(value.backgroundColor);
       const borderColor = normalizePreviewSlotColor(value.borderColor);
       const borderWidth = getPreviewSlotBorderWidth(value.borderWidth);
-      return `--preview-slot-bg:${backgroundColor || "transparent"};${borderColor ? `--preview-slot-border:${borderColor};` : ""}--preview-slot-border-width:${borderWidth}px;`;
+      return `${backgroundColor ? `--preview-slot-bg:${backgroundColor};` : ""}${borderColor ? `--preview-slot-border:${borderColor};` : ""}--preview-slot-border-width:${borderWidth}px;`;
     };
     const slotTypographyStyle = (slot, value = {}) => {
       if (!isTextSlotType(slot.type)) {
@@ -6142,7 +6223,7 @@ const AppUI = (() => {
       const fontSize = normalizePreviewFontSize(value.fontSize);
       const fontWeight = normalizePreviewFontWeight(value.fontWeight, slot.type === "tag" ? 800 : 900);
       const textAlign = normalizePreviewTextAlign(value.textAlign);
-      const textColor = normalizePreviewTextColor(value.textColor, slot.type === "tag" ? "#9333ea" : slot.type === "list" ? "#d97706" : "#0891b2");
+      const textColor = normalizePreviewTextColor(value.textColor) || getPreviewRoleColor(slot);
       return `${fontSize ? `font-size:${fontSize}px;` : ""}font-weight:${fontWeight};text-align:${textAlign};justify-content:${textAlign === "left" ? "flex-start" : textAlign === "right" ? "flex-end" : "center"};--preview-slot-color:${textColor};`;
     };
     const getSlotTextValue = (slot, value) => {
@@ -6261,7 +6342,9 @@ const AppUI = (() => {
     canvas.style.setProperty("--preview-text", theme.text);
     canvas.style.setProperty("--preview-muted", theme.mutedText);
     canvas.style.setProperty("--preview-accent", theme.accent);
+    canvas.style.setProperty("--preview-accent-soft", theme.accentSoft || theme.accent);
     canvas.style.setProperty("--preview-border", theme.border);
+    canvas.style.setProperty("--preview-glow", theme.glow || "transparent");
     canvas.style.backgroundColor = segmentBackground.mode === "color" && segmentBackground.colorType === "solid"
       ? segmentBackground.color
       : theme.background;
@@ -6288,15 +6371,18 @@ const AppUI = (() => {
     const canvas = document.getElementById("preview-canvas");
     if (!canvas) return;
 
-    // Apply color options based on selected template configuration
-    const videoTheme = data.templateConfig.theme; // 'light' or 'dark'
-    const accentId = data.templateConfig.accentColor;
-    const accentObj = THEME_ACCENT_COLORS.find(c => c.id === accentId) || THEME_ACCENT_COLORS[0];
-    const accentColor = accentObj.value;
-    const canvasTextColor = videoTheme === 'light' ? '#1e293b' : '#f8fafc';
-    const canvasMutedColor = videoTheme === 'light' ? '#475569' : '#cbd5e1';
+    const resolvedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || getVideoStylePreset(data.videoStyleId) || {};
+    const legacyTheme = data.templateConfig.theme;
+    const colorTheme = resolvedVideoStyle.colorTheme || {};
+    const canvasBackground = colorTheme.background || (legacyTheme === "light" ? "#f8f9fa" : "#0f172a");
+    const canvasSurface = colorTheme.surface || (legacyTheme === "light" ? "#ffffff" : "#1e293b");
+    const canvasSurfaceAlt = colorTheme.surfaceAlt || canvasSurface;
+    const canvasTextColor = colorTheme.text || (legacyTheme === "light" ? "#1e293b" : "#f8fafc");
+    const canvasMutedColor = colorTheme.mutedText || (legacyTheme === "light" ? "#475569" : "#cbd5e1");
+    const accentColor = colorTheme.accent || "#1f4fd8";
+    const canvasBorder = colorTheme.border || (legacyTheme === "light" ? "#e2e8f0" : "#334155");
 
-    canvas.style.backgroundColor = videoTheme === 'light' ? '#f8f9fa' : '#0f172a';
+    canvas.style.backgroundColor = canvasBackground;
     canvas.style.color = canvasTextColor;
 
     // Title Font Scale
@@ -6328,7 +6414,7 @@ const AppUI = (() => {
         innerHTML += `
           <div style="font-size: var(--font-xs); text-transform: uppercase; color:var(--color-danger); font-weight:700; margin-bottom: 8px; letter-spacing: 1px;">Thực trạng & Vấn đề</div>
           <h2 style="font-size: 20px; font-weight:700; margin-bottom:16px; max-width:500px; color:${canvasTextColor};">Nỗi đau & Vấn đề gặp phải là gì?</h2>
-          <p style="font-size: var(--font-base); max-content: 480px; padding: 12px var(--space-4); border-left: 4px solid var(--color-danger); background-color:${videoTheme === 'light' ? '#fee2e2' : '#7f1d1d33'}; color:${videoTheme === 'light' ? '#991b1b' : '#fca5a5'}; max-width:500px; text-align:left; border-radius: 0 4px 4px 0;">
+          <p style="font-size: var(--font-base); max-content: 480px; padding: 12px var(--space-4); border-left: 4px solid ${accentColor}; background-color:${canvasSurfaceAlt}; color:${canvasMutedColor}; max-width:500px; text-align:left; border-radius: 0 4px 4px 0;">
             ${data.problemContext || 'Nội dung mô tả vấn đề đang gặp phải chưa được điền...'}
           </p>
         `;
@@ -6352,7 +6438,7 @@ const AppUI = (() => {
           featsHTML = `
             <div style="display:flex; justify-content:center; gap:var(--space-3); width:100%; margin-top:8px;">
               ${activeFeats.map(f => `
-                <div style="flex:1; background:${videoTheme === 'light' ? '#ffffff' : '#1e293b'}; border: 1px solid ${videoTheme === 'light' ? '#e2e8f0' : '#334155'}; border-radius:6px; padding: var(--space-3); text-align:left;">
+                <div style="flex:1; background:${canvasSurface}; border: 1px solid ${canvasBorder}; border-radius:6px; padding: var(--space-3); text-align:left;">
                   <div style="font-weight:600; font-size:var(--font-sm); margin-bottom:4px; color:${accentColor};">${f.name}</div>
                   <div style="font-size:var(--font-xs); opacity:0.8; line-height:1.3;">${f.description.substring(0, 80)}${f.description.length > 80 ? '...' : ''}</div>
                 </div>
@@ -6379,7 +6465,7 @@ const AppUI = (() => {
               <div style="position:absolute; height:2px; background:${accentColor}; left:15%; right:15%; top:15px; z-index:1;"></div>
               ${activeMs.map(m => `
                 <div style="flex:1; display:flex; flex-direction:column; align-items:center; position:relative; z-index:2;">
-                  <div style="width:30px; height:30px; border-radius:50%; background:${accentColor}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; margin-bottom:8px; border:3px solid ${videoTheme === 'light' ? '#f8f9fa' : '#0f172a'};">
+                  <div style="width:30px; height:30px; border-radius:50%; background:${accentColor}; color:${canvasTextColor}; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; margin-bottom:8px; border:3px solid ${canvasBackground};">
                     ✓
                   </div>
                   <div style="font-weight:700; font-size:var(--font-xs);">${m.date}</div>

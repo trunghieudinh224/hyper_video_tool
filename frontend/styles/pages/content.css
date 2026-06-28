@@ -1,5 +1,114 @@
 /* Page-specific styles for Thiết lập video. */
 
+.content-video-style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.content-video-style-option {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.content-video-style-option:hover {
+  border-color: var(--color-border-strong);
+}
+
+.content-video-style-option.is-selected {
+  border-color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.content-video-style-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.content-video-style-option:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.content-video-style-preview {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  min-height: 78px;
+  border: 1px solid var(--style-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--style-bg);
+}
+
+.content-video-style-surface,
+.content-video-style-line,
+.content-video-style-accent {
+  display: block;
+  border-radius: 2px;
+}
+
+.content-video-style-surface {
+  width: 36%;
+  height: 9px;
+  background: var(--style-surface);
+}
+
+.content-video-style-line {
+  width: 70%;
+  height: 5px;
+  background: var(--style-muted);
+}
+
+.content-video-style-line.is-strong {
+  width: 88%;
+  height: 7px;
+  background: var(--style-text);
+}
+
+.content-video-style-accent {
+  width: 42%;
+  height: 6px;
+  background: var(--style-accent);
+}
+
+.content-video-style-copy {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.content-video-style-copy strong {
+  color: var(--color-text);
+  font-size: var(--font-sm);
+}
+
+.content-video-style-copy small,
+.content-video-style-copy span {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  line-height: 1.35;
+}
+
+.content-video-style-copy span {
+  font-weight: 800;
+}
+
+@media (max-width: 1200px) {
+  .content-video-style-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .content-form-block {
   display: grid;
   gap: var(--space-4);

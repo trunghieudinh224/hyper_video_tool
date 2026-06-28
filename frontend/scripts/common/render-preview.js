@@ -21,6 +21,30 @@ const AppRender = (() => {
     return /^[+-]\d+%$/.test(normalized) ? normalized : fallback;
   };
 
+  const resolveVideoStyle = (projectData = {}) => {
+    const styles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
+    const preset = styles.find((style) => style.id === projectData.videoStyleId) || styles[0] || null;
+    if (!preset) return null;
+
+    const overrides = projectData.videoStyleOverrides && typeof projectData.videoStyleOverrides === "object"
+      ? projectData.videoStyleOverrides
+      : {};
+    const override = overrides[preset.id] && typeof overrides[preset.id] === "object" ? overrides[preset.id] : {};
+    return {
+      ...preset,
+      ...override,
+      id: preset.id,
+      colorTheme: {
+        ...(preset.colorTheme || {}),
+        ...(override.colorTheme || {})
+      },
+      fontStyle: {
+        ...(preset.fontStyle || {}),
+        ...(override.fontStyle || {})
+      }
+    };
+  };
+
   const estimateSpeechDurationSeconds = (value) => {
     const text = normalizeText(value);
     if (!text) {
@@ -319,6 +343,7 @@ const AppRender = (() => {
     const voiceover = audio.voiceover || {};
     const voiceoverScript = normalizeText(voiceover.script) || buildVoiceoverScriptFromProject(projectData);
     const slotScenes = buildDynamicSlotScenes(projectData);
+    const videoStyle = resolveVideoStyle(projectData);
 
     return {
       version: "dynamic-motion-1.0.0",
@@ -333,7 +358,8 @@ const AppRender = (() => {
         variant: "default",
         config: {
           ...(projectData.templateConfig || {}),
-          theme: (projectData.templateConfig && projectData.templateConfig.theme) || "dark"
+          theme: (projectData.templateConfig && projectData.templateConfig.theme) || "dark",
+          videoStyle
         }
       },
       video: {
@@ -502,6 +528,7 @@ const AppRender = (() => {
       }
     ];
     const sceneVoiceoverScript = buildVoiceoverScriptFromScenes(scenes);
+    const videoStyle = resolveVideoStyle(projectData);
 
     return {
       version: "1.0.0",
@@ -513,11 +540,14 @@ const AppRender = (() => {
       },
       template: {
         id: effectiveRenderConfig.templateId || renderFormat.templateId,
-        config: projectData.templateConfig || {
-          theme: "dark",
-          accentColor: "blue",
-          fontSize: "default",
-          logoPosition: "top-left"
+        config: {
+          ...(projectData.templateConfig || {
+            theme: "dark",
+            accentColor: "blue",
+            fontSize: "default",
+            logoPosition: "top-left"
+          }),
+          videoStyle
         }
       },
       video: {

@@ -243,14 +243,14 @@
 
 .preview-free-slot.scene-item-style-filled {
   border-color: var(--preview-slot-border, color-mix(in srgb, var(--preview-accent) 60%, var(--preview-border)));
-  background: var(--preview-slot-bg, color-mix(in srgb, var(--preview-accent) 20%, var(--preview-surface)));
+  background: var(--preview-slot-bg, var(--preview-accent-soft));
   color: var(--preview-text);
 }
 
 .preview-free-slot.scene-item-style-pill {
   border-color: var(--preview-slot-border, var(--preview-border));
   border-radius: 999px;
-  background: var(--preview-slot-bg, color-mix(in srgb, var(--preview-accent) 14%, var(--preview-surface)));
+  background: var(--preview-slot-bg, var(--preview-accent-soft));
 }
 
 .preview-free-slot img {
@@ -335,13 +335,37 @@
 .preview-slot {
   min-width: 0;
   color: var(--preview-text);
-  transition: opacity 180ms ease, transform 180ms ease, filter 180ms ease;
+  transition: opacity var(--preview-motion-duration, 180ms) ease, transform var(--preview-motion-duration, 180ms) ease, filter var(--preview-motion-duration, 180ms) ease;
 }
 
 .preview-slot.is-pending {
   opacity: 0.18;
-  transform: translateY(10px);
+  transform: translateY(var(--preview-motion-distance, 10px));
   filter: blur(1px);
+}
+
+#preview-canvas.motion-style-minimal { --preview-motion-distance: 4px; --preview-motion-duration: 120ms; }
+#preview-canvas.motion-style-soft { --preview-motion-distance: 8px; --preview-motion-duration: 320ms; }
+#preview-canvas.motion-style-sharp { --preview-motion-distance: 16px; --preview-motion-duration: 100ms; }
+#preview-canvas.motion-style-dynamic { --preview-motion-distance: 12px; --preview-motion-duration: 220ms; }
+
+#preview-canvas.background-style-dark-grid {
+  background-image: linear-gradient(color-mix(in srgb, var(--preview-border) 32%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--preview-border) 32%, transparent) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+#preview-canvas.background-style-subtle-grid {
+  background-image: linear-gradient(color-mix(in srgb, var(--preview-border) 18%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--preview-border) 18%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+#preview-canvas.background-style-media-focus {
+  background-image: radial-gradient(circle at 50% 42%, var(--preview-surface-alt), var(--preview-bg) 68%);
+}
+
+#preview-canvas.background-style-clean-surface,
+#preview-canvas.background-style-plain {
+  background-image: none;
 }
 
 .preview-slot.is-visible {
@@ -399,7 +423,7 @@
 
 @keyframes preview-slot-display-glow-soft {
   0%, 100% { box-shadow: none; }
-  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--preview-slot-border, var(--preview-border)) 34%, transparent), 0 0 18px color-mix(in srgb, var(--preview-slot-border, var(--preview-border)) 28%, transparent); }
+  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--preview-slot-border, var(--preview-border)) 34%, transparent), 0 0 18px var(--preview-glow, transparent); }
 }
 
 .slot-logo {
