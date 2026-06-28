@@ -6793,12 +6793,30 @@ const AppUI = (() => {
 
       // Save to localStorage automatically on changes
       const saved = AppStorage.saveLocalData(data);
-      DOM.saveStatus.textContent = saved ? "Đã lưu nháp" : "Lưu nháp lỗi";
-      DOM.saveStatus.className = `status-pill status-${saved ? "success" : "danger"} ml-2`;
-      if (!saved) {
+      const backendEnabled = typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable();
+      if (backendEnabled && saved) {
+        DOM.saveStatus.textContent = "Đang lưu DB";
+        DOM.saveStatus.className = "status-pill status-warning ml-2";
+      } else {
+        DOM.saveStatus.textContent = saved ? "Đã lưu nháp" : "Lưu nháp lỗi";
+        DOM.saveStatus.className = `status-pill status-${saved ? "success" : "danger"} ml-2`;
+      }
+      if (!saved && !backendEnabled) {
         showToast("Không lưu được dữ liệu vào trình duyệt. Dữ liệu có thể quá lớn, hãy xóa asset lớn hoặc chuyển sang backend database/upload.", "error");
       }
       DOM.topbarProjectName.textContent = data.projectName || "Video chưa đặt tên";
+    });
+
+    window.addEventListener("backendProjectSaved", () => {
+      DOM.saveStatus.textContent = "Đã lưu DB";
+      DOM.saveStatus.className = "status-pill status-success ml-2";
+      AppState.setDirty(false);
+    });
+
+    window.addEventListener("backendProjectSaveFailed", (event) => {
+      DOM.saveStatus.textContent = "Lưu DB lỗi";
+      DOM.saveStatus.className = "status-pill status-danger ml-2";
+      showToast(`Không lưu được vào database: ${event.detail && event.detail.message ? event.detail.message : "lỗi không xác định"}`, "error");
     });
 
     AppState.subscribe("dirtyStateChanged", (isDirty) => {

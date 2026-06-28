@@ -5,6 +5,7 @@ const http = require("node:http");
 const path = require("node:path");
 const { config } = require("./config");
 const { handleOutputs } = require("./routes/outputs");
+const { handleProjects } = require("./routes/projects");
 const { handleRenderPreflight } = require("./routes/render-preflight");
 const { handleRenderJobs } = require("./routes/render-jobs");
 const { handleVoiceoverPreview } = require("./routes/voiceover-preview");
@@ -95,6 +96,13 @@ async function requestHandler(request, response) {
       }
     });
     return;
+  }
+
+  if (requestUrl.pathname === "/api/projects/current") {
+    const handled = await handleProjects(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
   }
 
   if (requestUrl.pathname === "/api/render-preflight") {

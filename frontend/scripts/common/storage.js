@@ -5,6 +5,8 @@ const AppStorage = (() => {
   const SETTINGS_KEY = "hyper_video_settings";
   const OUTPUTS_KEY = "hyper_video_outputs";
   const ACTIVE_RENDER_KEY = "hyper_video_active_render";
+  const BACKEND_SAVE_DEBOUNCE_MS = 500;
+  let backendSaveTimer = null;
   const DEFAULT_SETTINGS = {
     theme: "light",
     renderFolder: "outputs/",
@@ -306,27 +308,62 @@ const AppStorage = (() => {
     }
   };
 
+  const normalizeProjectData = (projectData = {}) => {
+    const normalizeVideoTemplate = (data = {}) => {
+      const formats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
+      const selectedFormat = formats.find((format) => format.id === (data.video && data.video.formatId))
+        || formats.find((format) => format.aspectRatio === (data.video && data.video.aspectRatio))
+        || formats.find((format) => format.templateId === data.templateId)
+        || null;
+      if (!selectedFormat || data.templateId === selectedFormat.templateId) {
+        return data;
+      }
+      return {
+        ...data,
+        templateId: selectedFormat.templateId
+      };
+    };
+
+    return normalizeVideoTemplate({
+      ...JSON.parse(JSON.stringify(INITIAL_PROJECT_DATA)),
+      ...projectData,
+      templateConfig: {
+        ...INITIAL_PROJECT_DATA.templateConfig,
+        ...(projectData.templateConfig || {})
+      },
+      audio: {
+        ...INITIAL_PROJECT_DATA.audio,
+        ...(projectData.audio || {}),
+        voiceover: {
+          ...INITIAL_PROJECT_DATA.audio.voiceover,
+          ...((projectData.audio && projectData.audio.voiceover) || {})
+        }
+      },
+      voiceover: {
+        ...INITIAL_PROJECT_DATA.voiceover,
+        ...(projectData.voiceover || {}),
+        sceneScripts: {
+          ...INITIAL_PROJECT_DATA.voiceover.sceneScripts,
+          ...((projectData.voiceover && projectData.voiceover.sceneScripts) || {})
+        }
+      },
+      video: {
+        ...INITIAL_PROJECT_DATA.video,
+        ...(projectData.video || {})
+      },
+      features: Array.isArray(projectData.features) ? projectData.features : [],
+      milestones: Array.isArray(projectData.milestones) ? projectData.milestones : [],
+      assets: Array.isArray(projectData.assets) ? projectData.assets : []
+    });
+  };
+
   const loadLocalData = () => {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (!data) {
         return null;
       }
-      const normalizeVideoTemplate = (projectData = {}) => {
-        const formats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
-        const selectedFormat = formats.find((format) => format.id === (projectData.video && projectData.video.formatId))
-          || formats.find((format) => format.aspectRatio === (projectData.video && projectData.video.aspectRatio))
-          || formats.find((format) => format.templateId === projectData.templateId)
-          || null;
-        if (!selectedFormat || projectData.templateId === selectedFormat.templateId) {
-          return projectData;
-        }
-        return {
-          ...projectData,
-          templateId: selectedFormat.templateId
-        };
-      };
-      const parsed = normalizeVideoTemplate(JSON.parse(data));
+      const parsed = normalizeProjectData(JSON.parse(data));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       return parsed;
     } catch (e) {
@@ -335,13 +372,54 @@ const AppStorage = (() => {
     }
   };
 
+  const loadProjectData = async () => {
+    if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+      try {
+        const project = await AppBackendApi.loadCurrentProject();
+        if (project) {
+          const normalized = normalizeProjectData(project);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+          } catch (_error) {}
+          return normalized;
+        }
+      } catch (_error) {}
+    }
+
+    return loadLocalData();
+  };
+
+  const scheduleBackendProjectSave = (data) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable()) {
+      return;
+    }
+
+    if (backendSaveTimer) {
+      window.clearTimeout(backendSaveTimer);
+    }
+
+    const snapshot = JSON.parse(JSON.stringify(data));
+    backendSaveTimer = window.setTimeout(async () => {
+      try {
+        await AppBackendApi.saveCurrentProject(snapshot);
+        window.dispatchEvent(new CustomEvent("backendProjectSaved"));
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent("backendProjectSaveFailed", {
+          detail: { message: error.message }
+        }));
+      }
+    }, BACKEND_SAVE_DEBOUNCE_MS);
+  };
+
   const saveLocalData = (data) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       AppState.setDirty(false);
+      scheduleBackendProjectSave(data);
       return true;
     } catch (e) {
       console.error("Lỗi khi lưu local data:", e);
+      scheduleBackendProjectSave(data);
       return false;
     }
   };
@@ -426,6 +504,7 @@ const AppStorage = (() => {
   };
 
   return {
+    loadProjectData,
     loadLocalData,
     saveLocalData,
     loadSettings,

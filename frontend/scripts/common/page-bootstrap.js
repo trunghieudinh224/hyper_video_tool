@@ -20,7 +20,7 @@ const HyperVideoPage = (() => {
     return !hasText && !hasCollections;
   };
 
-  const boot = (page) => {
+  const boot = async (page) => {
     const currentPage = page || AppNavigation.getCurrentPage();
 
     AppShell.mount(currentPage);
@@ -30,7 +30,7 @@ const HyperVideoPage = (() => {
     AppUI.initTheme();
     AppUI.initGlobalEvents();
 
-    const projectData = AppStorage.loadLocalData();
+    const projectData = AppStorage.loadProjectData ? await AppStorage.loadProjectData() : AppStorage.loadLocalData();
     const initialProjectData = isBlankProjectData(projectData) ? AppStorage.loadSampleData() : projectData;
     AppState.setProjectData(initialProjectData, true);
 

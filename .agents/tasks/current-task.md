@@ -4,6 +4,43 @@
 
 in_progress
 
+## Backend Database Roadmap Phase 1 - SQLite Project Snapshot API
+
+### Objective
+
+Đưa project/video draft ra khỏi cơ chế client-only `localStorage` bằng slice đầu tiên: backend local tạo SQLite database, có API đọc/ghi project hiện tại, frontend boot từ backend trước và autosave ngược về backend.
+
+### Summary
+
+- Thêm `databasePath` vào backend config, mặc định `data/hyper-video-tool.sqlite`.
+- Thêm schema SQLite MVP gồm `app_meta` và `projects`.
+- Thêm adapter DB dùng `sqlite3` CLI có sẵn trên máy, có `HVT_SQLITE_BIN` override và lỗi rõ nếu thiếu binary.
+- Thêm `GET /api/projects/current` để init/load project mặc định từ `data/sample-project.json` nếu DB trống.
+- Thêm `PUT /api/projects/current` để lưu project snapshot JSON hiện tại.
+- Thêm frontend API helper `AppBackendApi`.
+- Page boot chuyển sang async, ưu tiên load project từ backend rồi fallback `localStorage`/sample nếu API lỗi.
+- `saveLocalData()` vẫn giữ local cache nhưng debounce autosave backend 500ms.
+- Topbar hiển thị `Đang lưu DB`, `Đã lưu DB` hoặc `Lưu DB lỗi` theo event backend save thật.
+- Các page HTML include `api.js` trước `storage.js`.
+- Phase này chưa xử lý upload binary asset thật và chưa chuyển settings sang DB.
+
+### Test Report
+
+Status: passed
+
+- `node --check backend/src/db/database.js` pass.
+- `node --check backend/src/routes/projects.js` pass.
+- `node --check backend/src/server.js` pass.
+- `node --check frontend/scripts/common/api.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/page-bootstrap.js` pass.
+- `npm --prefix backend run check` pass.
+- API persistence smoke pass với DB tạm `/private/tmp/hvt-db-roadmap-smoke.sqlite`: GET default, PUT đổi tên project, đọc lại sau close server vẫn còn.
+- Chrome headless smoke pass qua backend `http://127.0.0.1:4178/pages/overview.html`: DOM render được shell và project từ DB.
+- Chrome headless smoke với `--virtual-time-budget=2500` pass: topbar save status chuyển từ `Đang lưu DB` sang `Đã lưu DB`.
+- `git diff --check` pass.
+- Không tạo/commit runtime SQLite trong `data/`; `.gitignore` đã có `*.sqlite`.
+
 ## Roadmap Phase 4.5 Slice 1 - Style Detail Popup Và Vertical Scene Wireframe
 
 ### Objective

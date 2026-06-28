@@ -9,6 +9,8 @@ const config = {
   port: Number.parseInt(process.env.HVT_PORT || "3000", 10),
   projectRoot,
   frontendDir: path.join(projectRoot, "frontend"),
+  databasePath: process.env.HVT_DATABASE_PATH || path.join(projectRoot, "data", "hyper-video-tool.sqlite"),
+  sqliteBin: process.env.HVT_SQLITE_BIN || "sqlite3",
   outputsDir: path.join(projectRoot, "outputs"),
   audioCacheMaxBytes: Number.parseInt(process.env.HVT_AUDIO_CACHE_MAX_MB || "200", 10) * 1024 * 1024,
   audioCacheMaxAgeDays: Number.parseInt(process.env.HVT_AUDIO_CACHE_MAX_AGE_DAYS || "7", 10)
