@@ -107,6 +107,48 @@ assert.equal(
   `Dynamic horizontal payload should be valid: ${JSON.stringify(dynamicHorizontalValidation.errors)}`
 );
 
+const dynamicSlotPayload = {
+  ...dynamicPayload,
+  scenes: [
+    {
+      id: "scene-slot-test",
+      type: "slot",
+      headline: "Slot scene",
+      body: "Generated from template segment slots.",
+      duration: {
+        mode: "fixed",
+        min: 4,
+        max: 4
+      },
+      background: {
+        type: "color",
+        color: "#111827"
+      },
+      sceneTemplate: {
+        id: "intro-stack",
+        name: "Intro Stack",
+        slots: []
+      },
+      slots: [
+        {
+          id: "slot-title",
+          type: "text",
+          label: "Title",
+          value: "Slot Title",
+          layout: {
+            x: 8,
+            y: 10,
+            width: 84,
+            height: 20
+          }
+        }
+      ]
+    }
+  ]
+};
+const dynamicSlotValidation = validateRenderPayload(dynamicSlotPayload);
+assert.equal(dynamicSlotValidation.valid, true, `Dynamic slot payload should be valid: ${JSON.stringify(dynamicSlotValidation.errors)}`);
+
 const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");
 assert.equal(fallbackPayload.source.projectSlug, "untitled-project");

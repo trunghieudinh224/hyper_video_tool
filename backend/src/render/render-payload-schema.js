@@ -55,6 +55,7 @@ const DYNAMIC_SCENE_TYPES = new Set([
   "media",
   "cards",
   "steps",
+  "slot",
   "outro"
 ]);
 
