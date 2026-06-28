@@ -100,7 +100,7 @@ async function requestHandler(request, response) {
     return;
   }
 
-  if (requestUrl.pathname === "/api/projects/current") {
+  if (requestUrl.pathname.startsWith("/api/projects")) {
     const handled = await handleProjects(request, response, requestUrl, sendJson);
     if (handled) {
       return;

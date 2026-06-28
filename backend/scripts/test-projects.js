@@ -1,0 +1,112 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { Readable } = require("node:stream");
+
+const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hvt-projects-test-"));
+process.env.HVT_DATABASE_PATH = path.join(testRoot, "test.sqlite");
+
+const {
+  archiveProject,
+  createProject,
+  duplicateProject,
+  getActiveProject,
+  getCurrentProject,
+  getProject,
+  listProjects,
+  saveProject,
+  setActiveProject
+} = require("../src/db/database");
+const { handleProjects } = require("../src/routes/projects");
+
+function project(overrides = {}) {
+  const name = overrides.projectName || "Project Alpha";
+  return {
+    projectName: name,
+    projectSlug: overrides.projectSlug || name.toLowerCase().replaceAll(" ", "-"),
+    contentType: overrides.contentType || "explainer",
+    features: overrides.features || []
+  };
+}
+
+function jsonRequest(method, pathname, body = null) {
+  const request = Readable.from(body === null ? [] : [JSON.stringify(body)]);
+  request.method = method;
+  request.url = pathname;
+  return request;
+}
+
+function captureResponse() {
+  return {
+    statusCode: 0,
+    payload: null
+  };
+}
+
+function sendJson(response, statusCode, payload) {
+  response.statusCode = statusCode;
+  response.payload = payload;
+}
+
+async function run() {
+  const first = getActiveProject();
+  assert.equal(first.slug, "codegraph-ai-agent-intro");
+  assert.equal(getCurrentProject().id, first.id);
+  assert.equal(listProjects().length, 1);
+
+  const second = createProject(project({ projectName: "Project Beta", projectSlug: "project-beta" }), { activate: true });
+  assert.notEqual(second.id, first.id);
+  assert.equal(second.name, "Project Beta");
+  assert.equal(getActiveProject().id, second.id);
+  assert.deepEqual(listProjects().map((item) => item.id), [second.id, first.id]);
+
+  const updatedSecond = saveProject(second.id, project({
+    projectName: "Project Beta Updated",
+    projectSlug: "project-beta-updated",
+    contentType: "launch-video",
+    features: [{ id: "feature-1", title: "Feature 1" }]
+  }));
+  assert.equal(updatedSecond.name, "Project Beta Updated");
+  assert.equal(updatedSecond.slug, "project-beta-updated");
+  assert.equal(updatedSecond.contentType, "launch-video");
+  assert.equal(updatedSecond.project.features.length, 1);
+  assert.equal(getProject(second.id).project.features[0].title, "Feature 1");
+
+  setActiveProject(first.id);
+  assert.equal(getActiveProject().id, first.id);
+
+  const duplicated = duplicateProject(first.id, { activate: true });
+  assert.notEqual(duplicated.id, first.id);
+  assert.equal(duplicated.name, `${first.name} Copy`);
+  assert.equal(duplicated.slug, `${first.slug}-copy`);
+  assert.equal(getActiveProject().id, duplicated.id);
+
+  const archived = archiveProject(duplicated.id);
+  assert.equal(archived.status, "archived");
+  assert.ok(archived.archivedAt);
+  assert.notEqual(getActiveProject().id, duplicated.id);
+  assert.equal(listProjects().some((item) => item.id === duplicated.id), false);
+  assert.equal(listProjects({ includeArchived: true }).some((item) => item.id === duplicated.id), true);
+
+  assert.throws(() => setActiveProject(duplicated.id), /Cannot activate archived project/);
+
+  const response = captureResponse();
+  const handled = await handleProjects(
+    jsonRequest("POST", "/api/projects"),
+    response,
+    new URL("http://localhost/api/projects"),
+    sendJson
+  );
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 201);
+  assert.equal(response.payload.data.meta.slug, "codegraph-ai-agent-intro");
+}
+
+run()
+  .then(() => {
+  process.stdout.write("Project persistence tests passed.\n");
+  })
+  .finally(() => fs.rmSync(testRoot, { recursive: true, force: true }));

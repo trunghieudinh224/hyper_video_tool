@@ -1,6 +1,18 @@
 "use strict";
 
-const { ensureCurrentProject, saveCurrentProject } = require("../db/database");
+const {
+  archiveProject,
+  createProject,
+  duplicateProject,
+  ensureCurrentProject,
+  getActiveProject,
+  getProject,
+  listProjects,
+  readDefaultProject,
+  saveCurrentProject,
+  saveProject,
+  setActiveProject
+} = require("../db/database");
 
 const MAX_BODY_BYTES = 1024 * 1024 * 8;
 
@@ -40,6 +52,35 @@ function readJsonBody(request) {
   });
 }
 
+function readOptionalJsonBody(request) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (Buffer.byteLength(body) > MAX_BODY_BYTES) {
+        reject(createHttpError(413, "Request body is too large."));
+        request.destroy();
+      }
+    });
+
+    request.on("end", () => {
+      if (!body.trim()) {
+        resolve(null);
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(body));
+      } catch (_error) {
+        reject(createHttpError(400, "Request body must be valid JSON."));
+      }
+    });
+
+    request.on("error", reject);
+  });
+}
+
 function sendMethodNotAllowed(sendJson, response) {
   sendJson(response, 405, {
     success: false,
@@ -48,31 +89,55 @@ function sendMethodNotAllowed(sendJson, response) {
   });
 }
 
+function getProjectMeta(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    contentType: row.contentType || "",
+    status: row.status || "draft",
+    thumbnailUrl: row.thumbnailUrl || "",
+    lastRenderedOutputId: row.lastRenderedOutputId || "",
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    archivedAt: row.archivedAt || null
+  };
+}
+
+function sendProject(sendJson, response, row, message = "Project loaded.") {
+  sendJson(response, 200, {
+    success: true,
+    message,
+    data: {
+      project: row.project,
+      meta: getProjectMeta(row)
+    }
+  });
+}
+
+function parseProjectIdFromPath(pathname) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)(?:\/(archive|duplicate))?$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    id: decodeURIComponent(match[1]),
+    action: match[2] || ""
+  };
+}
+
 async function handleProjects(request, response, requestUrl, sendJson) {
-  if (requestUrl.pathname !== "/api/projects/current") {
+  if (!requestUrl.pathname.startsWith("/api/projects")) {
     return false;
   }
 
-  if (request.method === "GET") {
+  if (requestUrl.pathname === "/api/projects/current" && request.method === "GET") {
     const row = ensureCurrentProject();
-    sendJson(response, 200, {
-      success: true,
-      message: "Current project loaded.",
-      data: {
-        project: row.project,
-        meta: {
-          id: row.id,
-          name: row.name,
-          slug: row.slug,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt
-        }
-      }
-    });
+    sendProject(sendJson, response, row, "Current project loaded.");
     return true;
   }
 
-  if (request.method === "PUT") {
+  if (requestUrl.pathname === "/api/projects/current" && request.method === "PUT") {
     try {
       const body = await readJsonBody(request);
       if (!body || typeof body !== "object" || Array.isArray(body) || !body.project || typeof body.project !== "object" || Array.isArray(body.project)) {
@@ -82,24 +147,148 @@ async function handleProjects(request, response, requestUrl, sendJson) {
       }
 
       const row = saveCurrentProject(body.project);
-      sendJson(response, 200, {
+      sendProject(sendJson, response, row, "Current project saved.");
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot save current project.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  if (requestUrl.pathname === "/api/projects/active" && request.method === "GET") {
+    const row = getActiveProject();
+    sendProject(sendJson, response, row, "Active project loaded.");
+    return true;
+  }
+
+  if (requestUrl.pathname === "/api/projects/active" && request.method === "PUT") {
+    try {
+      const body = await readJsonBody(request);
+      if (!body || typeof body !== "object" || Array.isArray(body) || typeof body.projectId !== "string" || !body.projectId.trim()) {
+        throw createHttpError(422, "Request body must include projectId.", {
+          projectId: "required_string"
+        });
+      }
+      const row = setActiveProject(body.projectId.trim());
+      sendProject(sendJson, response, row, "Active project changed.");
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot change active project.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  if (requestUrl.pathname === "/api/projects" && request.method === "GET") {
+    const projects = listProjects({
+      includeArchived: requestUrl.searchParams.get("includeArchived") === "1"
+    });
+    sendJson(response, 200, {
+      success: true,
+      message: "Projects loaded.",
+      data: {
+        projects
+      }
+    });
+    return true;
+  }
+
+  if (requestUrl.pathname === "/api/projects" && request.method === "POST") {
+    try {
+      const body = await readOptionalJsonBody(request);
+      const project = body && body.project && typeof body.project === "object" && !Array.isArray(body.project)
+        ? body.project
+        : readDefaultProject();
+      const row = createProject(project, { activate: body && body.activate !== false });
+      sendJson(response, 201, {
         success: true,
-        message: "Current project saved.",
+        message: "Project created.",
         data: {
           project: row.project,
-          meta: {
-            id: row.id,
-            name: row.name,
-            slug: row.slug,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt
-          }
+          meta: getProjectMeta(row)
         }
       });
     } catch (error) {
       sendJson(response, error.statusCode || 500, {
         success: false,
-        message: error.message || "Cannot save current project.",
+        message: error.message || "Cannot create project.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  const projectPath = parseProjectIdFromPath(requestUrl.pathname);
+  if (projectPath && projectPath.action === "" && request.method === "GET") {
+    const row = getProject(projectPath.id);
+    if (!row) {
+      sendJson(response, 404, {
+        success: false,
+        message: "Project not found.",
+        errors: {
+          projectId: "not_found"
+        }
+      });
+      return true;
+    }
+    sendProject(sendJson, response, row, "Project loaded.");
+    return true;
+  }
+
+  if (projectPath && projectPath.action === "" && request.method === "PUT") {
+    try {
+      const body = await readJsonBody(request);
+      if (!body || typeof body !== "object" || Array.isArray(body) || !body.project || typeof body.project !== "object" || Array.isArray(body.project)) {
+        throw createHttpError(422, "Request body must include project object.", {
+          project: "required_object"
+        });
+      }
+      const row = saveProject(projectPath.id, body.project);
+      sendProject(sendJson, response, row, "Project saved.");
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot save project.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  if (projectPath && projectPath.action === "archive" && request.method === "POST") {
+    try {
+      const row = archiveProject(projectPath.id);
+      sendProject(sendJson, response, row, "Project archived.");
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot archive project.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  if (projectPath && projectPath.action === "duplicate" && request.method === "POST") {
+    try {
+      const row = duplicateProject(projectPath.id, { activate: true });
+      sendJson(response, 201, {
+        success: true,
+        message: "Project duplicated.",
+        data: {
+          project: row.project,
+          meta: getProjectMeta(row)
+        }
+      });
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot duplicate project.",
         errors: error.errors || null
       });
     }
