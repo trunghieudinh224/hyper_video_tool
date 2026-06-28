@@ -17,296 +17,450 @@ const AppStorage = (() => {
     }
   };
   let settingsCache = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  const HIEU1_FEATURE_CARD_ITEMS = [
-    {
-      id: "feat_1",
-      type: "intro",
-      name: "CodeGraph là bản đồ hiểu code",
-      description: "Index file, symbol và call edge thành graph cục bộ để agent tra cứu nhanh bằng MCP.",
-      benefit: "Agent có ngữ cảnh đúng trước khi sửa code, thay vì mở từng file bằng grep thủ công.",
-      voiceoverScript: "CodeGraph là bản đồ symbol và call graph cục bộ giúp agent hiểu code nhanh hơn trước khi migrate.",
-      durationSec: 8,
-      useInVideo: true
-    },
-    {
-      id: "feat_2",
-      type: "problem",
-      name: "G và S rất dễ đọc nhầm",
-      description: "Project có nhiều class trùng tên, nên phải phân biệt đúng path như MgsV3 và MgsV4.",
-      benefit: "Tránh lấy nhầm logic nguồn hoặc áp sai API vào bản đích.",
-      voiceoverScript: "Khi migrate, điểm nguy hiểm là đọc nhầm giữa G và S vì nhiều class có tên giống nhau.",
-      durationSec: 10,
-      useInVideo: true
-    },
-    {
-      id: "feat_3",
-      type: "workflow",
-      name: "Chọn đúng tool cho đúng câu hỏi",
-      description: "Dùng explore để hiểu flow, search + node để mở symbol chính xác, callers/callees/impact để kiểm quan hệ gọi.",
-      benefit: "Mỗi truy vấn có mục đích rõ, giảm việc đọc lan man và giảm sai context.",
-      voiceoverScript: "Không phải case nào cũng grep. CodeGraph có explore, search, node, callers, callees và impact cho từng kiểu câu hỏi.",
-      durationSec: 9,
-      useInVideo: true
-    },
-    {
-      id: "feat_4",
-      type: "result",
-      name: "Graph không thay thế build/test",
-      description: "Sau khi sửa code, agent vẫn phải kiểm staleness, build, test và review diff.",
-      benefit: "CodeGraph giúp định hướng nhanh, còn compiler và test mới xác nhận thay đổi đúng.",
-      voiceoverScript: "CodeGraph giúp hiểu nhanh hơn, nhưng không thay thế build, test và review migration diff.",
-      durationSec: 8,
-      useInVideo: true
-    }
-  ];
-  const HIEU1_VIDEO_SCENES = [
-    {
-      id: "scene_intro",
-      type: "intro",
-      name: "CodeGraph trong Migration Agent",
-      description: "Bản đồ symbol và call graph giúp agent đọc đúng code trước khi migrate.",
-      benefit: "Migration Agent",
-      voiceoverScript: "CodeGraph là bản đồ symbol và call graph cục bộ giúp agent hiểu code nhanh hơn trước khi migrate.",
-      durationSec: 6,
-      useInVideo: true,
-      sceneTemplateId: "intro-stack",
-      slots: {
-        logo: { type: "asset", assetId: "asset_1", delay: 0, animation: "scale-in", enabled: true },
-        kicker: { type: "text", text: "PROJECT SHOWCASE", delay: 0, animation: "fade-up", enabled: true },
-        title: { type: "text", text: "CodeGraph trong Migration Agent", delay: 0.4, animation: "fade-up", enabled: true },
-        description: { type: "text", text: "Bản đồ symbol và call graph giúp agent đọc đúng code trước khi migrate.", delay: 1.5, animation: "fade-up", enabled: true },
-        tag: { type: "tag", text: "Migration Agent", delay: 2.5, animation: "pop", enabled: true }
-      }
-    },
-    {
-      id: "scene_problem",
-      type: "problem",
-      name: "Vấn đề cần giải quyết",
-      description: "Trong project Java NetBeans có nhiều class và method trùng tên giữa G và S. Nếu agent đọc nhầm path, logic migrate rất dễ lệch.",
-      benefit: "Dùng khi cần hiểu feature, lần theo call flow, kiểm tra impact trước khi sửa hoặc xác nhận symbol đúng path.",
-      voiceoverScript: "Khi migrate, điểm nguy hiểm là đọc nhầm giữa G và S vì nhiều class có tên giống nhau.",
-      durationSec: 10,
-      useInVideo: true,
-      sceneTemplateId: "intro-stack",
-      slots: {
-        logo: { type: "asset", assetId: "asset_3", delay: 0, animation: "scale-in", enabled: true },
-        kicker: { type: "text", text: "THỰC TRẠNG", delay: 0, animation: "fade-up", enabled: true },
-        title: { type: "text", text: "Vấn đề cần giải quyết", delay: 0.4, animation: "fade-up", enabled: true },
-        description: { type: "text", text: "Trong project Java NetBeans có nhiều class và method trùng tên giữa G và S. Nếu agent đọc nhầm path, logic migrate rất dễ lệch.", delay: 1.5, animation: "fade-up", enabled: true },
-        tag: { type: "tag", text: "Migration risk", delay: 2.5, animation: "pop", enabled: true }
-      }
-    },
-    {
-      id: "scene_solution",
-      type: "solution",
-      name: "Cách sản phẩm tạo giá trị",
-      description: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.",
-      benefit: "CodeGraph tăng tốc đọc hiểu code, nhưng quyết định migrate cuối cùng vẫn phải theo style/API của bản S và được kiểm bằng build/test.",
-      voiceoverScript: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.",
-      durationSec: 10,
-      useInVideo: true,
-      sceneTemplateId: "intro-stack",
-      slots: {
-        logo: { type: "asset", assetId: "asset_2", delay: 0, animation: "scale-in", enabled: true },
-        kicker: { type: "text", text: "GIẢI PHÁP", delay: 0, animation: "fade-up", enabled: true },
-        title: { type: "text", text: "Cách sản phẩm tạo giá trị", delay: 0.4, animation: "fade-up", enabled: true },
-        description: { type: "text", text: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.", delay: 1.5, animation: "fade-up", enabled: true },
-        tag: { type: "tag", text: "MCP context", delay: 2.5, animation: "pop", enabled: true }
-      }
-    },
-    {
-      id: "scene_feature_cards",
-      type: "features",
-      name: "Các chức năng cốt lõi",
-      description: "CodeGraph gom symbol, path, tool query và guardrail build/test thành một flow đọc hiểu code trước khi migrate.",
-      benefit: "Không phải case nào cũng grep.",
-      voiceoverScript: "Không phải case nào cũng grep. CodeGraph có explore, search, node, callers, callees và impact cho từng kiểu câu hỏi.",
-      durationSec: 18,
-      useInVideo: true,
-      sceneTemplateId: "grid-feature",
-      featureItems: HIEU1_FEATURE_CARD_ITEMS,
-      slots: {
-        header: { type: "text", text: "TÍNH NĂNG NỔI BẬT", delay: 0, animation: "fade-up", enabled: true },
-        title: { type: "text", text: "Các chức năng cốt lõi", delay: 0.5, animation: "fade-up", enabled: true },
-        grid: {
-          type: "list",
-          items: [
-            "CodeGraph là bản đồ hiểu code",
-            "G và S rất dễ đọc nhầm",
-            "Chọn đúng tool cho đúng câu hỏi",
-            "Graph không thay thế build/test"
-          ],
-          delay: 1.2,
-          animation: "pop",
-          enabled: true
-        },
-        description: { type: "text", text: "Index đúng context, query đúng tool, rồi vẫn kiểm chứng bằng build/test.", delay: 4, animation: "fade-up", enabled: true }
-      }
-    },
-    {
-      id: "scene_timeline",
-      type: "timeline",
-      name: "Các cột mốc quan trọng",
-      description: "Link workspace, index graph, query đúng path, adapt vào S rồi build và review.",
-      benefit: "Index đúng -> hỏi đúng -> adapt đúng.",
-      voiceoverScript: "Quy trình nên đi từ link workspace, index graph, query đúng path, adapt vào S, rồi build và review.",
-      durationSec: 14,
-      useInVideo: true,
-      sceneTemplateId: "step-flow",
-      slots: {
-        title: { type: "text", text: "Các cột mốc quan trọng", delay: 0, animation: "fade-up", enabled: true },
-        steps: {
-          type: "list",
-          items: ["Link workspace", "Index graph", "Query đúng path", "Adapt vào S", "Build và review"],
-          delay: 1,
-          animation: "slide-left",
-          enabled: true
-        },
-        note: { type: "text", text: "Đọc hiểu nhanh hơn, nhưng vẫn phải kiểm diff và test.", delay: 4, animation: "fade-up", enabled: true }
-      }
-    },
-    {
-      id: "scene_impact",
-      type: "impact",
-      name: "Kết quả đạt được",
-      description: "Giảm thời gian mò file thủ công, giảm rủi ro copy nhầm logic G sang S và giúp review migration diff có cơ sở hơn.",
-      benefit: "Giảm thời gian mò file",
-      voiceoverScript: "CodeGraph giúp hiểu nhanh hơn, nhưng không thay thế build, test và review migration diff.",
-      durationSec: 10,
-      useInVideo: true,
-      sceneTemplateId: "intro-stack",
-      slots: {
-        logo: { type: "asset", assetId: "asset_1", delay: 0, animation: "scale-in", enabled: true },
-        kicker: { type: "text", text: "TÁC ĐỘNG", delay: 0, animation: "fade-up", enabled: true },
-        title: { type: "text", text: "Kết quả đạt được", delay: 0.4, animation: "fade-up", enabled: true },
-        description: { type: "text", text: "Giảm thời gian mò file thủ công, giảm rủi ro copy nhầm logic G sang S và giúp review migration diff có cơ sở hơn.", delay: 1.5, animation: "fade-up", enabled: true },
-        tag: { type: "tag", text: "Giảm thời gian mò file", delay: 2.5, animation: "pop", enabled: true }
-      }
-    },
-    {
-      id: "scene_outro",
-      type: "outro",
-      name: "Cảm ơn đã theo dõi",
-      description: "Dùng CodeGraph để giảm mù context, rồi vẫn phải build, test và review theo chuẩn migration.",
-      benefit: "Migration Agent",
-      voiceoverScript: "Dùng CodeGraph để giảm mù context, rồi vẫn phải build, test và review theo chuẩn migration.",
-      durationSec: 6,
-      useInVideo: true,
-      sceneTemplateId: "outro-cta",
-      slots: {
-        logo: { type: "asset", assetId: "asset_1", delay: 0, animation: "scale-in", enabled: true },
-        title: { type: "text", text: "Cảm ơn đã theo dõi", delay: 0.4, animation: "fade-up", enabled: true },
-        cta: { type: "text", text: "Dùng CodeGraph để giảm mù context, rồi vẫn build/test/review.", delay: 1.5, animation: "pop", enabled: true },
-        tag: { type: "tag", text: "Migration Agent", delay: 2.5, animation: "fade-up", enabled: true }
-      }
-    }
-  ];
-
   // Embedded sample data keeps the static app clean under file:// and simple static servers.
   const STATIC_SAMPLE_DATA = {
-    projectName: "CodeGraph trong Migration Agent",
-    projectSlug: "codegraph-migration-agent",
-    contentType: "technical-module",
-    tagline: "Bản đồ symbol và call graph giúp agent đọc đúng code trước khi migrate.",
-    ownerTeam: "Migration Agent",
-    presenterRole: "Onboarding Guide",
-    shortSummary: "CodeGraph index source code thành graph cục bộ để agent tra symbol, callers, callees và vùng impact qua MCP.",
-    videoGoal: "Giúp người mới hiểu khi nào dùng CodeGraph, dùng tool nào và vì sao không nên grep thủ công mọi thứ.",
-    mainMessage: "CodeGraph tăng tốc đọc hiểu code, nhưng quyết định migrate cuối cùng vẫn phải theo style/API của bản S và được kiểm bằng build/test.",
-    contentTone: "technical",
-    contentLanguage: "vi-VN",
-    scriptDisplayMode: "sequence",
-    primaryAssetId: "asset_2",
-    problemContext: "Trong project Java NetBeans có nhiều class và method trùng tên giữa G và S. Nếu agent đọc nhầm path, logic migrate rất dễ lệch.",
-    solutionWhat: "CodeGraph parse source bằng tree-sitter, tạo node/edge, lưu SQLite và expose các truy vấn qua MCP để agent hỏi đúng ngữ cảnh.",
-    targetUsers: "Agent hoặc developer đang migrate logic từ bản G sang bản S trong Migration Agent.",
-    useCase: "Dùng khi cần hiểu feature, lần theo call flow, kiểm tra impact trước khi sửa hoặc xác nhận symbol đúng path.",
-    keyHighlight: "Ưu tiên dùng explore để đọc một vùng/luồng chính; dùng search + node khi tên bị trùng; dùng callers/callees/impact để kiểm tra quan hệ gọi.",
-    resultImpact: "Giảm thời gian mò file thủ công, giảm rủi ro copy nhầm logic G sang S và giúp review migration diff có cơ sở hơn.",
-    endingNote: "Dùng CodeGraph để giảm mù context, rồi vẫn phải build, test và review theo chuẩn migration.",
-    features: HIEU1_VIDEO_SCENES,
-    milestones: [
+    "projectName": "Codegraph cho AI Agent",
+    "projectSlug": "codegraph-ai-agent-intro",
+    "contentType": "technical-module",
+    "tagline": "Bản đồ symbol và call graph giúp agent hiểu codebase trước khi sửa.",
+    "ownerTeam": "Codegraph",
+    "presenterRole": "Developer Tooling Guide",
+    "shortSummary": "Codegraph là lớp code intelligence cục bộ: parse source thành graph, cho agent query symbol, caller/callee, dependency path và impact nhanh hơn đọc file thủ công.",
+    "videoGoal": "Giới thiệu Codegraph như một công cụ giúp AI agent và developer hiểu codebase nhanh, có ngữ cảnh và ít đoán mò hơn.",
+    "mainMessage": "Thay vì bắt agent grep và mở file lan man, Codegraph cho agent hỏi trực tiếp vào bản đồ cấu trúc code.",
+    "contentTone": "technical",
+    "contentLanguage": "vi-VN",
+    "scriptDisplayMode": "sequence",
+    "primaryAssetId": "asset_codegraph_map",
+    "problemContext": "Khi codebase lớn, chỉ tìm text là không đủ. Một tên hàm có thể xuất hiện ở nhiều nơi, flow có thể đi qua nhiều lớp, và agent dễ đọc thiếu context trước khi sửa.",
+    "solutionWhat": "Codegraph index source code thành knowledge graph cục bộ gồm file, symbol, định nghĩa, caller/callee và quan hệ phụ thuộc. Agent dùng tool query graph để đọc đúng vùng code cần hiểu.",
+    "targetUsers": "AI coding agent, developer đang onboarding codebase lớn, hoặc team cần phân tích impact trước khi refactor.",
+    "useCase": "Dùng khi cần hiểu một module, tìm symbol chính xác, lần theo flow gọi hàm, kiểm tra impact thay đổi, hoặc trả lời câu hỏi kiến trúc từ source thật.",
+    "keyHighlight": "Codegraph không thay thế compiler/test; nó giảm thời gian tìm hiểu code và làm agent hỏi đúng câu hỏi hơn.",
+    "resultImpact": "Agent đọc ít file hơn, giữ context tốt hơn, xác định blast radius rõ hơn và giảm rủi ro sửa code dựa trên suy đoán.",
+    "endingNote": "Dùng Codegraph để hiểu nhanh. Dùng test, typecheck và review để xác nhận thay đổi đúng.",
+    "features": [
       {
-        id: "ms_1",
-        name: "Link workspace",
-        date: "Bước 1",
-        description: "Trỏ hoặc symlink đúng project để CodeGraph nhìn thấy source cần index.",
-        status: "completed"
+        "id": "scene_intro_codegraph",
+        "type": "intro",
+        "name": "Codegraph là gì?",
+        "description": "Một knowledge graph cục bộ của codebase, được tối ưu để agent hỏi về symbol, flow và impact.",
+        "benefit": "Code intelligence cho agent",
+        "voiceoverScript": "Codegraph là bản đồ cấu trúc của codebase, giúp AI agent hiểu symbol, flow và impact trước khi sửa code.",
+        "durationSec": 7,
+        "useInVideo": true,
+        "sceneTemplateId": "intro-stack",
+        "slots": {
+          "logo": {
+            "type": "asset",
+            "assetId": "asset_codegraph_logo",
+            "delay": 0,
+            "animation": "scale-in",
+            "enabled": true
+          },
+          "kicker": {
+            "type": "text",
+            "text": "CODE INTELLIGENCE",
+            "delay": 0,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "title": {
+            "type": "text",
+            "text": "Codegraph cho AI Agent",
+            "delay": 0.4,
+            "animation": "typewriter",
+            "enabled": true
+          },
+          "description": {
+            "type": "text",
+            "text": "Bản đồ symbol và call graph giúp agent hiểu codebase trước khi sửa.",
+            "delay": 1.5,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "tag": {
+            "type": "tag",
+            "text": "Local code graph",
+            "delay": 2.5,
+            "animation": "pop",
+            "enabled": true
+          }
+        }
       },
       {
-        id: "ms_2",
-        name: "Index graph",
-        date: "Bước 2",
-        description: "Build graph từ source trước khi truy vấn symbol hoặc call flow.",
-        status: "completed"
+        "id": "scene_problem_text_search",
+        "type": "problem",
+        "name": "Vì sao grep chưa đủ?",
+        "description": "Text search tìm được chuỗi, nhưng không hiểu symbol nào là định nghĩa thật, ai gọi ai, và thay đổi này ảnh hưởng tới đâu.",
+        "benefit": "Giảm đọc nhầm context",
+        "voiceoverScript": "Trong codebase lớn, grep chỉ cho kết quả text. Nó không cho biết định nghĩa thật, call flow hay blast radius của thay đổi.",
+        "durationSec": 8,
+        "useInVideo": true,
+        "sceneTemplateId": "intro-stack",
+        "slots": {
+          "logo": {
+            "type": "asset",
+            "assetId": "asset_codegraph_map",
+            "delay": 0,
+            "animation": "scale-in",
+            "enabled": true
+          },
+          "kicker": {
+            "type": "text",
+            "text": "VẤN ĐỀ",
+            "delay": 0,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "title": {
+            "type": "text",
+            "text": "Grep tìm chữ, không hiểu flow",
+            "delay": 0.4,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "description": {
+            "type": "text",
+            "text": "Agent cần biết symbol thật, caller/callee và impact — không chỉ danh sách file chứa cùng một chuỗi.",
+            "delay": 1.5,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "tag": {
+            "type": "tag",
+            "text": "Context risk",
+            "delay": 2.5,
+            "animation": "pop",
+            "enabled": true
+          }
+        }
       },
       {
-        id: "ms_3",
-        name: "Query đúng path",
-        date: "Bước 3",
-        description: "Xác nhận đang đọc MgsV3 hay MgsV4 để không nhầm nguồn G và đích S.",
-        status: "completed"
+        "id": "scene_solution_graph",
+        "type": "solution",
+        "name": "Codegraph tạo bản đồ code",
+        "description": "Source được parse thành node và edge: file, class, function, method, import, definition, caller/callee và dependency relation.",
+        "benefit": "Graph thay cho đọc mò",
+        "voiceoverScript": "Codegraph parse source thành graph gồm file, symbol và quan hệ. Vì vậy agent có thể hỏi thẳng vào cấu trúc code.",
+        "durationSec": 8,
+        "useInVideo": true,
+        "sceneTemplateId": "media-showcase",
+        "slots": {
+          "header": {
+            "type": "text",
+            "text": "CÁCH HOẠT ĐỘNG",
+            "delay": 0,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "logo": {
+            "type": "asset",
+            "assetId": "asset_codegraph_logo",
+            "delay": 0,
+            "animation": "scale-in",
+            "enabled": true
+          },
+          "title": {
+            "type": "text",
+            "text": "Parse source thành knowledge graph",
+            "delay": 0.6,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "media": {
+            "type": "media",
+            "assetId": "asset_codegraph_map",
+            "delay": 1.4,
+            "animation": "scale-in",
+            "enabled": true
+          },
+          "description": {
+            "type": "text",
+            "text": "Node là symbol. Edge là quan hệ. Query trả về đúng phần code cần đọc.",
+            "delay": 3,
+            "animation": "fade-up",
+            "enabled": true
+          }
+        }
       },
       {
-        id: "ms_4",
-        name: "Adapt vào S",
-        date: "Bước 4",
-        description: "Mang logic cần thiết sang S nhưng giữ style, API và convention của S.",
-        status: "active"
+        "id": "scene_toolbox",
+        "type": "feature",
+        "name": "Bộ tool agent dùng hằng ngày",
+        "description": "Explore để hiểu khu vực code, search/node để mở symbol, callers/callees để lần flow, impact để kiểm tra phạm vi ảnh hưởng.",
+        "benefit": "Chọn đúng tool theo câu hỏi",
+        "voiceoverScript": "Agent dùng explore để hiểu một khu vực, search và node để mở symbol, callers và callees để lần flow, impact để kiểm tra phạm vi ảnh hưởng.",
+        "durationSec": 11,
+        "useInVideo": true,
+        "sceneTemplateId": "grid-feature",
+        "slots": {
+          "header": {
+            "type": "text",
+            "text": "TOOLBOX",
+            "delay": 0,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "title": {
+            "type": "text",
+            "text": "Hỏi codebase bằng graph",
+            "delay": 0.5,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "grid": {
+            "type": "list",
+            "items": [
+              "explore: hiểu một module hoặc flow",
+              "search/node: tìm đúng symbol",
+              "callers/callees: lần quan hệ gọi",
+              "impact: xem thay đổi ảnh hưởng đâu"
+            ],
+            "delay": 1.2,
+            "animation": "pop",
+            "enabled": true
+          },
+          "description": {
+            "type": "text",
+            "text": "Mục tiêu không phải đọc nhiều file hơn, mà là đọc đúng file hơn.",
+            "delay": 4,
+            "animation": "fade-up",
+            "enabled": true
+          }
+        }
       },
       {
-        id: "ms_5",
-        name: "Build và review",
-        date: "Bước 5",
-        description: "Chạy compiler/test, kiểm diff và cập nhật lại graph nếu source đã đổi.",
-        status: "upcoming"
+        "id": "scene_workflow",
+        "type": "workflow",
+        "name": "Workflow dùng Codegraph",
+        "description": "Bắt đầu bằng câu hỏi, explore khu vực liên quan, inspect symbol chính, kiểm caller/callee, rồi mới sửa và verify bằng test.",
+        "benefit": "Hiểu trước, sửa sau",
+        "voiceoverScript": "Workflow an toàn là đặt câu hỏi, explore vùng liên quan, inspect symbol chính, kiểm caller callee và impact, rồi mới sửa code.",
+        "durationSec": 10,
+        "useInVideo": true,
+        "sceneTemplateId": "step-flow",
+        "slots": {
+          "title": {
+            "type": "text",
+            "text": "Workflow: hỏi đúng trước khi sửa",
+            "delay": 0,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "steps": {
+            "type": "list",
+            "items": [
+              "1. Đặt câu hỏi về module/bug",
+              "2. Explore vùng code liên quan",
+              "3. Inspect symbol chính",
+              "4. Check callers/callees/impact",
+              "5. Sửa code và chạy verification"
+            ],
+            "delay": 1,
+            "animation": "slide-left",
+            "enabled": true
+          },
+          "note": {
+            "type": "text",
+            "text": "Codegraph là bước đọc hiểu. Verification vẫn là compiler, test và review.",
+            "delay": 4,
+            "animation": "fade-up",
+            "enabled": true
+          }
+        }
+      },
+      {
+        "id": "scene_guardrails",
+        "type": "result",
+        "name": "Guardrail khi dùng Codegraph",
+        "description": "Graph có thể lag sau khi sửa file. Nếu index báo stale, đọc file thật hoặc re-index trước khi kết luận.",
+        "benefit": "Không tin mù vào index",
+        "voiceoverScript": "Codegraph mạnh, nhưng vẫn là index. Khi source vừa đổi hoặc tool báo stale, agent phải đọc file thật hoặc re-index.",
+        "durationSec": 8,
+        "useInVideo": true,
+        "sceneTemplateId": "grid-feature",
+        "slots": {
+          "header": {
+            "type": "text",
+            "text": "GUARDRAILS",
+            "delay": 0,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "title": {
+            "type": "text",
+            "text": "Graph giúp hiểu nhanh, không thay thế kiểm chứng",
+            "delay": 0.5,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "grid": {
+            "type": "list",
+            "items": [
+              "Kiểm staleness sau khi edit file",
+              "Ưu tiên source thật khi index chưa sync",
+              "Không thay thế typecheck/test",
+              "Dùng impact để review blast radius"
+            ],
+            "delay": 1.2,
+            "animation": "pop",
+            "enabled": true
+          },
+          "description": {
+            "type": "text",
+            "text": "Graph định hướng. Test xác nhận.",
+            "delay": 4,
+            "animation": "fade-up",
+            "enabled": true
+          }
+        }
+      },
+      {
+        "id": "scene_outro",
+        "type": "outro",
+        "name": "Agent hiểu code tốt hơn",
+        "description": "Codegraph giúp agent chuyển từ đọc mò sang đọc có cấu trúc: đúng symbol, đúng flow, đúng impact.",
+        "benefit": "Code intelligence layer",
+        "voiceoverScript": "Tóm lại, Codegraph giúp agent đọc code có cấu trúc hơn: đúng symbol, đúng flow và đúng impact trước khi sửa.",
+        "durationSec": 6,
+        "useInVideo": true,
+        "sceneTemplateId": "outro-cta",
+        "slots": {
+          "logo": {
+            "type": "asset",
+            "assetId": "asset_codegraph_logo",
+            "delay": 0,
+            "animation": "scale-in",
+            "enabled": true
+          },
+          "title": {
+            "type": "text",
+            "text": "Hiểu code trước khi sửa",
+            "delay": 0.4,
+            "animation": "fade-up",
+            "enabled": true
+          },
+          "cta": {
+            "type": "text",
+            "text": "Dùng Codegraph để hỏi codebase bằng cấu trúc, không bằng đoán mò.",
+            "delay": 1.5,
+            "animation": "pop",
+            "enabled": true
+          },
+          "tag": {
+            "type": "tag",
+            "text": "Symbol · Flow · Impact",
+            "delay": 2.5,
+            "animation": "fade-up",
+            "enabled": true
+          }
+        }
       }
     ],
-    assets: [
+    "milestones": [
       {
-        id: "asset_1",
-        name: "codegraph_symbol_map.png",
-        type: "logo",
-        size: "45 KB",
-        dateAdded: "2026-06-24",
-        url: "https://placehold.co/120x120/1f4fd8/ffffff?text=CG",
-        useInVideo: true
+        "id": "ms_index",
+        "name": "Index codebase",
+        "date": "Bước 1",
+        "description": "Parse source thành graph cục bộ.",
+        "status": "completed"
       },
       {
-        id: "asset_2",
-        name: "codegraph_flow_preview.png",
-        type: "screenshot",
-        size: "1.2 MB",
-        dateAdded: "2026-06-24",
-        url: "https://placehold.co/1920x1080/1c1f24/ffffff?text=File+Symbol+Call+Edge",
-        useInVideo: true
+        "id": "ms_explore",
+        "name": "Explore context",
+        "date": "Bước 2",
+        "description": "Dùng graph để hiểu module hoặc flow chính.",
+        "status": "completed"
       },
       {
-        id: "asset_3",
-        name: "migration_path_check.png",
-        type: "screenshot",
-        size: "850 KB",
-        dateAdded: "2026-06-24",
-        url: "https://placehold.co/1920x1080/1c1f24/ffffff?text=MgsV3+to+MgsV4",
-        useInVideo: true
+        "id": "ms_impact",
+        "name": "Check impact",
+        "date": "Bước 3",
+        "description": "Kiểm caller/callee và blast radius trước khi sửa.",
+        "status": "active"
+      },
+      {
+        "id": "ms_verify",
+        "name": "Verify changes",
+        "date": "Bước 4",
+        "description": "Chạy test/typecheck/review sau khi sửa code.",
+        "status": "upcoming"
       }
     ],
-    videoStyleId: "dark-tech",
-    videoStyleOverrides: {},
-    defaultSceneTemplateId: "intro-stack",
-    sceneItemViews: [],
-    templateId: "dynamic-story-vertical",
-    templateConfig: {
-      theme: "dark",
-      accentColor: "blue",
-      fontSize: "default",
-      logoPosition: "top-left"
+    "assets": [
+      {
+        "id": "asset_codegraph_logo",
+        "name": "codegraph-logo-placeholder.png",
+        "type": "logo",
+        "size": "45 KB",
+        "dateAdded": "2026-06-28",
+        "url": "https://placehold.co/240x240/05070A/22D3EE?text=CG",
+        "useInVideo": true
+      },
+      {
+        "id": "asset_codegraph_map",
+        "name": "codegraph-map-placeholder.png",
+        "type": "screenshot",
+        "size": "1.2 MB",
+        "dateAdded": "2026-06-28",
+        "url": "https://placehold.co/1080x720/101722/F8FAFC?text=File+%E2%86%92+Symbol+%E2%86%92+Call+Graph",
+        "useInVideo": true
+      }
+    ],
+    "videoStyleId": "dark-tech",
+    "videoStyleOverrides": {},
+    "defaultSceneTemplateId": "intro-stack",
+    "sceneItemViews": [],
+    "templateId": "dynamic-story-vertical",
+    "templateConfig": {
+      "theme": "dark",
+      "accentColor": "blue",
+      "fontSize": "default",
+      "logoPosition": "top-left"
     },
-    video: {
-      formatId: "dynamic-story-vertical",
-      fps: 30,
-      outputFilename: "codegraph-migration-agent_video.mp4"
+    "voiceover": {
+      "sceneScripts": {
+        "intro": "Codegraph là bản đồ cấu trúc của codebase, giúp AI agent hiểu symbol, flow và impact trước khi sửa code.",
+        "problem": "Trong codebase lớn, grep chỉ cho kết quả text. Nó không cho biết định nghĩa thật, call flow hay blast radius của thay đổi.",
+        "solution": "Codegraph parse source thành graph gồm file, symbol và quan hệ. Vì vậy agent có thể hỏi thẳng vào cấu trúc code.",
+        "features": "Agent dùng explore, search, node, callers, callees và impact để đi từ câu hỏi đến đúng vùng source cần đọc.",
+        "timeline": "Workflow an toàn là đặt câu hỏi, explore context, inspect symbol, check impact, rồi mới sửa và verify.",
+        "impact": "Kết quả là agent đọc ít file hơn, giữ context tốt hơn và giảm rủi ro sửa code dựa trên suy đoán.",
+        "outro": "Codegraph giúp hiểu nhanh. Test, typecheck và review mới xác nhận thay đổi đúng."
+      }
+    },
+    "audio": {
+      "voiceover": {
+        "enabled": true,
+        "provider": "edge-tts",
+        "language": "vi-VN",
+        "voiceId": "vi-VN-HoaiMyNeural",
+        "rate": "+4%",
+        "volume": "+0%",
+        "script": "Codegraph là bản đồ cấu trúc của codebase, giúp AI agent hiểu symbol, flow và impact trước khi sửa code. Khi codebase lớn, chỉ grep text là không đủ. Một tên hàm có thể xuất hiện ở nhiều nơi, flow có thể đi qua nhiều lớp, và agent dễ đọc thiếu context. Codegraph index source code thành knowledge graph cục bộ gồm file, symbol, định nghĩa, caller, callee và quan hệ phụ thuộc. Agent dùng explore để hiểu một khu vực, search và node để mở symbol chính xác, callers và callees để lần flow, impact để kiểm tra phạm vi ảnh hưởng. Workflow an toàn là đặt câu hỏi, explore context, inspect symbol, check impact, rồi mới sửa và verify bằng test, typecheck và review. Codegraph giúp hiểu nhanh hơn, nhưng không thay thế kiểm chứng."
+      },
+      "backgroundMusic": {
+        "enabled": false,
+        "source": "",
+        "volume": 0.12,
+        "ducking": true
+      },
+      "soundEffects": {
+        "enabled": false,
+        "items": []
+      }
+    },
+    "video": {
+      "formatId": "dynamic-story-vertical",
+      "fps": 30,
+      "outputFilename": "codegraph-ai-agent-intro.mp4"
     }
+  };
+
+  const isLegacySampleProject = (projectData = {}) => {
+    const slug = String(projectData.projectSlug || projectData.slug || "").trim();
+    return ["internal-analytics-dashboard", "codegraph-migration-agent"].includes(slug);
   };
 
   const normalizeProjectData = (projectData = {}) => {
@@ -324,37 +478,38 @@ const AppStorage = (() => {
         templateId: selectedFormat.templateId
       };
     };
+    const sourceProjectData = isLegacySampleProject(projectData) ? STATIC_SAMPLE_DATA : projectData;
 
     return normalizeVideoTemplate({
       ...JSON.parse(JSON.stringify(INITIAL_PROJECT_DATA)),
-      ...projectData,
+      ...sourceProjectData,
       templateConfig: {
         ...INITIAL_PROJECT_DATA.templateConfig,
-        ...(projectData.templateConfig || {})
+        ...(sourceProjectData.templateConfig || {})
       },
       audio: {
         ...INITIAL_PROJECT_DATA.audio,
-        ...(projectData.audio || {}),
+        ...(sourceProjectData.audio || {}),
         voiceover: {
           ...INITIAL_PROJECT_DATA.audio.voiceover,
-          ...((projectData.audio && projectData.audio.voiceover) || {})
+          ...((sourceProjectData.audio && sourceProjectData.audio.voiceover) || {})
         }
       },
       voiceover: {
         ...INITIAL_PROJECT_DATA.voiceover,
-        ...(projectData.voiceover || {}),
+        ...(sourceProjectData.voiceover || {}),
         sceneScripts: {
           ...INITIAL_PROJECT_DATA.voiceover.sceneScripts,
-          ...((projectData.voiceover && projectData.voiceover.sceneScripts) || {})
+          ...((sourceProjectData.voiceover && sourceProjectData.voiceover.sceneScripts) || {})
         }
       },
       video: {
         ...INITIAL_PROJECT_DATA.video,
-        ...(projectData.video || {})
+        ...(sourceProjectData.video || {})
       },
-      features: Array.isArray(projectData.features) ? projectData.features : [],
-      milestones: Array.isArray(projectData.milestones) ? projectData.milestones : [],
-      assets: Array.isArray(projectData.assets) ? projectData.assets : []
+      features: Array.isArray(sourceProjectData.features) ? sourceProjectData.features : [],
+      milestones: Array.isArray(sourceProjectData.milestones) ? sourceProjectData.milestones : [],
+      assets: Array.isArray(sourceProjectData.assets) ? sourceProjectData.assets : []
     });
   };
 

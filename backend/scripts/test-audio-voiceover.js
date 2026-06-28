@@ -39,10 +39,10 @@ assert.equal(
 
 const sampleProject = readJson(sampleProjectPath);
 const defaultPayload = projectToRenderPayload(sampleProject);
-assert.equal(defaultPayload.audio.voiceover.enabled, false);
+assert.equal(defaultPayload.audio.voiceover.enabled, true);
 assert.equal(defaultPayload.audio.voiceover.provider, "edge-tts");
 assert.equal(defaultPayload.audio.voiceover.language, "vi-VN");
-assert.equal(defaultPayload.audio.voiceover.rate, "+0%");
+assert.equal(defaultPayload.audio.voiceover.rate, "+4%");
 assert.equal(defaultPayload.audio.voiceover.volume, "+0%");
 assert.equal(defaultPayload.audio.backgroundMusic.enabled, false);
 assert.equal(defaultPayload.audio.soundEffects.enabled, false);
@@ -67,14 +67,21 @@ assert.equal(validateRenderPayload(englishPayload).valid, true, "Enabled English
 assert.equal(buildVoiceoverScript(englishPayload), "This is the English narration.");
 
 const generatedScript = buildVoiceoverScript(defaultPayload);
-assert.match(generatedScript, /Internal Analytics Dashboard/);
-assert.match(generatedScript, /Dữ liệu tiến độ nằm rải rác nhiều nguồn/);
-assert.match(generatedScript, /Giảm 70% thời gian/);
+assert.match(generatedScript, /Codegraph là bản đồ cấu trúc/);
+assert.match(generatedScript, /caller, callee và quan hệ phụ thuộc/);
+assert.match(generatedScript, /không thay thế kiểm chứng/);
 
 const sceneScriptPayload = {
   ...defaultPayload,
-  scenes: defaultPayload.scenes.map((scene) => {
-    if (scene.type === "problem") {
+  audio: {
+    ...defaultPayload.audio,
+    voiceover: {
+      ...defaultPayload.audio.voiceover,
+      script: ""
+    }
+  },
+  scenes: defaultPayload.scenes.map((scene, index) => {
+    if (index === 0) {
       return {
         ...scene,
         voiceover: {
@@ -126,7 +133,8 @@ const missingScriptPayload = {
     ...defaultPayload.audio,
     voiceover: {
       ...defaultPayload.audio.voiceover,
-      enabled: true
+      enabled: true,
+      script: ""
     }
   }
 };

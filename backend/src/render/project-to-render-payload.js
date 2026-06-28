@@ -1,6 +1,6 @@
 "use strict";
 
-const { RENDER_PAYLOAD_VERSION, VIDEO_PRESETS, validateRenderPayload } = require("./render-payload-schema");
+const { DYNAMIC_RENDER_PAYLOAD_VERSION, RENDER_PAYLOAD_VERSION, TEMPLATE_PRESETS, VIDEO_PRESETS, validateRenderPayload } = require("./render-payload-schema");
 
 const DEFAULT_VIDEO = {
   aspectRatio: "16:9",
@@ -20,6 +20,111 @@ const SCENE_DURATIONS = {
   timeline: 14,
   impact: 10,
   outro: 6
+};
+
+const DYNAMIC_SCENE_TEMPLATES = {
+  "intro-stack": {
+    id: "intro-stack",
+    name: "Intro Stack",
+    slots: [
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in", "fade-up"] },
+      { id: "kicker", label: "Kicker", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.4, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 1.5, allowedAnimations: ["fade-up"] },
+      { id: "tag", label: "Tag / Label", type: "tag", required: false, defaultDelay: 2.5, allowedAnimations: ["pop", "fade-up"] }
+    ]
+  },
+  "media-showcase": {
+    id: "media-showcase",
+    name: "Media Showcase",
+    slots: [
+      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.6, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "media", label: "Image / Video", type: "media", required: true, defaultDelay: 1.4, allowedAnimations: ["scale-in", "fade-up"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 3, allowedAnimations: ["fade-up"] }
+    ]
+  },
+  "grid-feature": {
+    id: "grid-feature",
+    name: "Grid Feature",
+    slots: [
+      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.5, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "grid", label: "Grid Items", type: "list", required: true, defaultDelay: 1.2, allowedAnimations: ["pop", "fade-up"] },
+      { id: "description", label: "Description", type: "text", required: false, defaultDelay: 4, allowedAnimations: ["fade-up"] }
+    ]
+  },
+  "step-flow": {
+    id: "step-flow",
+    name: "Step Flow",
+    slots: [
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "steps", label: "Steps", type: "list", required: true, defaultDelay: 1, allowedAnimations: ["slide-left", "fade-up"] },
+      { id: "note", label: "Note", type: "text", required: false, defaultDelay: 4, allowedAnimations: ["fade-up"] }
+    ]
+  },
+  "outro-cta": {
+    id: "outro-cta",
+    name: "Outro CTA",
+    slots: [
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.4, allowedAnimations: ["fade-up"] },
+      { id: "cta", label: "Call to action", type: "text", required: false, defaultDelay: 1.5, allowedAnimations: ["pop", "fade-up"] },
+      { id: "tag", label: "Tag / Label", type: "tag", required: false, defaultDelay: 2.5, allowedAnimations: ["fade-up"] }
+    ]
+  }
+};
+
+const VIDEO_STYLES = {
+  "dark-tech": {
+    id: "dark-tech",
+    colorTheme: {
+      background: "#05070A",
+      surface: "#101722",
+      surfaceAlt: "#162033",
+      text: "#F8FAFC",
+      mutedText: "#94A3B8",
+      accent: "#22D3EE",
+      accentSoft: "#164E63",
+      border: "#1E3A5F",
+      glow: "rgba(34, 211, 238, 0.28)"
+    },
+    motionStyle: "dynamic",
+    backgroundStyle: "dark-grid"
+  },
+  "clean-report": {
+    id: "clean-report",
+    colorTheme: {
+      background: "#F8FAFC",
+      surface: "#FFFFFF",
+      surfaceAlt: "#EEF2F7",
+      text: "#111827",
+      mutedText: "#64748B",
+      accent: "#1F4FD8",
+      accentSoft: "#E8EEFC",
+      border: "#D9DEE7",
+      glow: "rgba(31, 79, 216, 0.16)"
+    },
+    motionStyle: "minimal",
+    backgroundStyle: "clean-surface"
+  },
+  "product-demo": {
+    id: "product-demo",
+    colorTheme: {
+      background: "#0E1116",
+      surface: "#171B22",
+      surfaceAlt: "#202630",
+      text: "#F5F7FA",
+      mutedText: "#A7B0BE",
+      accent: "#7DD3A8",
+      accentSoft: "#183B2A",
+      border: "#334155",
+      glow: "rgba(125, 211, 168, 0.22)"
+    },
+    motionStyle: "soft",
+    backgroundStyle: "media-focus"
+  }
 };
 
 const DEFAULT_AUDIO = {
@@ -101,6 +206,24 @@ function mapAsset(asset, index) {
 
 function findFirstAsset(assets, type) {
   return assets.find((asset) => asset.type === type && asset.useInVideo && asset.url) || null;
+}
+
+function resolveVideoStyle(project = {}) {
+  const preset = VIDEO_STYLES[project.videoStyleId] || VIDEO_STYLES["dark-tech"];
+  const overrides = project.videoStyleOverrides && typeof project.videoStyleOverrides === "object"
+    ? project.videoStyleOverrides
+    : {};
+  const override = overrides[preset.id] && typeof overrides[preset.id] === "object" ? overrides[preset.id] : {};
+
+  return {
+    ...preset,
+    ...override,
+    id: preset.id,
+    colorTheme: {
+      ...(preset.colorTheme || {}),
+      ...(override.colorTheme || {})
+    }
+  };
 }
 
 function estimateSpeechDurationSeconds(value) {
@@ -198,6 +321,95 @@ function normalizeScriptDisplayMode(value) {
   return text(value, "sequence") === "stack" ? "stack" : "sequence";
 }
 
+function isDynamicTemplate(templateId) {
+  return ["dynamic-story-vertical", "dynamic-story-horizontal"].includes(templateId);
+}
+
+function normalizeDynamicSlotValue(slot = {}, value = {}) {
+  const slotValue = value && typeof value === "object" ? value : {};
+  if (slot.type === "list" && Array.isArray(slotValue.items)) {
+    return {
+      ...slotValue,
+      items: slotValue.items.filter(Boolean)
+    };
+  }
+  return slotValue;
+}
+
+function buildDynamicSlotScenes(project = {}, features = []) {
+  return features.map((feature, index) => {
+    const template = DYNAMIC_SCENE_TEMPLATES[feature.sceneTemplateId] || DYNAMIC_SCENE_TEMPLATES["intro-stack"];
+    const durationSec = Math.min(30, Math.max(3, Number.parseInt(feature.durationSec, 10) || 8));
+    const slots = {};
+    for (const slot of template.slots) {
+      slots[slot.id] = normalizeDynamicSlotValue(slot, feature.slots && feature.slots[slot.id]);
+    }
+
+    return {
+      id: text(feature.id, `scene-${index + 1}`),
+      type: "slot",
+      headline: text(feature.name, `Phân đoạn ${index + 1}`),
+      body: text(feature.description, ""),
+      duration: {
+        mode: "fixed",
+        min: durationSec,
+        max: durationSec
+      },
+      sceneTemplate: template,
+      slots
+    };
+  });
+}
+
+function projectToDynamicRenderPayload(project = {}, options = {}) {
+  const templateId = text(options.templateId || project.templateId, "dynamic-story-vertical");
+  const templatePreset = TEMPLATE_PRESETS[templateId] || TEMPLATE_PRESETS["dynamic-story-vertical"];
+  const features = list(project.features).filter((feature) => feature && feature.useInVideo !== false);
+  const assets = list(project.assets).filter(Boolean).map(mapAsset);
+  const scenes = buildDynamicSlotScenes(project, features);
+  const payload = {
+    version: DYNAMIC_RENDER_PAYLOAD_VERSION,
+    source: {
+      projectName: text(project.projectName, "Dự án chưa đặt tên"),
+      projectSlug: text(project.projectSlug, "untitled-project"),
+      ownerTeam: text(project.ownerTeam, "Team phụ trách"),
+      presenterRole: text(project.presenterRole, "Người trình bày")
+    },
+    template: {
+      id: templateId,
+      variant: "default",
+      config: {
+        ...(project.templateConfig || {}),
+        videoStyle: resolveVideoStyle(project)
+      }
+    },
+    video: {
+      aspectRatio: templatePreset.aspectRatio,
+      width: templatePreset.width,
+      height: templatePreset.height,
+      fps: Number.isInteger(options.fps) && options.fps > 0 ? options.fps : DEFAULT_VIDEO.fps,
+      format: "mp4",
+      estimatedDuration: scenes.reduce((total, scene) => total + (scene.duration && scene.duration.max || 0), 0)
+    },
+    assets: {
+      logo: findFirstAsset(assets, "logo"),
+      screenshots: assets.filter((asset) => asset.type === "screenshot" && asset.useInVideo && asset.url).slice(0, 3),
+      videos: assets.filter((asset) => asset.type === "video" && asset.useInVideo && asset.url).slice(0, 2),
+      all: assets
+    },
+    audio: mapAudioConfig(project),
+    scenes
+  };
+
+  const validation = validateRenderPayload(payload);
+  if (!validation.valid) {
+    const message = validation.errors.map((error) => `${error.path}: ${error.message}`).join("\n");
+    throw new Error(`Generated render payload is invalid:\n${message}`);
+  }
+
+  return payload;
+}
+
 function projectToRenderPayload(project = {}, options = {}) {
   const hasExplicitAspectRatio = Boolean(options.aspectRatio || project.aspectRatio);
   const videoPreset = getVideoPreset({
@@ -205,6 +417,9 @@ function projectToRenderPayload(project = {}, options = {}) {
     templateId: options.templateId || (hasExplicitAspectRatio ? "" : project.templateId)
   });
   const templateId = text(options.templateId || (hasExplicitAspectRatio ? "" : project.templateId), videoPreset.templateId);
+  if (isDynamicTemplate(templateId)) {
+    return projectToDynamicRenderPayload(project, { ...options, templateId });
+  }
   const features = list(project.features)
     .filter((feature) => feature && feature.useInVideo)
     .slice(0, 4)

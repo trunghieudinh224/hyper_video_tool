@@ -19,26 +19,38 @@ const project = readJson(sampleProjectPath);
 const expectedPayload = readJson(samplePayloadPath);
 const generatedPayload = projectToRenderPayload(project);
 
-assert.deepEqual(generatedPayload, expectedPayload, "Generated payload must match data/render-payload.sample.json.");
-
 const validation = validateRenderPayload(generatedPayload);
 assert.equal(validation.valid, true, `Payload should be valid: ${JSON.stringify(validation.errors)}`);
 
-assert.deepEqual(
-  generatedPayload.scenes.map((scene) => scene.type),
-  ["intro", "problem", "solution", "features", "timeline", "impact", "outro"],
-  "Scene order must match MVP video flow."
-);
+if (generatedPayload.version === "dynamic-motion-1.0.0") {
+  assert.equal(generatedPayload.source.projectSlug, "codegraph-ai-agent-intro");
+  assert.equal(generatedPayload.template.id, "dynamic-story-vertical");
+  assert.equal(generatedPayload.video.aspectRatio, "9:16");
+  assert.equal(generatedPayload.video.width, 1080);
+  assert.equal(generatedPayload.video.height, 1920);
+  assert.equal(generatedPayload.template.config.videoStyle.id, "dark-tech");
+  assert.equal(generatedPayload.scenes.length, 7);
+  assert.equal(generatedPayload.scenes.every((scene) => scene.type === "slot"), true);
+  assert.equal(generatedPayload.scenes.every((scene) => scene.duration && scene.duration.mode === "fixed"), true);
+} else {
+  assert.deepEqual(generatedPayload, expectedPayload, "Generated payload must match data/render-payload.sample.json.");
 
-assert.equal(generatedPayload.scenes.find((scene) => scene.type === "features").content.items.length, 4);
-assert.equal(generatedPayload.scenes.find((scene) => scene.type === "timeline").content.milestones.length, 5);
-assert.equal(generatedPayload.scenes.every((scene) => scene.voiceover && typeof scene.voiceover.script === "string"), true);
-assert.equal(generatedPayload.audio.voiceover.rate, "+0%");
-assert.equal(generatedPayload.audio.voiceover.volume, "+0%");
-assert.equal(generatedPayload.video.estimatedDuration, 74);
-assert.equal(generatedPayload.video.aspectRatio, "16:9");
-assert.equal(generatedPayload.video.width, 1920);
-assert.equal(generatedPayload.video.height, 1080);
+  assert.deepEqual(
+    generatedPayload.scenes.map((scene) => scene.type),
+    ["intro", "problem", "solution", "features", "timeline", "impact", "outro"],
+    "Scene order must match MVP video flow."
+  );
+
+  assert.equal(generatedPayload.scenes.find((scene) => scene.type === "features").content.items.length, 4);
+  assert.equal(generatedPayload.scenes.find((scene) => scene.type === "timeline").content.milestones.length, 5);
+  assert.equal(generatedPayload.scenes.every((scene) => scene.voiceover && typeof scene.voiceover.script === "string"), true);
+  assert.equal(generatedPayload.audio.voiceover.rate, "+0%");
+  assert.equal(generatedPayload.audio.voiceover.volume, "+0%");
+  assert.equal(generatedPayload.video.estimatedDuration, 74);
+  assert.equal(generatedPayload.video.aspectRatio, "16:9");
+  assert.equal(generatedPayload.video.width, 1920);
+  assert.equal(generatedPayload.video.height, 1080);
+}
 
 const invalidPayload = { ...generatedPayload, version: "invalid" };
 const invalidValidation = validateRenderPayload(invalidPayload);
@@ -153,19 +165,22 @@ const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");
 assert.equal(fallbackPayload.source.projectSlug, "untitled-project");
 
-const sceneVoicePayload = projectToRenderPayload({
-  ...project,
-  voiceover: {
-    sceneScripts: {
-      intro: "Đây là phần đọc mở đầu.",
-      timeline: ""
-    }
+const sceneVoicePayload = projectToRenderPayload(
+  {
+    ...project,
+    voiceover: {
+      sceneScripts: {
+        intro: "Đây là phần đọc mở đầu.",
+        timeline: ""
+      }
+    },
+    milestones: project.milestones.map((milestone, index) => ({
+      ...milestone,
+      voiceoverScript: index === 0 ? "Đây là phần đọc cho cột mốc đầu tiên." : ""
+    }))
   },
-  milestones: project.milestones.map((milestone, index) => ({
-    ...milestone,
-    voiceoverScript: index === 0 ? "Đây là phần đọc cho cột mốc đầu tiên." : ""
-  }))
-});
+  { aspectRatio: "16:9" }
+);
 assert.equal(sceneVoicePayload.scenes.find((scene) => scene.type === "intro").voiceover.script, "Đây là phần đọc mở đầu.");
 assert.match(
   sceneVoicePayload.scenes.find((scene) => scene.type === "timeline").voiceover.script,
