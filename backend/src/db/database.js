@@ -240,6 +240,21 @@ function serializeOutputRow(row) {
   };
 }
 
+function serializeSnapshotMetaRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    version: Number(row.version) || 1,
+    label: row.label || "",
+    createdAt: row.created_at,
+    isCurrent: row.is_current === 1 || row.is_current === true
+  };
+}
+
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";
@@ -527,6 +542,81 @@ function duplicateProject(projectId, options = {}) {
   return createProject(nextProject, { activate: options.activate !== false });
 }
 
+function listProjectSnapshots(projectId) {
+  initDatabase();
+  const rows = JSON.parse(runSql(
+    `SELECT id, project_id, version, label, created_at, is_current
+     FROM project_snapshots
+     WHERE project_id = ${sqlString(projectId)}
+     ORDER BY is_current DESC, version DESC, created_at DESC;`,
+    { json: true }
+  ) || "[]");
+  return rows.map(serializeSnapshotMetaRow);
+}
+
+function createProjectSnapshot(projectId, label = "") {
+  ensureProjectStore();
+  const project = getProject(projectId);
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`);
+  }
+
+  const maxRows = JSON.parse(runSql(
+    `SELECT MAX(version) AS max_version FROM project_snapshots WHERE project_id = ${sqlString(projectId)};`,
+    { json: true }
+  ) || "[]");
+  const version = (Number(maxRows[0] && maxRows[0].max_version) || 0) + 1;
+  const now = new Date().toISOString();
+  const snapshotId = createId("snap");
+  const normalizedLabel = String(label || "").trim() || `Snapshot ${version}`;
+
+  runSql(`
+    INSERT INTO project_snapshots (id, project_id, version, label, payload_json, created_at, is_current)
+    VALUES (
+      ${sqlString(snapshotId)},
+      ${sqlString(projectId)},
+      ${version},
+      ${sqlString(normalizedLabel)},
+      ${sqlString(JSON.stringify(project.project))},
+      ${sqlString(now)},
+      0
+    );
+  `);
+
+  return listProjectSnapshots(projectId).find((snapshot) => snapshot.id === snapshotId) || null;
+}
+
+function getProjectSnapshot(projectId, snapshotId) {
+  initDatabase();
+  const rows = JSON.parse(runSql(
+    `SELECT id, project_id, version, label, payload_json, created_at, is_current
+     FROM project_snapshots
+     WHERE project_id = ${sqlString(projectId)}
+       AND id = ${sqlString(snapshotId)}
+     LIMIT 1;`,
+    { json: true }
+  ) || "[]");
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...serializeSnapshotMetaRow(row),
+    project: JSON.parse(row.payload_json)
+  };
+}
+
+function restoreProjectSnapshot(projectId, snapshotId) {
+  ensureProjectStore();
+  const snapshot = getProjectSnapshot(projectId, snapshotId);
+  if (!snapshot) {
+    throw new Error(`Snapshot not found: ${snapshotId}`);
+  }
+
+  return saveProject(projectId, snapshot.project);
+}
+
 function saveCurrentProject(project) {
   const active = getActiveProject();
   return saveProject(active.id, project);
@@ -762,16 +852,20 @@ module.exports = {
   getCurrentProject,
   getAsset,
   getProject,
+  getProjectSnapshot,
   getSettings,
   initDatabase,
   listAssets,
   listProjects,
+  listProjectSnapshots,
   listRenderOutputs,
   readDefaultProject,
   saveAsset,
   saveCurrentProject,
+  createProjectSnapshot,
   saveProject,
   saveRenderOutput,
+  restoreProjectSnapshot,
   setActiveProject,
   deleteAsset,
   saveSettings

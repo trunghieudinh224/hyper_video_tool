@@ -7236,6 +7236,19 @@ const AppUI = (() => {
         </div>
       </div>
 
+      <div class="section-block settings-snapshots-block mb-6">
+        <div class="settings-section-header">
+          <div>
+            <h3>Snapshot project</h3>
+            <p>Lưu mốc thủ công trước khi sửa lớn, rồi restore lại khi cần.</p>
+          </div>
+          <button id="settings-create-snapshot" class="btn btn-secondary" ${backendEnabled && activeProjectMeta ? "" : "disabled"}>Tạo snapshot</button>
+        </div>
+        <div id="settings-snapshot-list" class="settings-snapshot-list">
+          ${backendEnabled && activeProjectMeta ? '<div class="settings-project-empty">Đang tải snapshot...</div>' : '<div class="settings-project-empty">Cần backend và active project để dùng snapshot.</div>'}
+        </div>
+      </div>
+
       <div class="grid-2 mb-6">
         <!-- Local Folders Mock configuration -->
         <div class="card">
@@ -7443,6 +7456,104 @@ const AppUI = (() => {
     }
 
     renderProjectHistory();
+
+    const renderSnapshotHistory = async () => {
+      const listEl = document.getElementById("settings-snapshot-list");
+      if (!listEl || !backendEnabled || !activeProjectMeta || !AppStorage.loadProjectSnapshots) {
+        return;
+      }
+
+      try {
+        const snapshots = await AppStorage.loadProjectSnapshots();
+        if (!snapshots.length) {
+          listEl.innerHTML = '<div class="settings-project-empty">Chưa có snapshot nào.</div>';
+          return;
+        }
+
+        listEl.innerHTML = snapshots.map((snapshot) => `
+          <div class="settings-snapshot-row${snapshot.isCurrent ? " is-current" : ""}">
+            <div class="settings-snapshot-main">
+              <strong>${escapeHtml(snapshot.label || `Snapshot ${snapshot.version}`)}</strong>
+              <span>${snapshot.isCurrent ? "Current autosave" : `Version ${snapshot.version}`}</span>
+            </div>
+            <div class="settings-snapshot-meta">${escapeHtml(String(snapshot.createdAt || "").slice(0, 19).replace("T", " "))}</div>
+            <button class="btn btn-secondary btn-sm" type="button" data-snapshot-restore="${escapeHtml(snapshot.id)}" ${snapshot.isCurrent ? "disabled" : ""}>
+              ${snapshot.isCurrent ? "Đang dùng" : "Restore"}
+            </button>
+          </div>
+        `).join("");
+
+        listEl.querySelectorAll("[data-snapshot-restore]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const snapshotId = button.getAttribute("data-snapshot-restore");
+            showModal(
+              "Restore snapshot",
+              "Thao tác này sẽ overwrite payload hiện tại của project bằng dữ liệu snapshot. Nên tạo snapshot mới trước nếu mày muốn giữ trạng thái hiện tại.",
+              [
+                { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+                {
+                  text: "Restore",
+                  class: "btn-danger",
+                  onClick: async () => {
+                    button.disabled = true;
+                    try {
+                      const nextData = await AppStorage.restoreProjectSnapshot(snapshotId);
+                      AppState.setProjectData(nextData, true);
+                      closeModal();
+                      renderSettingsScreen(container, nextData);
+                      showToast("Đã restore snapshot.", "info");
+                    } catch (error) {
+                      button.disabled = false;
+                      closeModal();
+                      showToast(`Không restore được snapshot: ${error.message}`, "error");
+                    }
+                  }
+                }
+              ]
+            );
+          });
+        });
+      } catch (error) {
+        listEl.innerHTML = `<div class="settings-project-empty">Không tải được snapshot: ${escapeHtml(error.message)}</div>`;
+      }
+    };
+
+    const createSnapshotButton = document.getElementById("settings-create-snapshot");
+    if (createSnapshotButton) {
+      createSnapshotButton.addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.className = "form-control";
+        input.value = `Checkpoint ${new Date().toISOString().slice(0, 16).replace("T", " ")}`;
+        input.placeholder = "Tên snapshot";
+
+        showModal(
+          "Tạo snapshot",
+          input,
+          [
+            { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+            {
+              text: "Tạo snapshot",
+              class: "btn-primary",
+              onClick: async () => {
+                createSnapshotButton.disabled = true;
+                try {
+                  await AppStorage.createProjectSnapshot(input.value.trim());
+                  closeModal();
+                  await renderSnapshotHistory();
+                  createSnapshotButton.disabled = false;
+                  showToast("Đã tạo snapshot project.");
+                } catch (error) {
+                  createSnapshotButton.disabled = false;
+                  showToast(`Không tạo được snapshot: ${error.message}`, "error");
+                }
+              }
+            }
+          ]
+        );
+      });
+    }
+
+    renderSnapshotHistory();
 
     // Save folder configurations
     document.getElementById("settings-save-folders").addEventListener("click", async () => {

@@ -796,6 +796,32 @@ const AppStorage = (() => {
     return null;
   };
 
+  const loadProjectSnapshots = async (projectId = getActiveProjectId()) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.listProjectSnapshots) {
+      return [];
+    }
+    return AppBackendApi.listProjectSnapshots(projectId);
+  };
+
+  const createProjectSnapshot = async (label = "") => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.createProjectSnapshot) {
+      throw new Error("Backend API is not available.");
+    }
+    return AppBackendApi.createProjectSnapshot(getActiveProjectId(), label);
+  };
+
+  const restoreProjectSnapshot = async (snapshotId) => {
+    if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable() || !AppBackendApi.restoreProjectSnapshot) {
+      throw new Error("Backend API is not available.");
+    }
+
+    const result = await AppBackendApi.restoreProjectSnapshot(getActiveProjectId(), snapshotId);
+    activeProjectMeta = result.meta || activeProjectMeta;
+    const normalized = normalizeProjectData(result.project || {});
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+  };
+
   const exportProjectJSON = (data) => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -825,6 +851,9 @@ const AppStorage = (() => {
     createProjectData,
     duplicateProjectData,
     archiveProjectData,
+    loadProjectSnapshots,
+    createProjectSnapshot,
+    restoreProjectSnapshot,
     loadSettingsData,
     loadSettings,
     saveSettings,

@@ -2,14 +2,17 @@
 
 const {
   archiveProject,
+  createProjectSnapshot,
   createProject,
   duplicateProject,
   ensureCurrentProject,
   getActiveProject,
   getProject,
+  listProjectSnapshots,
   listRenderOutputs,
   listProjects,
   readDefaultProject,
+  restoreProjectSnapshot,
   saveCurrentProject,
   saveProject,
   setActiveProject
@@ -127,6 +130,18 @@ function parseProjectIdFromPath(pathname) {
   };
 }
 
+function parseSnapshotPath(pathname) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/snapshots(?:\/([^/]+)\/restore)?$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    projectId: decodeURIComponent(match[1]),
+    snapshotId: match[2] ? decodeURIComponent(match[2]) : ""
+  };
+}
+
 async function handleProjects(request, response, requestUrl, sendJson) {
   if (!requestUrl.pathname.startsWith("/api/projects")) {
     return false;
@@ -218,6 +233,65 @@ async function handleProjects(request, response, requestUrl, sendJson) {
       sendJson(response, error.statusCode || 500, {
         success: false,
         message: error.message || "Cannot create project.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  const snapshotPath = parseSnapshotPath(requestUrl.pathname);
+  if (snapshotPath && !snapshotPath.snapshotId && request.method === "GET") {
+    const row = getProject(snapshotPath.projectId);
+    if (!row) {
+      sendJson(response, 404, {
+        success: false,
+        message: "Project not found.",
+        errors: {
+          projectId: "not_found"
+        }
+      });
+      return true;
+    }
+
+    sendJson(response, 200, {
+      success: true,
+      message: "Project snapshots loaded.",
+      data: {
+        snapshots: listProjectSnapshots(snapshotPath.projectId)
+      }
+    });
+    return true;
+  }
+
+  if (snapshotPath && !snapshotPath.snapshotId && request.method === "POST") {
+    try {
+      const body = await readOptionalJsonBody(request);
+      const snapshot = createProjectSnapshot(snapshotPath.projectId, body && body.label);
+      sendJson(response, 201, {
+        success: true,
+        message: "Project snapshot created.",
+        data: {
+          snapshot
+        }
+      });
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot create project snapshot.",
+        errors: error.errors || null
+      });
+    }
+    return true;
+  }
+
+  if (snapshotPath && snapshotPath.snapshotId && request.method === "POST") {
+    try {
+      const row = restoreProjectSnapshot(snapshotPath.projectId, snapshotPath.snapshotId);
+      sendProject(sendJson, response, row, "Project snapshot restored.");
+    } catch (error) {
+      sendJson(response, error.statusCode || 500, {
+        success: false,
+        message: error.message || "Cannot restore project snapshot.",
         errors: error.errors || null
       });
     }

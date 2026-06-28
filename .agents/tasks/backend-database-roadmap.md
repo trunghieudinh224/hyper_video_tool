@@ -692,6 +692,8 @@ Cho phép lưu các mốc snapshot thủ công hoặc theo render checkpoint.
 
 - 🟡 Restore snapshot có thể overwrite current payload; cần confirm modal.
 
+Status: implemented as manual project snapshots in Settings. Backend supports list/create/restore; UI requires confirm before restore. Automated DB/API/frontend storage tests pass.
+
 ## Decision: JSON Snapshot Trước, Normalize Sau
 
 Không nên normalize ngay toàn bộ `features`, `slots`, `sceneTemplateOverride`, `videoStyleOverrides` thành bảng riêng trong phase đầu.
@@ -768,4 +770,4 @@ Render smoke later:
 
 ## Current Recommended Next Step
 
-Trước khi code tiếp, nên commit hoặc ổn định Slice 0 nếu chưa commit. Sau đó triển khai Slice 1: backend multi-project DB + API + tests.
+Các slice chính của roadmap multi-project đã có implementation và automated checks. Trước release nên chạy browser smoke thủ công trên app local và một render MP4 thật để xác nhận UI/history/output hoạt động end-to-end.

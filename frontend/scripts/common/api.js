@@ -142,6 +142,29 @@ const AppBackendApi = (() => {
     return Array.isArray(data.outputs) ? data.outputs : [];
   };
 
+  const listProjectSnapshots = async (projectId = "current") => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/snapshots`);
+    return Array.isArray(data.snapshots) ? data.snapshots : [];
+  };
+
+  const createProjectSnapshot = async (projectId = "current", label = "") => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/snapshots`, {
+      method: "POST",
+      body: JSON.stringify({ label })
+    });
+    return data.snapshot || null;
+  };
+
+  const restoreProjectSnapshot = async (projectId = "current", snapshotId) => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
+      method: "POST"
+    });
+    return {
+      project: data.project || null,
+      meta: data.meta || null
+    };
+  };
+
   const uploadAssets = async (files, options = {}) => {
     if (!isBackendAvailable()) {
       throw new Error("Backend API is not available from this page origin.");
@@ -189,6 +212,9 @@ const AppBackendApi = (() => {
     saveSettings,
     loadAssets,
     loadOutputs,
+    listProjectSnapshots,
+    createProjectSnapshot,
+    restoreProjectSnapshot,
     uploadAssets,
     deleteAsset
   };

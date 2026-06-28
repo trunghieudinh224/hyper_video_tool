@@ -83,6 +83,40 @@ const context = vm.createContext({
         }
       });
     }
+    if (url === "/api/projects/proj_1/snapshots" && !options.method) {
+      return jsonResponse({
+        success: true,
+        data: {
+          snapshots: [
+            { id: "snap_current", projectId: "proj_1", version: 1, label: "Current", isCurrent: true },
+            { id: "snap_2", projectId: "proj_1", version: 2, label: "Before edit", isCurrent: false }
+          ]
+        }
+      });
+    }
+    if (url === "/api/projects/proj_1/snapshots" && options.method === "POST") {
+      return jsonResponse({
+        success: true,
+        data: {
+          snapshot: { id: "snap_3", projectId: "proj_1", version: 3, label: JSON.parse(options.body).label, isCurrent: false }
+        }
+      });
+    }
+    if (url === "/api/projects/proj_1/snapshots/snap_2/restore" && options.method === "POST") {
+      return jsonResponse({
+        success: true,
+        data: {
+          meta: { id: "proj_1", name: "Codegraph Restored", slug: "codegraph-restored" },
+          project: {
+            projectName: "Codegraph Restored",
+            projectSlug: "codegraph-restored",
+            contentType: "technical-module",
+            features: [],
+            assets: []
+          }
+        }
+      });
+    }
     if (url === "/api/projects/proj_1/duplicate" && options.method === "POST") {
       return jsonResponse({
         success: true,
@@ -164,6 +198,20 @@ async function run() {
   assert.equal(outputs.length, 1);
   assert.equal(outputs[0].projectId, "proj_1");
   assert.equal(requests.at(-1).url, "/api/projects/proj_1/outputs");
+
+  const snapshots = await context.__AppStorage.loadProjectSnapshots("proj_1");
+  assert.equal(snapshots.length, 2);
+  assert.equal(snapshots[1].label, "Before edit");
+  assert.equal(requests.at(-1).url, "/api/projects/proj_1/snapshots");
+
+  const snapshot = await context.__AppStorage.createProjectSnapshot("Before restore");
+  assert.equal(snapshot.label, "Before restore");
+  assert.equal(requests.at(-1).url, "/api/projects/proj_1/snapshots");
+
+  const restored = await context.__AppStorage.restoreProjectSnapshot("snap_2");
+  assert.equal(restored.projectName, "Codegraph Restored");
+  assert.equal(context.__AppStorage.getActiveProjectId(), "proj_1");
+  assert.equal(requests.at(-1).url, "/api/projects/proj_1/snapshots/snap_2/restore");
 
   const duplicated = await context.__AppStorage.duplicateProjectData("proj_1");
   assert.equal(duplicated.projectName, "Codegraph Copy");

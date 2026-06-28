@@ -11,13 +11,16 @@ process.env.HVT_DATABASE_PATH = path.join(testRoot, "test.sqlite");
 
 const {
   archiveProject,
+  createProjectSnapshot,
   createProject,
   duplicateProject,
   getActiveProject,
   getCurrentProject,
   getProject,
+  listProjectSnapshots,
   listProjects,
   listRenderOutputs,
+  restoreProjectSnapshot,
   saveProject,
   saveRenderOutput,
   setActiveProject
@@ -125,6 +128,58 @@ async function run() {
   assert.equal(outputsHandled, true);
   assert.equal(outputsResponse.statusCode, 200);
   assert.equal(outputsResponse.payload.data.outputs[0].id, "job_1");
+
+  const snapshot = createProjectSnapshot(first.id, "Before rewrite");
+  assert.equal(snapshot.label, "Before rewrite");
+  assert.equal(snapshot.isCurrent, false);
+  assert.ok(listProjectSnapshots(first.id).some((item) => item.id === snapshot.id));
+
+  saveProject(first.id, project({
+    projectName: "Project Alpha Changed",
+    projectSlug: "project-alpha-changed",
+    features: [{ id: "changed", title: "Changed" }]
+  }));
+  assert.equal(getProject(first.id).name, "Project Alpha Changed");
+  const restored = restoreProjectSnapshot(first.id, snapshot.id);
+  assert.equal(restored.name, first.name);
+  assert.equal(restored.slug, first.slug);
+
+  const snapshotsResponse = captureResponse();
+  const snapshotsHandled = await handleProjects(
+    jsonRequest("GET", `/api/projects/${encodeURIComponent(first.id)}/snapshots`),
+    snapshotsResponse,
+    new URL(`http://localhost/api/projects/${encodeURIComponent(first.id)}/snapshots`),
+    sendJson
+  );
+  assert.equal(snapshotsHandled, true);
+  assert.equal(snapshotsResponse.statusCode, 200);
+  assert.ok(snapshotsResponse.payload.data.snapshots.length >= 2);
+
+  const createSnapshotResponse = captureResponse();
+  const createSnapshotHandled = await handleProjects(
+    jsonRequest("POST", `/api/projects/${encodeURIComponent(first.id)}/snapshots`, { label: "Route snapshot" }),
+    createSnapshotResponse,
+    new URL(`http://localhost/api/projects/${encodeURIComponent(first.id)}/snapshots`),
+    sendJson
+  );
+  assert.equal(createSnapshotHandled, true);
+  assert.equal(createSnapshotResponse.statusCode, 201);
+  assert.equal(createSnapshotResponse.payload.data.snapshot.label, "Route snapshot");
+
+  saveProject(first.id, project({
+    projectName: "Project Alpha Route Changed",
+    projectSlug: "project-alpha-route-changed"
+  }));
+  const restoreSnapshotResponse = captureResponse();
+  const restoreSnapshotHandled = await handleProjects(
+    jsonRequest("POST", `/api/projects/${encodeURIComponent(first.id)}/snapshots/${encodeURIComponent(createSnapshotResponse.payload.data.snapshot.id)}/restore`),
+    restoreSnapshotResponse,
+    new URL(`http://localhost/api/projects/${encodeURIComponent(first.id)}/snapshots/${encodeURIComponent(createSnapshotResponse.payload.data.snapshot.id)}/restore`),
+    sendJson
+  );
+  assert.equal(restoreSnapshotHandled, true);
+  assert.equal(restoreSnapshotResponse.statusCode, 200);
+  assert.equal(restoreSnapshotResponse.payload.data.meta.name, first.name);
 
   const response = captureResponse();
   const handled = await handleProjects(
