@@ -8,6 +8,26 @@ Tài liệu này ghi lại các bài học kỹ thuật có thể tái sử dụ
 - Entry mới chèn phía trên entry cũ hơn, ngay sau phần quy chuẩn.
 - Chỉ ghi bài học có thể tái sử dụng, không ghi thao tác vụn vặt.
 
+## Cập nhật ngày 28/06/2026 (10:58:12 UTC+7) - Dynamic scene type phải đi qua đủ frontend, template và backend schema
+
+### Bối cảnh
+
+Trang template có thể tạo phân đoạn theo scene template/slot và preview nội bộ chạy đúng, nhưng render API vẫn có thể fail nếu payload sinh ra scene type mới.
+
+### Nguyên nhân
+
+Dynamic render có nhiều lớp hợp đồng độc lập: frontend build payload, template runtime render DOM, và backend `render-payload-schema.js` validate scene type trước khi render. Nếu chỉ sửa frontend/template mà quên schema/test backend, payload mới sẽ bị reject ở API.
+
+### Cách xử lý đúng
+
+- Khi thêm dynamic scene type mới, cập nhật `DYNAMIC_SCENE_TYPES` trong backend schema.
+- Thêm test payload tối thiểu trong `backend/scripts/test-render-payload.js`.
+- Verify cả `AppRender.buildRenderPayload`, template runtime DOM, và `npm --prefix backend run check`.
+
+### Quy tắc lần sau
+
+Không coi preview trong browser là đủ cho thay đổi render contract. Mỗi scene type mới phải có coverage qua ba chỗ: frontend payload builder, template renderer, backend schema/test.
+
 ## Cập nhật ngày 24/06/2026 (11:41:52 UTC+7) - Dynamic render blank dù job succeeded
 
 ### Bối cảnh
