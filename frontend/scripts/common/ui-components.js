@@ -706,9 +706,31 @@ const AppUI = (() => {
     const checkFeatures = (data.features || []).filter(f => f.useInVideo).length >= 3 ? "success" : "warning";
     const checkAssets = (data.assets || []).some(a => ["logo", "screenshot", "image", "background", "video"].includes(a.type) && a.useInVideo) ? "success" : "warning";
     const checkTemplate = data.templateId ? "success" : "danger";
+    const backendEnabled = typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable();
+    const activeProjectMeta = AppStorage.getActiveProjectMeta ? AppStorage.getActiveProjectMeta() : null;
 
     container.innerHTML = `
       ${renderWorkspaceHeader("Tổng quan video", "Xem tóm tắt thông tin brief và trạng thái sẵn sàng của video.")}
+      <section class="app-section overview-project-history mb-6">
+        <div class="app-section-header">
+          <div>
+            <span class="app-section-eyebrow">${renderIcon("layers")} Project đã lưu</span>
+            <span class="app-section-helper">Load lại, duplicate hoặc archive project đã làm trong database.</span>
+          </div>
+          <button id="overview-create-project" class="btn btn-primary" ${backendEnabled ? "" : "disabled"}>Tạo project Codegraph mới</button>
+        </div>
+        <div class="app-section-content">
+          <div class="overview-active-project">
+            <span>Đang mở:</span>
+            <strong>${escapeHtml(activeProjectMeta && activeProjectMeta.name ? activeProjectMeta.name : data.projectName || "Chưa có project")}</strong>
+            ${activeProjectMeta && activeProjectMeta.slug ? `<code>${escapeHtml(activeProjectMeta.slug)}</code>` : ""}
+          </div>
+          <div id="overview-project-list" class="overview-project-list">
+            ${backendEnabled ? '<div class="overview-project-empty">Đang tải danh sách project...</div>' : '<div class="overview-project-empty">Chạy app qua backend local để dùng lịch sử project database.</div>'}
+          </div>
+        </div>
+      </section>
+
       <div class="grid-2 mb-6">
         <section class="app-section">
           <div class="app-section-header">
@@ -776,6 +798,136 @@ const AppUI = (() => {
         </div>
       </section>
     `;
+
+    const renderProjectHistory = async () => {
+      const listEl = document.getElementById("overview-project-list");
+      if (!listEl || !backendEnabled || !AppStorage.loadProjectList) {
+        return;
+      }
+
+      try {
+        const projects = await AppStorage.loadProjectList();
+        const activeId = AppStorage.getActiveProjectId ? AppStorage.getActiveProjectId() : "";
+        if (!projects.length) {
+          listEl.innerHTML = '<div class="overview-project-empty">Chưa có project nào trong database.</div>';
+          return;
+        }
+
+        listEl.innerHTML = projects.map((project) => {
+          const isActive = project.id === activeId;
+          return `
+            <div class="overview-project-row${isActive ? " is-active" : ""}">
+              <div class="overview-project-main">
+                <strong>${escapeHtml(project.name || "Untitled Project")}</strong>
+                <span>${escapeHtml(project.slug || project.id)}</span>
+              </div>
+              <div class="overview-project-meta">
+                ${project.contentType ? `<span>${escapeHtml(project.contentType)}</span>` : ""}
+                ${project.updatedAt ? `<span>${escapeHtml(String(project.updatedAt).slice(0, 19).replace("T", " "))}</span>` : ""}
+              </div>
+              <div class="overview-project-actions">
+                <button class="btn btn-secondary btn-sm" type="button" data-project-load="${escapeHtml(project.id)}" ${isActive ? "disabled" : ""}>
+                  ${isActive ? "Đang mở" : "Load"}
+                </button>
+                <button class="btn btn-secondary btn-sm" type="button" data-project-duplicate="${escapeHtml(project.id)}">Duplicate</button>
+                <button class="btn btn-danger btn-sm" type="button" data-project-archive="${escapeHtml(project.id)}">Archive</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        listEl.querySelectorAll("[data-project-load]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const projectId = button.getAttribute("data-project-load");
+            button.disabled = true;
+            button.textContent = "Đang load...";
+            try {
+              const nextData = await AppStorage.activateProject(projectId);
+              AppState.setProjectData(nextData, true);
+              renderOverviewScreen(container, nextData);
+              showToast("Đã load project từ database.");
+            } catch (error) {
+              button.disabled = false;
+              button.textContent = "Load";
+              showToast(`Không load được project: ${error.message}`, "error");
+            }
+          });
+        });
+
+        listEl.querySelectorAll("[data-project-duplicate]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const projectId = button.getAttribute("data-project-duplicate");
+            button.disabled = true;
+            button.textContent = "Đang copy...";
+            try {
+              const nextData = await AppStorage.duplicateProjectData(projectId);
+              AppState.setProjectData(nextData, true);
+              renderOverviewScreen(container, nextData);
+              showToast("Đã duplicate project và chuyển sang bản copy.");
+            } catch (error) {
+              button.disabled = false;
+              button.textContent = "Duplicate";
+              showToast(`Không duplicate được project: ${error.message}`, "error");
+            }
+          });
+        });
+
+        listEl.querySelectorAll("[data-project-archive]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const projectId = button.getAttribute("data-project-archive");
+            showModal(
+              "Archive project",
+              "Project sẽ bị ẩn khỏi danh sách mặc định nhưng không bị xóa khỏi database.",
+              [
+                { text: "Hủy", class: "btn-secondary", onClick: closeModal },
+                {
+                  text: "Archive",
+                  class: "btn-danger",
+                  onClick: async () => {
+                    button.disabled = true;
+                    try {
+                      const nextData = await AppStorage.archiveProjectData(projectId);
+                      if (nextData) {
+                        AppState.setProjectData(nextData, true);
+                      }
+                      closeModal();
+                      renderOverviewScreen(container, AppState.getProjectData());
+                      showToast("Đã archive project.", "info");
+                    } catch (error) {
+                      button.disabled = false;
+                      closeModal();
+                      showToast(`Không archive được project: ${error.message}`, "error");
+                    }
+                  }
+                }
+              ]
+            );
+          });
+        });
+      } catch (error) {
+        listEl.innerHTML = `<div class="overview-project-empty">Không tải được danh sách project: ${escapeHtml(error.message)}</div>`;
+      }
+    };
+
+    const createProjectButton = document.getElementById("overview-create-project");
+    if (createProjectButton) {
+      createProjectButton.addEventListener("click", async () => {
+        createProjectButton.disabled = true;
+        createProjectButton.textContent = "Đang tạo...";
+        try {
+          const nextData = await AppStorage.createProjectData(AppStorage.loadSampleData(), { activate: true });
+          AppState.setProjectData(nextData, true);
+          renderOverviewScreen(container, nextData);
+          showToast("Đã tạo project Codegraph mới trong database.");
+        } catch (error) {
+          createProjectButton.disabled = false;
+          createProjectButton.textContent = "Tạo project Codegraph mới";
+          showToast(`Không tạo được project: ${error.message}`, "error");
+        }
+      });
+    }
+
+    renderProjectHistory();
 
     // Event Handlers
     document.getElementById("overview-edit-btn").addEventListener("click", () => AppState.setTab("content"));

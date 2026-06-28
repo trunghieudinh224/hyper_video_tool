@@ -1,1 +1,86 @@
 /* Page-specific styles for Tổng quan. Shared layout lives in ../layout.css and ../components.css. */
+
+.overview-project-history {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.overview-active-project,
+.overview-project-row {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.overview-active-project {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.overview-active-project strong {
+  color: var(--color-text);
+}
+
+.overview-active-project code {
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+}
+
+.overview-project-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.overview-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+}
+
+.overview-project-row.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-soft);
+}
+
+.overview-project-main,
+.overview-project-meta {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.overview-project-main strong {
+  overflow: hidden;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-project-main span,
+.overview-project-meta span,
+.overview-project-empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.overview-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.overview-project-empty {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-alt);
+}
