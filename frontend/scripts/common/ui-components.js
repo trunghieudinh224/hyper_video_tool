@@ -281,6 +281,58 @@ const AppUI = (() => {
     ].join(";");
   };
 
+  const normalizeSubtitleFontSize = (value, fallback = 11) => {
+    const parsed = Number.parseInt(value, 10);
+    return Math.max(8, Math.min(48, Number.isFinite(parsed) ? parsed : fallback));
+  };
+
+  const normalizeSubtitleFontWeight = (value, fallback = 500) => {
+    const parsed = Number.parseInt(value, 10);
+    const allowed = [300, 400, 500, 600, 700, 800, 900];
+    return allowed.includes(parsed) ? parsed : fallback;
+  };
+
+  const normalizeSubtitleMaxLines = (value, fallback = 3) => {
+    const parsed = Number.parseInt(value, 10);
+    return Math.max(1, Math.min(6, Number.isFinite(parsed) ? parsed : fallback));
+  };
+
+  const normalizeSubtitleLayout = (layout = {}) => {
+    const width = Math.max(20, Math.min(92, Number(layout.width) || 90));
+    const height = Math.max(6, Math.min(34, Number(layout.height) || 14));
+    return {
+      x: Math.max(0, Math.min(100 - width, Number(layout.x) || 5)),
+      y: Math.max(0, Math.min(100 - height, Number(layout.y) || 74)),
+      width,
+      height
+    };
+  };
+
+  const getSubtitleConfigDefaults = (subtitles = {}) => ({
+    enabled: Boolean(subtitles.enabled),
+    mode: ["voice", "custom", "srt"].includes(subtitles.mode) ? subtitles.mode : "voice",
+    style: ["bottom-caption", "karaoke", "minimal"].includes(subtitles.style) ? subtitles.style : "bottom-caption",
+    text: String(subtitles.text || ""),
+    fontSize: normalizeSubtitleFontSize(subtitles.fontSize, 11),
+    fontWeight: normalizeSubtitleFontWeight(subtitles.fontWeight, 500),
+    maxLines: normalizeSubtitleMaxLines(subtitles.maxLines, 3),
+    layout: normalizeSubtitleLayout(subtitles.layout)
+  });
+
+  const getSubtitleLayoutStyle = (layout = {}) => {
+    const normalized = normalizeSubtitleLayout(layout);
+    return [
+      `left:${normalized.x}%`,
+      `top:${normalized.y}%`,
+      `width:${normalized.width}%`,
+      `height:${normalized.height}%`
+    ].join(";");
+  };
+
+  const renderSubtitleSkeletonLines = (lineCount = 3) => Array.from({ length: normalizeSubtitleMaxLines(lineCount, 3) })
+    .map((_, index) => `<span style="width:${index === 0 ? 100 : index === 1 ? 86 : 72}%;"></span>`)
+    .join("");
+
   const getSceneTemplateAspectClass = (template, ratio = "") => {
     if (ratio === "16:9") {
       return "is-landscape";
@@ -1109,6 +1161,7 @@ const AppUI = (() => {
     const sceneTemplates = getProjectSceneTemplates(data);
     const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
     const slotAnimations = Array.isArray(SCENE_SLOT_ANIMATIONS) ? SCENE_SLOT_ANIMATIONS : [];
+    const slotDisplayAnimations = Array.isArray(SCENE_SLOT_DISPLAY_ANIMATIONS) ? SCENE_SLOT_DISPLAY_ANIMATIONS : [{ id: "none", label: "Không hiệu ứng" }];
     const getConfiguredVideoAspectRatio = (projectData = data) => {
       const formats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
       const selectedFormat = formats.find((format) => format.id === (projectData.video && projectData.video.formatId))
@@ -1151,6 +1204,10 @@ const AppUI = (() => {
       const animation = slotAnimations.find((item) => item.id === animationId);
       return animation ? animation.label : animationId;
     };
+    const getDisplayAnimationLabel = (animationId) => {
+      const animation = slotDisplayAnimations.find((item) => item.id === animationId);
+      return animation ? animation.label : animationId;
+    };
     const getSlotContentKey = (slot = {}) => {
       const key = `${slot.id || ""} ${slot.label || ""}`.toLowerCase();
       if (key.includes("title") || key.includes("tiêu đề")) return "title";
@@ -1170,8 +1227,8 @@ const AppUI = (() => {
       const base = {
         type: slot.type,
         delay: Number.isFinite(slot.defaultDelay) ? slot.defaultDelay : 0,
-        animation: (slot.allowedAnimations && slot.allowedAnimations[0]) || "fade-up",
-        enabled: slot.required ? true : true
+        animation: "none",
+        displayAnimation: "none"
       };
 
       if (slot.type === "asset" || slot.type === "media") {
@@ -1227,8 +1284,9 @@ const AppUI = (() => {
           ...merged,
           type: slot.type,
           delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
-          animation: existing.animation || fallback.animation,
-          enabled: slot.required ? true : existing.enabled !== false
+          animation: existing.animation || fallback.animation || "none",
+          displayAnimation: existing.displayAnimation || fallback.displayAnimation || "none",
+          enabled: true
         };
         return normalized;
       }, {});
@@ -1238,9 +1296,6 @@ const AppUI = (() => {
       return asset ? (asset.name || asset.id) : assetId;
     };
     const getSlotValueSummary = (slot, value = {}) => {
-      if (value.enabled === false) {
-        return "Đang tắt";
-      }
       if (slot.type === "asset" || slot.type === "media") {
         return value.assetId ? getAssetLabel(value.assetId) : "Chưa chọn tài nguyên";
       }
@@ -1263,9 +1318,6 @@ const AppUI = (() => {
           return false;
         }
         const value = slots[slot.id] || {};
-        if (value.enabled === false) {
-          return true;
-        }
         if (slot.type === "asset" || slot.type === "media") {
           return !value.assetId;
         }
@@ -1436,7 +1488,7 @@ const AppUI = (() => {
               ${selectedSceneTemplate.slots.map((slot) => {
                 const value = selectedSlotValues[slot.id] || {};
                 return `
-                  <div class="script-slot-row ${value.enabled === false ? "is-disabled" : ""}">
+                  <div class="script-slot-row">
                     <div class="script-slot-meta">
                       <strong>${escapeText(slot.label)}</strong>
                       <small>${escapeText(getSlotTypeLabel(slot.type))} · ${escapeText(value.delay)}s</small>
@@ -1716,12 +1768,49 @@ const AppUI = (() => {
         return "#0891b2";
       };
       const normalizeSlotTextColor = (value, fallback = "#0891b2") => normalizeHexColor(value, fallback);
+      const normalizeSlotBackgroundColor = (value, fallback = "") => String(value || "").trim() ? normalizeHexColor(value, fallback || "#ffffff") : "";
+      const normalizeSlotBorderColor = (value, fallback = "") => String(value || "").trim() ? normalizeHexColor(value, fallback || "#d9dee7") : "";
+      const slotBorderWidthOptions = [
+        { id: "none", label: "Không", width: 0 },
+        { id: "thin", label: "Mỏng", width: 1 },
+        { id: "medium", label: "Vừa", width: 2 },
+        { id: "thick", label: "Dày", width: 3 }
+      ];
+      const normalizeSlotBorderWidth = (value, fallback = "none") => {
+        const width = String(value || "").trim();
+        return slotBorderWidthOptions.some((option) => option.id === width) ? width : fallback;
+      };
+      const getSlotBorderWidthPx = (value) => {
+        const option = slotBorderWidthOptions.find((item) => item.id === normalizeSlotBorderWidth(value));
+        return option ? option.width : 1;
+      };
+      const selectedSlotVideoStyle = resolveVideoStyle(data.videoStyleId, data) || getVideoStylePreset(data.videoStyleId) || {};
+      const selectedSlotTheme = selectedSlotVideoStyle.colorTheme || {};
+      const getDefaultSlotBorderColor = () => normalizeHexColor(selectedSlotTheme.border || "#334155", "#334155");
       const getDefaultTextFontSize = (slot = {}) => {
         if (slot.type === "tag") return 16;
         if (slot.type === "list") return 16;
         if (String(slot.id || "").includes("title")) return 28;
         if (String(slot.id || "").includes("description")) return 22;
         return 18;
+      };
+      const renderSlotColorButton = (field, label, value = "", defaultColor = "#ffffff", options = {}) => {
+        const customColor = String(value || "").trim() ? normalizeHexColor(value, defaultColor) : "";
+        const swatchColor = customColor || normalizeHexColor(defaultColor, "#ffffff");
+        const emptyLabel = options.emptyLabel || "Mặc định";
+        const disabled = Boolean(options.disabled);
+        const supportsTransparent = options.emptyLabel === "Transparent";
+        const transparent = !customColor && supportsTransparent;
+        return `
+        <label class="scene-slot-color-field">
+          <span>${escapeText(label)}</span>
+          <button class="scene-slot-color-button ${disabled ? "is-disabled" : ""}" type="button" data-slot-color-picker data-color-label="${escapeAttribute(label)}" data-default-color="${escapeAttribute(swatchColor)}" data-empty-label="${escapeAttribute(emptyLabel)}" data-transparent-empty="${supportsTransparent ? "true" : "false"}" aria-label="Chọn ${escapeAttribute(label)}" ${disabled ? "disabled" : ""}>
+            <span class="style-pickr-swatch ${transparent ? "is-transparent" : ""}" aria-hidden="true"></span>
+            <span class="style-pickr-value">${escapeText(customColor || emptyLabel)}</span>
+          </button>
+          <input type="hidden" data-slot-field="${escapeAttribute(field)}" value="${escapeAttribute(customColor)}">
+        </label>
+        `;
       };
       const renderSlotTypographyControls = (slot, value = {}) => {
         if (!isTextSceneItemType(slot.type)) {
@@ -1757,19 +1846,38 @@ const AppUI = (() => {
                 `).join("")}
               </select>
             </label>
-            <label class="scene-slot-color-field">
-              <span>Màu chữ</span>
-              <button class="scene-slot-color-button" type="button" data-slot-color-picker data-color-label="Màu chữ" aria-label="Chọn màu chữ">
-                <span class="style-pickr-swatch" aria-hidden="true"></span>
-              </button>
-              <input type="hidden" data-slot-field="textColor" value="${escapeAttribute(textColor)}">
-            </label>
+            ${renderSlotColorButton("textColor", "Màu chữ", textColor, getDefaultSlotTextColor(slot))}
           </div>
         `;
       };
-      const backgroundAssets = (data.assets || []).filter((asset) => ["background", "image", "screenshot", "video"].includes(asset.type));
-      const renderBackgroundAssetOptions = (selectedAssetId = "") => backgroundAssets.map((asset) => `
-        <option value="${escapeText(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
+      const renderSlotAppearanceControls = (slot, value = {}) => {
+        if (isTextSceneItemType(slot.type)) {
+          return "";
+        }
+        const backgroundColor = normalizeSlotBackgroundColor(value.backgroundColor);
+        const borderColor = normalizeSlotBorderColor(value.borderColor);
+        const borderWidth = normalizeSlotBorderWidth(value.borderWidth);
+        const isBorderDisabled = borderWidth === "none";
+        return `
+          <div class="scene-slot-appearance">
+            ${renderSlotColorButton("backgroundColor", "Background", backgroundColor, "#ffffff", { emptyLabel: "Transparent" })}
+            <label>
+              <span>Border</span>
+              <select class="form-control" data-slot-field="borderWidth">
+                ${slotBorderWidthOptions.map((option) => `
+                  <option value="${escapeAttribute(option.id)}" ${option.id === borderWidth ? "selected" : ""}>${escapeText(option.label)}</option>
+                `).join("")}
+              </select>
+            </label>
+            ${renderSlotColorButton("borderColor", "Border color", borderColor, getDefaultSlotBorderColor(), { disabled: isBorderDisabled })}
+          </div>
+        `;
+      };
+      const getAssetById = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
+      const imageBackgroundAssets = (data.assets || []).filter((asset) => ["background", "image", "screenshot"].includes(asset.type));
+      const videoBackgroundAssets = (data.assets || []).filter((asset) => asset.type === "video");
+      const renderBackgroundAssetOptions = (assets, selectedAssetId = "") => assets.map((asset) => `
+        <option value="${escapeAttribute(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
       `).join("");
       const getSegmentBackgroundDefaults = (background = {}) => ({
         mode: background.mode === "asset" ? "asset" : "color",
@@ -1781,6 +1889,11 @@ const AppUI = (() => {
         gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
       });
       let activeSegmentBackground = getSegmentBackgroundDefaults(feature && feature.background);
+      const selectedBackgroundAsset = getAssetById(activeSegmentBackground.assetId);
+      const initialBackgroundMode = activeSegmentBackground.mode === "asset"
+        ? (selectedBackgroundAsset && selectedBackgroundAsset.type === "video" ? "video" : "asset")
+        : "color";
+      const initialBackgroundAssets = initialBackgroundMode === "video" ? videoBackgroundAssets : imageBackgroundAssets;
       const segmentBackgroundColorState = {
         color: activeSegmentBackground.color,
         gradientFrom: activeSegmentBackground.gradientFrom,
@@ -1795,7 +1908,6 @@ const AppUI = (() => {
           </button>
         </div>
       `;
-      const getAssetById = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
       const getGradientDirectionValue = (direction) => ({
         "to-right": "to right",
         "to-left": "to left",
@@ -1808,8 +1920,9 @@ const AppUI = (() => {
         const colorTypeInput = document.getElementById("modal-feat-bg-color-type");
         const gradientDirectionInput = document.getElementById("modal-feat-bg-gradient-direction");
 
+        const selectedMode = modeInput ? modeInput.value : activeSegmentBackground.mode;
         activeSegmentBackground = getSegmentBackgroundDefaults({
-          mode: modeInput ? modeInput.value : activeSegmentBackground.mode,
+          mode: selectedMode === "video" ? "asset" : selectedMode,
           assetId: assetInput ? assetInput.value : activeSegmentBackground.assetId,
           colorType: colorTypeInput ? colorTypeInput.value : activeSegmentBackground.colorType,
           color: segmentBackgroundColorState.color,
@@ -1862,14 +1975,15 @@ const AppUI = (() => {
 
           const delayInput = item.querySelector("[data-slot-field='delay']");
           const animationInput = item.querySelector("[data-slot-field='animation']");
-          const enabledInput = item.querySelector("[data-slot-field='enabled']");
+          const displayAnimationInput = item.querySelector("[data-slot-field='displayAnimation']");
           const delay = Number.parseFloat(delayInput ? delayInput.value : current.delay);
           const next = {
             ...current,
             type: slot.type,
             delay: Number.isFinite(delay) ? Math.max(0, delay) : current.delay,
-            animation: animationInput ? animationInput.value : current.animation,
-            enabled: slot.required ? true : !(enabledInput && !enabledInput.checked)
+            animation: animationInput ? animationInput.value : (current.animation || "none"),
+            displayAnimation: displayAnimationInput ? displayAnimationInput.value : (current.displayAnimation || "none"),
+            enabled: true
           };
 
           if (slot.type === "asset" || slot.type === "media") {
@@ -1896,7 +2010,16 @@ const AppUI = (() => {
             next.fontWeight = normalizeSlotFontWeight(fontWeightInput ? fontWeightInput.value : current.fontWeight, slot.type === "tag" ? 800 : 900);
             next.textAlign = normalizeSlotTextAlign(textAlignInput ? textAlignInput.value : current.textAlign);
             next.textColor = normalizeSlotTextColor(textColorInput ? textColorInput.value : current.textColor, getDefaultSlotTextColor(slot));
+            delete next.backgroundColor;
+            delete next.borderColor;
+            delete next.borderWidth;
           } else {
+            const backgroundColorInput = item.querySelector("[data-slot-field='backgroundColor']");
+            const borderColorInput = item.querySelector("[data-slot-field='borderColor']");
+            const borderWidthInput = item.querySelector("[data-slot-field='borderWidth']");
+            next.backgroundColor = normalizeSlotBackgroundColor(backgroundColorInput ? backgroundColorInput.value : current.backgroundColor);
+            next.borderColor = normalizeSlotBorderColor(borderColorInput ? borderColorInput.value : current.borderColor);
+            next.borderWidth = normalizeSlotBorderWidth(borderWidthInput ? borderWidthInput.value : current.borderWidth);
             delete next.fontSize;
             delete next.fontWeight;
             delete next.textAlign;
@@ -1991,7 +2114,7 @@ const AppUI = (() => {
           <div class="scene-template-slot-list scene-slot-editor-grid">
             ${template.slots.map((slot, index) => {
               const value = activeSlotValues[slot.id] || getDefaultSlotValue(slot, feature || {});
-              const allowedAnimations = (slot.allowedAnimations || []).length ? slot.allowedAnimations : slotAnimations.map((item) => item.id);
+              const allowedAnimations = ["none", ...((slot.allowedAnimations || []).length ? slot.allowedAnimations : slotAnimations.map((item) => item.id)).filter((animationId) => animationId !== "none")];
               return `
                 <section class="scene-template-slot-row scene-slot-editor-item ${slot.id === activeModalSlotId ? "is-selected" : ""}" data-slot-id="${slot.id}">
                   <div class="scene-template-slot-head scene-slot-editor-head">
@@ -2009,6 +2132,7 @@ const AppUI = (() => {
                     ${renderSlotInputHTML(slot, value)}
                   </div>
                   ${renderSlotTypographyControls(slot, value)}
+                  ${renderSlotAppearanceControls(slot, value)}
 
                   <div class="scene-slot-controls">
                     <label>
@@ -2016,22 +2140,21 @@ const AppUI = (() => {
                       <input type="number" class="form-control" data-slot-field="delay" min="0" max="30" step="0.1" value="${escapeText(value.delay)}">
                     </label>
                     <label>
-                      <span>Animation</span>
+                      <span>Appear animation</span>
                       <select class="form-control" data-slot-field="animation">
                         ${allowedAnimations.map((animationId) => `
-                          <option value="${escapeText(animationId)}" ${animationId === value.animation ? "selected" : ""}>${escapeText(getAnimationLabel(animationId))}</option>
+                          <option value="${escapeText(animationId)}" ${animationId === (value.animation || "none") ? "selected" : ""}>${escapeText(getAnimationLabel(animationId))}</option>
                         `).join("")}
                       </select>
                     </label>
-                    <div class="scene-slot-state">
-                      ${slot.required ? "" : `
-                        <label class="script-switch scene-slot-toggle">
-                          <input type="checkbox" data-slot-field="enabled" ${value.enabled !== false ? "checked" : ""}>
-                          <span class="script-switch-track" aria-hidden="true"></span>
-                          <span>Bật slot</span>
-                        </label>
-                      `}
-                    </div>
+                    <label>
+                      <span>Display animation</span>
+                      <select class="form-control" data-slot-field="displayAnimation">
+                        ${slotDisplayAnimations.map((animation) => `
+                          <option value="${escapeText(animation.id)}" ${animation.id === (value.displayAnimation || "none") ? "selected" : ""}>${escapeText(getDisplayAnimationLabel(animation.id))}</option>
+                        `).join("")}
+                      </select>
+                    </label>
                   </div>
                 </section>
               `;
@@ -2066,6 +2189,40 @@ const AppUI = (() => {
         return supportedRatios[0] || modalAspectRatio;
       };
 
+      const collectModalSubtitleConfig = () => getSubtitleConfigDefaults({
+        enabled: document.getElementById("modal-feat-subtitle-enabled")?.checked,
+        mode: document.getElementById("modal-feat-subtitle-mode")?.value,
+        style: document.getElementById("modal-feat-subtitle-style")?.value,
+        text: document.getElementById("modal-feat-subtitle-text")?.value.trim(),
+        fontSize: document.getElementById("modal-feat-subtitle-font-size")?.value,
+        fontWeight: document.getElementById("modal-feat-subtitle-font-weight")?.value,
+        maxLines: document.getElementById("modal-feat-subtitle-max-lines")?.value,
+        layout: activeSubtitleLayout
+      });
+
+      const renderModalSubtitlePreview = () => {
+        const config = collectModalSubtitleConfig();
+        if (!config.enabled) {
+          return "";
+        }
+        return `
+          <div
+            class="script-segment-preview-subtitle"
+            style="${getSubtitleLayoutStyle(config.layout)};--subtitle-font-size:${config.fontSize}px;--subtitle-font-weight:${config.fontWeight};--subtitle-line-count:${config.maxLines};"
+            role="button"
+            tabindex="-1"
+            title="Kéo để đổi vị trí phụ đề"
+            data-preview-subtitle="true"
+          >
+            <strong>Phụ đề</strong>
+            <span class="script-segment-subtitle-skeleton" aria-hidden="true">
+              ${renderSubtitleSkeletonLines(config.maxLines)}
+            </span>
+            <i class="scene-template-resize-handle script-segment-resize-handle" data-subtitle-resize-handle="se" aria-hidden="true"></i>
+          </div>
+        `;
+      };
+
       const renderModalPreview = () => {
         const previewRoot = document.getElementById("script-segment-preview-body");
         const template = getActiveSceneTemplate();
@@ -2084,9 +2241,9 @@ const AppUI = (() => {
             "scene-template-preview-item",
             "script-segment-preview-slot",
             `slot-${escapeAttribute(slot.type)}`,
+            `display-${escapeAttribute(value.displayAnimation || "none")}`,
             (slot.type === "asset" || slot.type === "media") && value.assetId ? "has-media" : "",
-            slot.id === activeModalSlotId ? "is-selected" : "",
-            value.enabled === false ? "is-disabled" : ""
+            slot.id === activeModalSlotId ? "is-selected" : ""
           ].filter(Boolean).join(" ");
           const previewFontSize = isTextSceneItemType(slot.type)
             ? normalizeSlotFontSize(value.fontSize, getModalPreviewSlotFontSize(slot, index, ratio))
@@ -2101,7 +2258,11 @@ const AppUI = (() => {
           const previewTextColor = isTextSceneItemType(slot.type)
             ? normalizeSlotTextColor(value.textColor, getDefaultSlotTextColor(slot))
             : "";
-          const style = `${getSceneSlotStyle(slot, index, ratio)};--slot-preview-font:${previewFontSize}px;--slot-preview-weight:${previewFontWeight};--slot-preview-align:${previewTextAlign};--slot-preview-justify:${previewJustify};${previewTextColor ? `--slot-preview-color:${previewTextColor};` : ""}`;
+          const slotBackgroundColor = !isTextSceneItemType(slot.type) ? normalizeSlotBackgroundColor(value.backgroundColor) : "";
+          const slotBorderColor = !isTextSceneItemType(slot.type) ? normalizeSlotBorderColor(value.borderColor) : "";
+          const slotBorderWidth = !isTextSceneItemType(slot.type) ? getSlotBorderWidthPx(value.borderWidth) : 1;
+          const slotBackgroundStyle = !isTextSceneItemType(slot.type) ? `--slot-bg:${slotBackgroundColor || "transparent"};` : "";
+          const style = `${getSceneSlotStyle(slot, index, ratio)};--slot-preview-font:${previewFontSize}px;--slot-preview-weight:${previewFontWeight};--slot-preview-align:${previewTextAlign};--slot-preview-justify:${previewJustify};${previewTextColor ? `--slot-preview-color:${previewTextColor};` : ""}${slotBackgroundStyle}${slotBorderColor ? `--slot-border:${slotBorderColor};` : ""}${!isTextSceneItemType(slot.type) ? `--slot-border-width:${slotBorderWidth}px;` : ""}`;
           return `
             <div
               class="${className}"
@@ -2123,12 +2284,15 @@ const AppUI = (() => {
           <div class="scene-template-preview-shell script-segment-preview-shell">
             <div class="scene-template-preview-stage script-segment-preview-canvas ${ratio === "16:9" ? "is-landscape" : "is-portrait"}" style="${getSegmentBackgroundStyle(segmentBackground)}">
               ${renderSegmentBackgroundLayer(segmentBackground)}
-              <span class="scene-template-preview-safe script-segment-preview-safe is-top"></span>
-              <span class="scene-template-preview-safe script-segment-preview-safe is-bottom"></span>
+              <span class="scene-template-preview-safe script-segment-preview-safe is-top" aria-hidden="true"></span>
+              <span class="scene-template-preview-safe script-segment-preview-safe is-right" aria-hidden="true"></span>
+              <span class="scene-template-preview-safe script-segment-preview-safe is-bottom" aria-hidden="true"></span>
+              <span class="scene-template-preview-safe script-segment-preview-safe is-left" aria-hidden="true"></span>
               <span class="scene-template-center-guide script-segment-center-guide is-vertical" data-center-guide="vertical" aria-hidden="true"></span>
               <span class="scene-template-center-guide script-segment-center-guide is-horizontal" data-center-guide="horizontal" aria-hidden="true"></span>
               <span class="scene-template-edge-guide script-segment-edge-guide is-left" data-edge-guide="left" aria-hidden="true"></span>
               ${(template.slots || []).map(renderSlot).join("")}
+              ${renderModalSubtitlePreview()}
             </div>
           </div>
         `;
@@ -2347,7 +2511,8 @@ const AppUI = (() => {
         });
       };
 
-      const subtitleConfig = feature && feature.subtitles && typeof feature.subtitles === "object" ? feature.subtitles : {};
+      const subtitleConfig = getSubtitleConfigDefaults(feature && feature.subtitles && typeof feature.subtitles === "object" ? feature.subtitles : {});
+      let activeSubtitleLayout = normalizeSubtitleLayout(subtitleConfig.layout);
       const modalBody = document.createElement("div");
       modalBody.innerHTML = `
         <div class="script-segment-common-fields">
@@ -2439,6 +2604,24 @@ const AppUI = (() => {
                   </select>
                 </label>
               </div>
+              <div class="script-subtitle-grid script-subtitle-style-grid">
+                <label>
+                  <span>Font size</span>
+                  <input id="modal-feat-subtitle-font-size" class="form-control" type="number" min="8" max="48" step="1" value="${subtitleConfig.fontSize}">
+                </label>
+                <label>
+                  <span>Font weight</span>
+                  <select id="modal-feat-subtitle-font-weight" class="form-control">
+                    ${[300, 400, 500, 600, 700, 800, 900].map((weight) => `
+                      <option value="${weight}" ${weight === subtitleConfig.fontWeight ? "selected" : ""}>${weight}</option>
+                    `).join("")}
+                  </select>
+                </label>
+                <label>
+                  <span>Số dòng</span>
+                  <input id="modal-feat-subtitle-max-lines" class="form-control" type="number" min="1" max="6" step="1" value="${subtitleConfig.maxLines}">
+                </label>
+              </div>
               <label class="script-subtitle-text">
                 <span>Nội dung phụ đề</span>
                 <textarea id="modal-feat-subtitle-text" class="form-control" rows="5" placeholder="Để trống nếu lấy tự động từ kịch bản giọng đọc.">${escapeText(subtitleConfig.text || "")}</textarea>
@@ -2471,15 +2654,16 @@ const AppUI = (() => {
                 <label class="script-bg-mode-field">
                   <span>Nền phân đoạn</span>
                   <select id="modal-feat-bg-mode" class="form-control">
-                    <option value="color" ${activeSegmentBackground.mode === "color" ? "selected" : ""}>Màu nền</option>
-                    <option value="asset" ${activeSegmentBackground.mode === "asset" ? "selected" : ""}>Từ asset</option>
+                    <option value="color" ${initialBackgroundMode === "color" ? "selected" : ""}>Màu nền</option>
+                    <option value="asset" ${initialBackgroundMode === "asset" ? "selected" : ""}>Hình ảnh từ tài nguyên</option>
+                    <option value="video" ${initialBackgroundMode === "video" ? "selected" : ""}>Video từ tài nguyên</option>
                   </select>
                 </label>
                 <label class="script-bg-asset-field script-bg-wide-field">
-                  <span>Asset nền</span>
-                  <select id="modal-feat-bg-asset" class="form-control" ${backgroundAssets.length ? "" : "disabled"}>
-                    <option value="">Chưa chọn asset</option>
-                    ${renderBackgroundAssetOptions(activeSegmentBackground.assetId)}
+                  <span>Tài nguyên nền</span>
+                  <select id="modal-feat-bg-asset" class="form-control" ${initialBackgroundAssets.length ? "" : "disabled"}>
+                    <option value="">${initialBackgroundAssets.length ? "Chưa chọn tài nguyên" : (initialBackgroundMode === "video" ? "Project chưa có video" : "Project chưa có hình ảnh")}</option>
+                    ${renderBackgroundAssetOptions(initialBackgroundAssets, activeSegmentBackground.assetId)}
                   </select>
                 </label>
                 <label class="script-bg-color-type-field">
@@ -2567,12 +2751,7 @@ const AppUI = (() => {
               const description = document.getElementById("modal-feat-desc").value.trim();
               const benefit = benefitInput ? benefitInput.value.trim() : ((feature && feature.benefit) || "");
               const voiceoverScript = document.getElementById("modal-feat-voice").value.trim();
-              const subtitles = {
-                enabled: document.getElementById("modal-feat-subtitle-enabled").checked,
-                mode: document.getElementById("modal-feat-subtitle-mode").value,
-                style: document.getElementById("modal-feat-subtitle-style").value,
-                text: document.getElementById("modal-feat-subtitle-text").value.trim()
-              };
+              const subtitles = collectModalSubtitleConfig();
               const durationSec = Math.min(30, Math.max(3, Number.parseInt(document.getElementById("modal-feat-duration").value, 10) || 8));
               const useInVideo = document.getElementById("modal-feat-use").checked;
               const sceneTemplateId = document.getElementById("modal-feat-scene-template").value;
@@ -2658,10 +2837,36 @@ const AppUI = (() => {
       const previewButton = document.getElementById("modal-feat-voice-preview-btn");
       const previewStatus = document.getElementById("modal-feat-voice-preview-status");
       const previewAudio = document.getElementById("modal-feat-voice-audio");
+      const syncSegmentBackgroundAssetOptions = () => {
+        const modeInput = document.getElementById("modal-feat-bg-mode");
+        const assetInput = document.getElementById("modal-feat-bg-asset");
+        if (!modeInput || !assetInput) {
+          return;
+        }
+
+        const isVideoMode = modeInput.value === "video";
+        const isAssetMode = modeInput.value === "asset" || isVideoMode;
+        const availableAssets = isVideoMode ? videoBackgroundAssets : imageBackgroundAssets;
+        const selectedAssetId = assetInput.value || activeSegmentBackground.assetId;
+        const hasSelectedAsset = availableAssets.some((asset) => asset.id === selectedAssetId);
+        const emptyLabel = availableAssets.length
+          ? "Chưa chọn tài nguyên"
+          : (isVideoMode ? "Project chưa có video" : "Project chưa có hình ảnh");
+
+        assetInput.innerHTML = `
+          <option value="">${emptyLabel}</option>
+          ${renderBackgroundAssetOptions(availableAssets, hasSelectedAsset ? selectedAssetId : "")}
+        `;
+        assetInput.value = hasSelectedAsset ? selectedAssetId : "";
+        assetInput.disabled = !isAssetMode || availableAssets.length === 0;
+      };
       const syncSegmentBackgroundControls = () => {
+        syncSegmentBackgroundAssetOptions();
+        const selectedMode = document.getElementById("modal-feat-bg-mode")?.value || "color";
         const background = collectSegmentBackground();
-        modalBody.classList.toggle("is-bg-asset", background.mode === "asset");
-        modalBody.classList.toggle("is-bg-color", background.mode === "color");
+        modalBody.classList.toggle("is-bg-asset", selectedMode === "asset" || selectedMode === "video");
+        modalBody.classList.toggle("is-bg-video", selectedMode === "video");
+        modalBody.classList.toggle("is-bg-color", selectedMode === "color");
         modalBody.classList.toggle("is-bg-gradient", background.mode === "color" && background.colorType === "gradient");
         modalBody.classList.toggle("is-bg-solid", background.mode === "color" && background.colorType !== "gradient");
       };
@@ -2681,11 +2886,202 @@ const AppUI = (() => {
         }
       };
       const setSlotColorButtonColor = (button, color) => {
-        const normalized = normalizeHexColor(color, "#0891b2");
+        const input = button.parentElement ? button.parentElement.querySelector("input[data-slot-field]") : null;
+        const fallback = button.dataset.defaultColor || "#ffffff";
+        const emptyLabel = button.dataset.emptyLabel || "Mặc định";
+        const hasCustomColor = Boolean(String(color || "").trim());
+        const normalized = hasCustomColor ? normalizeHexColor(color, fallback) : normalizeHexColor(fallback, "#ffffff");
         const swatch = button.querySelector(".style-pickr-swatch");
+        const value = button.querySelector(".style-pickr-value");
         if (swatch) {
           swatch.style.backgroundColor = normalized;
+          swatch.classList.toggle("is-transparent", !hasCustomColor && button.dataset.transparentEmpty === "true");
         }
+        if (value) {
+          value.textContent = input && String(input.value || "").trim() ? normalizeHexColor(input.value, fallback) : emptyLabel;
+        }
+      };
+      const hexToRgb = (hexValue) => {
+        const hex = normalizeHexColor(hexValue, "#000000").slice(1);
+        return {
+          r: Number.parseInt(hex.slice(0, 2), 16),
+          g: Number.parseInt(hex.slice(2, 4), 16),
+          b: Number.parseInt(hex.slice(4, 6), 16)
+        };
+      };
+      const rgbToHex = ({ r, g, b }) => `#${[r, g, b].map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+      const rgbToHsv = ({ r, g, b }) => {
+        const red = r / 255;
+        const green = g / 255;
+        const blue = b / 255;
+        const max = Math.max(red, green, blue);
+        const min = Math.min(red, green, blue);
+        const delta = max - min;
+        let hue = 0;
+
+        if (delta) {
+          if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+          else if (max === green) hue = 60 * (((blue - red) / delta) + 2);
+          else hue = 60 * (((red - green) / delta) + 4);
+        }
+
+        return {
+          h: hue < 0 ? hue + 360 : hue,
+          s: max === 0 ? 0 : delta / max,
+          v: max
+        };
+      };
+      const hsvToRgb = ({ h, s, v }) => {
+        const chroma = v * s;
+        const x = chroma * (1 - Math.abs(((h / 60) % 2) - 1));
+        const match = v - chroma;
+        let red = 0;
+        let green = 0;
+        let blue = 0;
+
+        if (h < 60) [red, green, blue] = [chroma, x, 0];
+        else if (h < 120) [red, green, blue] = [x, chroma, 0];
+        else if (h < 180) [red, green, blue] = [0, chroma, x];
+        else if (h < 240) [red, green, blue] = [0, x, chroma];
+        else if (h < 300) [red, green, blue] = [x, 0, chroma];
+        else [red, green, blue] = [chroma, 0, x];
+
+        return {
+          r: (red + match) * 255,
+          g: (green + match) * 255,
+          b: (blue + match) * 255
+        };
+      };
+      let activeGradientColorPicker = null;
+      const closeGradientColorPicker = () => {
+        if (activeGradientColorPicker) {
+          activeGradientColorPicker.remove();
+          activeGradientColorPicker = null;
+        }
+        document.removeEventListener("mousedown", handleGradientColorPickerOutside, true);
+        document.removeEventListener("keydown", handleGradientColorPickerKeydown, true);
+      };
+      function handleGradientColorPickerOutside(event) {
+        if (event.target.closest(".script-gradient-color-picker, .style-pickr-button, [data-slot-color-picker]")) {
+          return;
+        }
+        closeGradientColorPicker();
+      }
+      function handleGradientColorPickerKeydown(event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          closeGradientColorPicker();
+        }
+      }
+      const openGradientColorPicker = (button, currentColor, onChange, onClear = null) => {
+        closeGradientColorPicker();
+        const initialHex = normalizeHexColor(currentColor || button.dataset.defaultColor || "#ffffff", "#ffffff");
+        const state = rgbToHsv(hexToRgb(initialHex));
+        const picker = document.createElement("div");
+        picker.className = "script-gradient-color-picker";
+        picker.innerHTML = `
+          <div class="script-gradient-color-current" data-gradient-current aria-hidden="true"></div>
+          <div class="script-gradient-color-plane" data-gradient-plane>
+            <span class="script-gradient-color-plane-thumb" data-gradient-plane-thumb aria-hidden="true"></span>
+          </div>
+          <div class="script-gradient-color-hue" data-gradient-hue>
+            <span class="script-gradient-color-hue-thumb" data-gradient-hue-thumb aria-hidden="true"></span>
+          </div>
+          <div class="script-gradient-color-footer">
+            <input class="form-control" data-gradient-hex-input value="${escapeAttribute(initialHex)}" maxlength="7" spellcheck="false">
+            ${onClear ? `<button class="btn btn-secondary btn-sm" type="button" data-gradient-clear>Transparent</button>` : ""}
+            <button class="btn btn-primary btn-sm" type="button" data-gradient-apply>HEXA</button>
+          </div>
+        `;
+        document.body.appendChild(picker);
+        activeGradientColorPicker = picker;
+
+        const current = picker.querySelector("[data-gradient-current]");
+        const plane = picker.querySelector("[data-gradient-plane]");
+        const planeThumb = picker.querySelector("[data-gradient-plane-thumb]");
+        const hue = picker.querySelector("[data-gradient-hue]");
+        const hueThumb = picker.querySelector("[data-gradient-hue-thumb]");
+        const input = picker.querySelector("[data-gradient-hex-input]");
+
+        const getHex = () => rgbToHex(hsvToRgb(state));
+        const render = (emitChange = true) => {
+          const hex = getHex();
+          const hueHex = rgbToHex(hsvToRgb({ h: state.h, s: 1, v: 1 }));
+          current.style.backgroundColor = hex;
+          plane.style.backgroundColor = hueHex;
+          planeThumb.style.left = `${state.s * 100}%`;
+          planeThumb.style.top = `${(1 - state.v) * 100}%`;
+          hueThumb.style.top = `${(state.h / 360) * 100}%`;
+          input.value = hex;
+          if (emitChange) {
+            onChange(hex);
+          }
+        };
+        const setFromPlane = (event) => {
+          const rect = plane.getBoundingClientRect();
+          state.s = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+          state.v = 1 - Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+          render();
+        };
+        const setFromHue = (event) => {
+          const rect = hue.getBoundingClientRect();
+          state.h = Math.max(0, Math.min(359, ((event.clientY - rect.top) / rect.height) * 360));
+          render();
+        };
+        const bindDrag = (target, handler) => {
+          target.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            target.setPointerCapture(event.pointerId);
+            handler(event);
+          });
+          target.addEventListener("pointermove", (event) => {
+            if (event.buttons !== 1) return;
+            handler(event);
+          });
+        };
+
+        const buttonRect = button.getBoundingClientRect();
+        picker.style.top = `${Math.min(window.innerHeight - 232, buttonRect.bottom + 8)}px`;
+        picker.style.left = `${Math.min(Math.max(12, buttonRect.left), window.innerWidth - 356)}px`;
+
+        bindDrag(plane, setFromPlane);
+        bindDrag(hue, setFromHue);
+        input.addEventListener("input", () => {
+          if (!/^#?[0-9a-f]{6}$/i.test(input.value.trim())) return;
+          const next = rgbToHsv(hexToRgb(input.value));
+          state.h = next.h;
+          state.s = next.s;
+          state.v = next.v;
+          render();
+        });
+        picker.querySelector("[data-gradient-apply]").addEventListener("click", closeGradientColorPicker);
+        const clearButton = picker.querySelector("[data-gradient-clear]");
+        if (clearButton) {
+          clearButton.addEventListener("click", () => {
+            onClear();
+            closeGradientColorPicker();
+          });
+        }
+        render(false);
+        document.addEventListener("keydown", handleGradientColorPickerKeydown, true);
+        window.setTimeout(() => {
+          document.addEventListener("mousedown", handleGradientColorPickerOutside, true);
+        }, 0);
+      };
+      const syncSlotBorderColorStates = () => {
+        modalBody.querySelectorAll(".scene-slot-editor-item").forEach((row) => {
+          const borderWidthInput = row.querySelector("[data-slot-field='borderWidth']");
+          const borderColorInput = row.querySelector("[data-slot-field='borderColor']");
+          const borderColorPicker = borderColorInput && borderColorInput.parentElement
+            ? borderColorInput.parentElement.querySelector("[data-slot-color-picker]")
+            : null;
+          const disabled = borderWidthInput && borderWidthInput.value === "none";
+          if (borderColorPicker) {
+            borderColorPicker.classList.toggle("is-disabled", Boolean(disabled));
+            borderColorPicker.disabled = Boolean(disabled);
+          }
+        });
       };
       const initializeSlotColorPickers = () => {
         modalBody.querySelectorAll("[data-slot-color-picker]").forEach((button) => {
@@ -2693,8 +3089,7 @@ const AppUI = (() => {
             return;
           }
 
-          const row = button.closest(".scene-slot-editor-item");
-          const input = row ? row.querySelector("[data-slot-field='textColor']") : null;
+          const input = button.parentElement ? button.parentElement.querySelector("input[data-slot-field]") : null;
           if (!input) {
             return;
           }
@@ -2702,33 +3097,48 @@ const AppUI = (() => {
           button.dataset.pickrReady = "true";
           setSlotColorButtonColor(button, input.value);
 
+          const syncPreviewSlotColor = () => {
+            const row = button.closest(".scene-slot-editor-item");
+            const slotId = row ? row.getAttribute("data-slot-id") : "";
+            const field = input.getAttribute("data-slot-field");
+            const previewSlot = slotId ? modalBody.querySelector(`[data-preview-slot-id="${CSS.escape(slotId)}"]`) : null;
+            if (!previewSlot) {
+              return;
+            }
+            if (field === "textColor") {
+              previewSlot.style.setProperty("--slot-preview-color", input.value || button.dataset.defaultColor || "#0891b2");
+            } else if (field === "backgroundColor") {
+              previewSlot.style.setProperty("--slot-bg", input.value || "transparent");
+            } else if (field === "borderColor") {
+              previewSlot.style.setProperty("--slot-border", input.value || button.dataset.defaultColor || "#334155");
+            }
+          };
           const syncPickedColor = (nextColor) => {
-            input.value = normalizeHexColor(nextColor, input.value || "#0891b2");
+            input.value = normalizeHexColor(nextColor, input.value || button.dataset.defaultColor || "#0891b2");
             setSlotColorButtonColor(button, input.value);
-            renderModalPreview();
+            syncPreviewSlotColor();
+          };
+          const clearPickedColor = () => {
+            input.value = "";
+            setSlotColorButtonColor(button, "");
+            syncPreviewSlotColor();
           };
 
           if (typeof Pickr === "undefined") {
-            const fallbackInput = document.createElement("input");
-            fallbackInput.type = "color";
-            fallbackInput.value = input.value;
-            fallbackInput.setAttribute("aria-hidden", "true");
-            fallbackInput.tabIndex = -1;
-            fallbackInput.style.position = "absolute";
-            fallbackInput.style.width = "1px";
-            fallbackInput.style.height = "1px";
-            fallbackInput.style.opacity = "0";
-            fallbackInput.style.pointerEvents = "none";
-            button.after(fallbackInput);
-            button.addEventListener("click", () => fallbackInput.click());
-            fallbackInput.addEventListener("input", () => syncPickedColor(fallbackInput.value));
+            button.title = "Chọn màu";
+            button.addEventListener("click", () => openGradientColorPicker(
+              button,
+              input.value || button.dataset.defaultColor,
+              syncPickedColor,
+              button.dataset.transparentEmpty === "true" ? clearPickedColor : null
+            ));
             return;
           }
 
           const pickr = Pickr.create({
             el: button,
             theme: "classic",
-            default: input.value,
+            default: input.value || button.dataset.defaultColor || "#ffffff",
             useAsButton: true,
             components: {
               preview: true,
@@ -2746,6 +3156,7 @@ const AppUI = (() => {
 
           pickr.on("change", (color) => syncPickedColor(color.toHEXA().toString()));
         });
+        syncSlotBorderColorStates();
       };
 
       modalBody.querySelectorAll(".style-pickr-button[data-bg-color-key]").forEach((button) => {
@@ -2761,20 +3172,8 @@ const AppUI = (() => {
         };
 
         if (typeof Pickr === "undefined") {
-          const fallbackInput = document.createElement("input");
-          fallbackInput.type = "color";
-          fallbackInput.value = segmentBackgroundColorState[colorKey];
-          fallbackInput.setAttribute("aria-hidden", "true");
-          fallbackInput.tabIndex = -1;
-          fallbackInput.style.position = "absolute";
-          fallbackInput.style.width = "1px";
-          fallbackInput.style.height = "1px";
-          fallbackInput.style.opacity = "0";
-          fallbackInput.style.pointerEvents = "none";
-          button.after(fallbackInput);
-          button.title = "Dùng bộ chọn màu mặc định của trình duyệt.";
-          button.addEventListener("click", () => fallbackInput.click());
-          fallbackInput.addEventListener("input", () => syncPickedColor(fallbackInput.value));
+          button.title = "Chọn màu";
+          button.addEventListener("click", () => openGradientColorPicker(button, segmentBackgroundColorState[colorKey], syncPickedColor));
           return;
         }
 
@@ -2803,9 +3202,12 @@ const AppUI = (() => {
       initializeSlotColorPickers();
 
       modalBody.addEventListener("input", (event) => {
-        if (event.target.closest("#modal-scene-slot-editor, #modal-feat-type, #modal-feat-name, #modal-feat-desc, #modal-feat-benefit, #modal-feat-duration, .script-segment-background-controls")) {
+        if (event.target.closest("#modal-scene-slot-editor, #modal-feat-type, #modal-feat-name, #modal-feat-desc, #modal-feat-benefit, #modal-feat-duration, .script-segment-background-controls, .script-subtitle-section")) {
           if (event.target.closest(".script-segment-background-controls")) {
             syncSegmentBackgroundControls();
+          }
+          if (event.target.closest("[data-slot-field='borderWidth']")) {
+            syncSlotBorderColorStates();
           }
           renderModalPreview();
         }
@@ -2819,7 +3221,7 @@ const AppUI = (() => {
           updateDraftSlotSceneItem(slotId, sceneItemSelect.value);
           return;
         }
-        if (event.target.closest("#modal-scene-slot-editor, #modal-feat-type, #modal-feat-name, #modal-feat-desc, #modal-feat-benefit, #modal-feat-duration, .script-segment-background-controls")) {
+        if (event.target.closest("#modal-scene-slot-editor, #modal-feat-type, #modal-feat-name, #modal-feat-desc, #modal-feat-benefit, #modal-feat-duration, .script-segment-background-controls, .script-subtitle-section")) {
           if (event.target.closest(".script-segment-background-controls")) {
             syncSegmentBackgroundControls();
           }
@@ -2846,6 +3248,96 @@ const AppUI = (() => {
       });
 
       modalBody.addEventListener("pointerdown", (event) => {
+        const previewSubtitle = event.target.closest("[data-preview-subtitle]");
+        if (previewSubtitle) {
+          const canvas = modalBody.querySelector(".script-segment-preview-canvas");
+          if (!canvas) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          const canvasRect = canvas.getBoundingClientRect();
+          const currentLayout = normalizeSubtitleLayout(activeSubtitleLayout);
+
+          if (event.target.closest("[data-subtitle-resize-handle]")) {
+            let didResize = false;
+            const resizeSubtitleToPointer = (moveEvent) => {
+              const pointerX = ((moveEvent.clientX - canvasRect.left) / canvasRect.width) * 100;
+              const pointerY = ((moveEvent.clientY - canvasRect.top) / canvasRect.height) * 100;
+              activeSubtitleLayout = normalizeSubtitleLayout({
+                ...currentLayout,
+                width: Math.round(clampNumber(pointerX - currentLayout.x, 20, 100 - currentLayout.x) * 10) / 10,
+                height: Math.round(clampNumber(pointerY - currentLayout.y, 6, 100 - currentLayout.y) * 10) / 10
+              });
+              didResize = true;
+              previewSubtitle.style.width = `${activeSubtitleLayout.width}%`;
+              previewSubtitle.style.height = `${activeSubtitleLayout.height}%`;
+              syncSegmentCenterGuides(canvas, activeSubtitleLayout);
+            };
+
+            const onPointerMove = (moveEvent) => {
+              moveEvent.preventDefault();
+              resizeSubtitleToPointer(moveEvent);
+            };
+            const onPointerUp = (upEvent) => {
+              window.removeEventListener("pointermove", onPointerMove);
+              window.removeEventListener("pointerup", onPointerUp);
+              if (didResize) {
+                resizeSubtitleToPointer(upEvent);
+                syncSegmentCenterGuides(canvas, null, false);
+                renderModalPreview();
+              } else {
+                syncSegmentCenterGuides(canvas, null, false);
+              }
+            };
+
+            window.addEventListener("pointermove", onPointerMove);
+            window.addEventListener("pointerup", onPointerUp);
+            return;
+          }
+
+          const itemRect = previewSubtitle.getBoundingClientRect();
+          const pointerOffsetX = ((event.clientX - itemRect.left) / canvasRect.width) * 100;
+          const pointerOffsetY = ((event.clientY - itemRect.top) / canvasRect.height) * 100;
+          let didMove = false;
+
+          const moveSubtitleToPointer = (moveEvent) => {
+            const x = ((moveEvent.clientX - canvasRect.left) / canvasRect.width) * 100 - pointerOffsetX;
+            const y = ((moveEvent.clientY - canvasRect.top) / canvasRect.height) * 100 - pointerOffsetY;
+            activeSubtitleLayout = snapSegmentLayoutToCenterGuides({
+              ...currentLayout,
+              x: Math.round(clampNumber(x, 0, 100 - currentLayout.width) * 10) / 10,
+              y: Math.round(clampNumber(y, 0, 100 - currentLayout.height) * 10) / 10
+            });
+            didMove = true;
+            previewSubtitle.style.left = `${activeSubtitleLayout.x}%`;
+            previewSubtitle.style.top = `${activeSubtitleLayout.y}%`;
+            syncSegmentCenterGuides(canvas, activeSubtitleLayout);
+          };
+
+          const onPointerMove = (moveEvent) => {
+            moveEvent.preventDefault();
+            moveSubtitleToPointer(moveEvent);
+          };
+          const onPointerUp = (upEvent) => {
+            window.removeEventListener("pointermove", onPointerMove);
+            window.removeEventListener("pointerup", onPointerUp);
+            if (didMove) {
+              moveSubtitleToPointer(upEvent);
+              syncSegmentCenterGuides(canvas, null, false);
+              renderModalPreview();
+            } else {
+              syncSegmentCenterGuides(canvas, null, false);
+            }
+          };
+
+          window.addEventListener("pointermove", onPointerMove);
+          window.addEventListener("pointerup", onPointerUp);
+          return;
+        }
+
         const previewSlot = event.target.closest(".script-segment-preview-slot");
         if (!previewSlot) {
           return;
@@ -4154,8 +4646,10 @@ const AppUI = (() => {
       }
 
       previewStage.innerHTML = `
-        <span class="scene-template-preview-safe is-top"></span>
-        <span class="scene-template-preview-safe is-bottom"></span>
+        <span class="scene-template-preview-safe is-top" aria-hidden="true"></span>
+        <span class="scene-template-preview-safe is-right" aria-hidden="true"></span>
+        <span class="scene-template-preview-safe is-bottom" aria-hidden="true"></span>
+        <span class="scene-template-preview-safe is-left" aria-hidden="true"></span>
         <span class="scene-template-center-guide is-vertical" data-center-guide="vertical" aria-hidden="true"></span>
         <span class="scene-template-center-guide is-horizontal" data-center-guide="horizontal" aria-hidden="true"></span>
         ${slotDrafts.map((slot, index) => `
@@ -4836,8 +5330,10 @@ const AppUI = (() => {
     const getLegacyTemplate = () => TEMPLATES_LIST.find((template) => template.id === data.templateId) || TEMPLATES_LIST[0];
     const renderSceneWireframe = (template) => `
       <div class="scene-wireframe scene-wireframe-${template.id} ${getSceneTemplateAspectClass(template, templateRatioFilter)}" aria-hidden="true">
-        <span class="scene-wire-safe-area is-top"></span>
-        <span class="scene-wire-safe-area is-bottom"></span>
+        <span class="scene-wire-safe-area is-top" aria-hidden="true"></span>
+        <span class="scene-wire-safe-area is-right" aria-hidden="true"></span>
+        <span class="scene-wire-safe-area is-bottom" aria-hidden="true"></span>
+        <span class="scene-wire-safe-area is-left" aria-hidden="true"></span>
         ${template.slots.slice(0, 7).map((slot, index) => `
           <span class="scene-wire-slot slot-${slot.type} ${slot.required ? "is-required" : ""}" style="${getSceneSlotStyle(slot, index, templateRatioFilter)}">
             ${escapeText(slot.label)}
@@ -5150,7 +5646,8 @@ const AppUI = (() => {
       const base = {
         type: slot.type,
         delay: Number.isFinite(slot.defaultDelay) ? slot.defaultDelay : 0,
-        animation: (slot.allowedAnimations && slot.allowedAnimations[0]) || "fade-up",
+        animation: "none",
+        displayAnimation: "none",
         enabled: true
       };
       if (slot.type === "asset" || slot.type === "media") return { ...base, assetId: primaryAssetId };
@@ -5191,8 +5688,9 @@ const AppUI = (() => {
           ...merged,
           type: slot.type,
           delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
-          animation: existing.animation || fallback.animation,
-          enabled: slot.required ? true : existing.enabled !== false
+          animation: existing.animation || fallback.animation || "none",
+          displayAnimation: existing.displayAnimation || fallback.displayAnimation || "none",
+          enabled: true
         };
         return slots;
       }, {});
@@ -5333,7 +5831,7 @@ const AppUI = (() => {
             ` : currentScene && currentScene.isSlotScene && currentScene.sceneTemplate ? currentScene.sceneTemplate.slots.map((slot) => {
               const value = currentScene.slots[slot.id] || {};
               return `
-              <div class="preview-slot-timing-item ${value.enabled === false ? "is-disabled" : ""} ${Number(value.delay) <= previewSceneTimeSec ? "is-visible" : ""}">
+              <div class="preview-slot-timing-item ${Number(value.delay) <= previewSceneTimeSec ? "is-visible" : ""}">
                 <span>${escapeText(Number(value.delay || 0).toFixed(1))}s</span>
                 <strong>${escapeText(slot.label)}</strong>
                 <small>${escapeText(value.animation || "none")}</small>
@@ -5597,8 +6095,8 @@ const AppUI = (() => {
       return `<img class="preview-segment-background" src="${escapeText(asset.url)}" alt="">`;
     };
     const getSlotValue = (slotId) => scene.slots && scene.slots[slotId] ? scene.slots[slotId] : {};
-    const isVisible = (value) => value.enabled !== false && Number(value.delay || 0) <= currentTimeSec;
-    const slotClass = (value) => `preview-slot ${isVisible(value) ? "is-visible" : "is-pending"} anim-${escapeText(value.animation || "none")}`;
+    const isVisible = (value) => Number(value.delay || 0) <= currentTimeSec;
+    const slotClass = (value) => `preview-slot ${isVisible(value) ? "is-visible" : "is-pending"} anim-${escapeText(value.animation || "none")} display-${escapeText(value.displayAnimation || "none")}`;
     const supportedRatios = getSceneTemplateAspectRatios(scene.sceneTemplate);
     const layoutRatio = supportedRatios.includes(previewRatio)
       ? previewRatio
@@ -5620,6 +6118,23 @@ const AppUI = (() => {
       return ["left", "center", "right"].includes(align) ? align : "center";
     };
     const normalizePreviewTextColor = (value, fallback = "#0891b2") => normalizeHexColor(value, fallback);
+    const normalizePreviewSlotColor = (value) => String(value || "").trim() ? normalizeHexColor(value, "#ffffff") : "";
+    const getPreviewSlotBorderWidth = (value) => {
+      if (value === "none") return 0;
+      if (value === "thick") return 3;
+      if (value === "medium") return 2;
+      if (value === "thin") return 1;
+      return 0;
+    };
+    const slotAppearanceStyle = (slot, value = {}) => {
+      if (isTextSlotType(slot.type)) {
+        return "";
+      }
+      const backgroundColor = normalizePreviewSlotColor(value.backgroundColor);
+      const borderColor = normalizePreviewSlotColor(value.borderColor);
+      const borderWidth = getPreviewSlotBorderWidth(value.borderWidth);
+      return `--preview-slot-bg:${backgroundColor || "transparent"};${borderColor ? `--preview-slot-border:${borderColor};` : ""}--preview-slot-border-width:${borderWidth}px;`;
+    };
     const slotTypographyStyle = (slot, value = {}) => {
       if (!isTextSlotType(slot.type)) {
         return "";
@@ -5650,7 +6165,6 @@ const AppUI = (() => {
     };
     const renderTextSlot = (slotId, className = "") => {
       const value = getSlotValue(slotId);
-      if (!value.text && value.enabled === false) return "";
       return `<div class="${slotClass(value)} ${className}" data-delay="${escapeText(value.delay || 0)}">${escapeText(value.text || "")}</div>`;
     };
     const renderAssetSlot = (slotId, className = "") => {
@@ -5675,7 +6189,7 @@ const AppUI = (() => {
     const renderFreeSlot = (slot, index) => {
       const value = getSlotValue(slot.id);
       const className = `${slotClass(value)} preview-free-slot slot-${escapeAttribute(slot.type)} scene-item-style-${escapeAttribute(slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle)}`;
-      const style = `${slotStyle(slot, index)};${slotTypographyStyle(slot, value)}`;
+      const style = `${slotStyle(slot, index)};${slotTypographyStyle(slot, value)}${slotAppearanceStyle(slot, value)}`;
 
       if (slot.type === "asset" || slot.type === "media") {
         const asset = getAsset(value.assetId);
@@ -5721,6 +6235,25 @@ const AppUI = (() => {
         </div>
       `;
     };
+    const renderPreviewSubtitle = () => {
+      const subtitleConfig = getSubtitleConfigDefaults(scene.segment && scene.segment.subtitles);
+      if (!subtitleConfig.enabled) {
+        return "";
+      }
+
+      return `
+        <div
+          class="preview-subtitle-overlay"
+          style="${getSubtitleLayoutStyle(subtitleConfig.layout)};--subtitle-font-size:${subtitleConfig.fontSize}px;--subtitle-font-weight:${subtitleConfig.fontWeight};"
+          aria-label="Phụ đề"
+        >
+          <strong>Phụ đề</strong>
+          <span class="preview-subtitle-skeleton" aria-hidden="true">
+            ${renderSubtitleSkeletonLines(subtitleConfig.maxLines)}
+          </span>
+        </div>
+      `;
+    };
 
     canvas.style.setProperty("--preview-bg", scene.segment && scene.segment.background ? "transparent" : theme.background);
     canvas.style.setProperty("--preview-surface", theme.surface);
@@ -5740,6 +6273,7 @@ const AppUI = (() => {
     const body = `
       <div class="preview-slot-layout preview-free-layout">
         ${(scene.sceneTemplate.slots || []).map(renderFreeSlot).join("")}
+        ${renderPreviewSubtitle()}
       </div>
     `;
 
@@ -6750,10 +7284,10 @@ const AppUI = (() => {
 
     DOM.modalClose.addEventListener("click", closeModal);
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        closeModal();
-      }
-    });
+      if (e.key !== "Escape") return;
+      if (document.querySelector(".script-gradient-color-picker")) return;
+      closeModal();
+    }, true);
 
     // Subscribe to state change events
     AppState.subscribe("tabChanged", (tab) => {

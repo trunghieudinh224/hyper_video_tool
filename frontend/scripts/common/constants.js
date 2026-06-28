@@ -195,12 +195,21 @@ const SCENE_ITEM_VIEW_PRESETS = [
 ];
 
 const SCENE_SLOT_ANIMATIONS = [
-  { id: "none", label: "Không animation" },
+  { id: "none", label: "Không hiệu ứng" },
   { id: "fade-up", label: "Fade up" },
   { id: "slide-left", label: "Slide left" },
   { id: "scale-in", label: "Scale in" },
   { id: "pop", label: "Pop" },
   { id: "typewriter", label: "Typewriter" }
+];
+
+const SCENE_SLOT_DISPLAY_ANIMATIONS = [
+  { id: "none", label: "Không hiệu ứng" },
+  { id: "pulse-soft", label: "Nhấp nháy nhẹ" },
+  { id: "zoom-breathe", label: "Zoom in/out nhẹ" },
+  { id: "bounce-soft", label: "Bounce nhẹ" },
+  { id: "float-soft", label: "Trôi nhẹ" },
+  { id: "glow-soft", label: "Glow nhẹ" }
 ];
 
 const SCENE_TEMPLATES = [
