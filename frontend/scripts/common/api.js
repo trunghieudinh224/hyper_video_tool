@@ -41,9 +41,24 @@ const AppBackendApi = (() => {
     return data.project || project;
   };
 
+  const loadSettings = async () => {
+    const data = await requestJson("/api/settings");
+    return data.settings || null;
+  };
+
+  const saveSettings = async (settings) => {
+    const data = await requestJson("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({ settings })
+    });
+    return data.settings || settings;
+  };
+
   return {
     isBackendAvailable,
     loadCurrentProject,
-    saveCurrentProject
+    saveCurrentProject,
+    loadSettings,
+    saveSettings
   };
 })();

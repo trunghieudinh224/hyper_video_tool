@@ -6,8 +6,18 @@ const path = require("node:path");
 const { config } = require("../config");
 
 const CURRENT_PROJECT_ID = "current";
+const DEFAULT_SETTINGS_KEY = "default";
 const SCHEMA_PATH = path.join(__dirname, "schema.sql");
 const DEFAULT_PROJECT_PATH = path.join(config.projectRoot, "data", "sample-project.json");
+const DEFAULT_SETTINGS = {
+  theme: "light",
+  renderFolder: "outputs/",
+  uploadFolder: "uploads/",
+  validation: {
+    warnMaxActiveScriptSegments: false,
+    maxActiveScriptSegments: 6
+  }
+};
 
 function ensureDatabaseDirectory() {
   fs.mkdirSync(path.dirname(config.databasePath), { recursive: true });
@@ -69,6 +79,21 @@ function normalizeProject(project) {
   return project;
 }
 
+function normalizeSettings(settings) {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    throw new Error("Settings payload must be an object.");
+  }
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...settings,
+    validation: {
+      ...DEFAULT_SETTINGS.validation,
+      ...(settings.validation || {})
+    }
+  };
+}
+
 function serializeProjectRow(row) {
   if (!row) {
     return null;
@@ -80,6 +105,18 @@ function serializeProjectRow(row) {
     slug: row.slug,
     project: JSON.parse(row.payload_json),
     createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function serializeSettingsRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    key: row.key,
+    settings: normalizeSettings(JSON.parse(row.value_json)),
     updatedAt: row.updated_at
   };
 }
@@ -144,10 +181,59 @@ function getCurrentProject() {
   return serializeProjectRow(rows[0] || null);
 }
 
+function saveSettings(settings, key = DEFAULT_SETTINGS_KEY) {
+  initDatabase();
+  const normalizedSettings = normalizeSettings(settings);
+  const now = new Date().toISOString();
+
+  runSql(`
+    INSERT INTO app_settings (key, value_json, updated_at)
+    VALUES (
+      ${sqlString(key)},
+      ${sqlString(JSON.stringify(normalizedSettings))},
+      ${sqlString(now)}
+    )
+    ON CONFLICT(key) DO UPDATE SET
+      value_json = excluded.value_json,
+      updated_at = excluded.updated_at;
+  `);
+
+  return getSettings(key);
+}
+
+function ensureSettings(key = DEFAULT_SETTINGS_KEY) {
+  initDatabase();
+  const rows = JSON.parse(runSql(
+    `SELECT key FROM app_settings WHERE key = ${sqlString(key)} LIMIT 1;`,
+    { json: true }
+  ) || "[]");
+
+  if (!rows.length) {
+    return saveSettings(DEFAULT_SETTINGS, key);
+  }
+
+  return getSettings(key);
+}
+
+function getSettings(key = DEFAULT_SETTINGS_KEY) {
+  initDatabase();
+  const rows = JSON.parse(runSql(
+    `SELECT key, value_json, updated_at FROM app_settings WHERE key = ${sqlString(key)} LIMIT 1;`,
+    { json: true }
+  ) || "[]");
+
+  return serializeSettingsRow(rows[0] || null);
+}
+
 module.exports = {
   CURRENT_PROJECT_ID,
+  DEFAULT_SETTINGS,
+  DEFAULT_SETTINGS_KEY,
   ensureCurrentProject,
+  ensureSettings,
   getCurrentProject,
+  getSettings,
   initDatabase,
-  saveCurrentProject
+  saveCurrentProject,
+  saveSettings
 };

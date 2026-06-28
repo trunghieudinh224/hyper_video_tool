@@ -4,6 +4,41 @@
 
 in_progress
 
+## Backend Database Roadmap Phase 2 - Settings API Và Backend-First Settings
+
+### Objective
+
+Chuyển settings từ `localStorage` sang SQLite để theme, thư mục upload/render và validation settings không mất khi reload, đổi browser hoặc restart backend.
+
+### Summary
+
+- Thêm table SQLite `app_settings`.
+- Thêm DB helper `ensureSettings`, `getSettings`, `saveSettings`.
+- Thêm API `GET /api/settings` và `PUT /api/settings`.
+- Mount settings route vào backend server.
+- Frontend `AppBackendApi` có `loadSettings()` và `saveSettings()`.
+- `AppStorage.loadSettingsData()` load settings từ backend trước, fallback localStorage nếu API lỗi.
+- `AppStorage.loadSettings()` vẫn sync nhưng đọc từ cache đã preload để không phá validation/UI hiện tại.
+- `AppStorage.saveSettings()` lưu local cache và backend, trả kết quả async khi backend khả dụng.
+- Page boot chờ settings load trước khi init theme.
+- Settings page chờ backend save rồi mới toast thành công/lỗi.
+- Init theme không ghi DB mỗi lần boot; chỉ theme toggle mới persist.
+
+### Test Report
+
+Status: passed
+
+- `node --check backend/src/db/database.js` pass.
+- `node --check backend/src/routes/settings.js` pass.
+- `node --check backend/src/server.js` pass.
+- `node --check frontend/scripts/common/api.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `node --check frontend/scripts/common/page-bootstrap.js` pass.
+- `npm --prefix backend run check` pass.
+- API settings persistence smoke pass với DB tạm `/private/tmp/hvt-settings-smoke.sqlite`: GET default, PUT theme/folders/validation, đọc lại sau close server vẫn còn.
+- Chrome headless smoke pass qua backend `http://127.0.0.1:4179/pages/settings.html`: HTML `data-theme="dark"`, form folder đọc `uploads-db/` và `outputs-db/`, validation checkbox checked, threshold `4`.
+
 ## Backend Database Roadmap Phase 1 - SQLite Project Snapshot API
 
 ### Objective

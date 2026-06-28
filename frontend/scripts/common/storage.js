@@ -16,6 +16,7 @@ const AppStorage = (() => {
       maxActiveScriptSegments: 6
     }
   };
+  let settingsCache = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
   const HIEU1_FEATURE_CARD_ITEMS = [
     {
       id: "feat_1",
@@ -424,27 +425,75 @@ const AppStorage = (() => {
     }
   };
 
-  const loadSettings = () => {
+  const normalizeSettings = (settings = {}) => ({
+    ...DEFAULT_SETTINGS,
+    ...settings,
+    validation: {
+      ...DEFAULT_SETTINGS.validation,
+      ...(settings.validation || {})
+    }
+  });
+
+  const loadLocalSettings = () => {
     try {
       const data = localStorage.getItem(SETTINGS_KEY);
       const parsed = data ? JSON.parse(data) : {};
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-        validation: {
-          ...DEFAULT_SETTINGS.validation,
-          ...(parsed.validation || {})
-        }
-      };
+      return normalizeSettings(parsed);
     } catch (e) {
       return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     }
   };
 
+  const loadSettingsData = async () => {
+    if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+      try {
+        const settings = await AppBackendApi.loadSettings();
+        if (settings) {
+          settingsCache = normalizeSettings(settings);
+          try {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsCache));
+          } catch (_error) {}
+          return settingsCache;
+        }
+      } catch (_error) {}
+    }
+
+    settingsCache = loadLocalSettings();
+    return settingsCache;
+  };
+
+  const loadSettings = () => settingsCache;
+
   const saveSettings = (settings) => {
+    const normalizedSettings = normalizeSettings(settings);
+    settingsCache = normalizedSettings;
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    } catch (e) {}
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(normalizedSettings));
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent("backendSettingsSaveFailed", {
+        detail: { message: e.message }
+      }));
+      return false;
+    }
+
+    if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+      return AppBackendApi.saveSettings(normalizedSettings)
+        .then((savedSettings) => {
+          settingsCache = normalizeSettings(savedSettings || normalizedSettings);
+          window.dispatchEvent(new CustomEvent("backendSettingsSaved", {
+            detail: { settings: settingsCache }
+          }));
+          return true;
+        })
+        .catch((error) => {
+          window.dispatchEvent(new CustomEvent("backendSettingsSaveFailed", {
+            detail: { message: error.message }
+          }));
+          return false;
+        });
+    }
+
+    return true;
   };
 
   const loadOutputs = () => {
@@ -507,6 +556,7 @@ const AppStorage = (() => {
     loadProjectData,
     loadLocalData,
     saveLocalData,
+    loadSettingsData,
     loadSettings,
     saveSettings,
     loadOutputs,

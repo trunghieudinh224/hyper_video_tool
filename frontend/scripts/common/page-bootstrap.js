@@ -27,6 +27,9 @@ const HyperVideoPage = (() => {
     AppState.setCurrentPage(currentPage);
 
     AppUI.initDOM();
+    if (AppStorage.loadSettingsData) {
+      await AppStorage.loadSettingsData();
+    }
     AppUI.initTheme();
     AppUI.initGlobalEvents();
 

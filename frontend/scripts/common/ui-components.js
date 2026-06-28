@@ -6551,12 +6551,12 @@ const AppUI = (() => {
     `;
 
     // Save folder configurations
-    document.getElementById("settings-save-folders").addEventListener("click", () => {
+    document.getElementById("settings-save-folders").addEventListener("click", async () => {
       const uploadFolder = document.getElementById("set-upload-dir").value.trim();
       const renderFolder = document.getElementById("set-render-dir").value.trim();
 
-      AppStorage.saveSettings({ ...settings, uploadFolder, renderFolder });
-      showToast("Đã lưu thiết lập đường dẫn thành công!");
+      const saved = await Promise.resolve(AppStorage.saveSettings({ ...settings, uploadFolder, renderFolder }));
+      showToast(saved ? "Đã lưu thiết lập đường dẫn vào database." : "Không lưu được thiết lập đường dẫn vào database.", saved ? "success" : "error");
     });
 
     const warnMaxSegmentsInput = document.getElementById("set-warn-max-segments");
@@ -6564,20 +6564,20 @@ const AppUI = (() => {
     warnMaxSegmentsInput.addEventListener("change", () => {
       maxSegmentsInput.disabled = !warnMaxSegmentsInput.checked;
     });
-    document.getElementById("settings-save-validation").addEventListener("click", () => {
+    document.getElementById("settings-save-validation").addEventListener("click", async () => {
       const currentSettings = AppStorage.loadSettings();
       const nextMaxSegments = Math.max(1, Math.min(99, Number.parseInt(maxSegmentsInput.value, 10) || 6));
-      AppStorage.saveSettings({
+      const saved = await Promise.resolve(AppStorage.saveSettings({
         ...currentSettings,
         validation: {
           ...(currentSettings.validation || {}),
           warnMaxActiveScriptSegments: warnMaxSegmentsInput.checked,
           maxActiveScriptSegments: nextMaxSegments
         }
-      });
+      }));
       const validationResults = AppValidation.validate(AppState.getProjectData());
       AppState.setValidation(validationResults);
-      showToast("Đã lưu cảnh báo kịch bản.");
+      showToast(saved ? "Đã lưu cảnh báo kịch bản vào database." : "Không lưu được cảnh báo kịch bản vào database.", saved ? "success" : "error");
       renderSettingsScreen(container, AppState.getProjectData());
     });
 
@@ -6709,10 +6709,10 @@ const AppUI = (() => {
   const initTheme = () => {
     const settings = AppStorage.loadSettings();
     const savedTheme = settings.theme || "light";
-    setAppTheme(savedTheme);
+    setAppTheme(savedTheme, false);
   };
 
-  const setAppTheme = (theme) => {
+  const setAppTheme = (theme, persist = true) => {
     AppState.setTheme(theme);
     DOM.html.setAttribute("data-theme", theme);
 
@@ -6728,8 +6728,10 @@ const AppUI = (() => {
     }
 
     // Save setting
-    const current = AppStorage.loadSettings();
-    AppStorage.saveSettings({ ...current, theme });
+    if (persist) {
+      const current = AppStorage.loadSettings();
+      AppStorage.saveSettings({ ...current, theme });
+    }
   };
 
   const initGlobalEvents = () => {

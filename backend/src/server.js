@@ -8,6 +8,7 @@ const { handleOutputs } = require("./routes/outputs");
 const { handleProjects } = require("./routes/projects");
 const { handleRenderPreflight } = require("./routes/render-preflight");
 const { handleRenderJobs } = require("./routes/render-jobs");
+const { handleSettings } = require("./routes/settings");
 const { handleVoiceoverPreview } = require("./routes/voiceover-preview");
 
 const MIME_TYPES = {
@@ -100,6 +101,13 @@ async function requestHandler(request, response) {
 
   if (requestUrl.pathname === "/api/projects/current") {
     const handled = await handleProjects(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
+  }
+
+  if (requestUrl.pathname === "/api/settings") {
+    const handled = await handleSettings(request, response, requestUrl, sendJson);
     if (handled) {
       return;
     }
