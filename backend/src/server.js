@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { config } = require("./config");
+const { handleAssets } = require("./routes/assets");
 const { handleOutputs } = require("./routes/outputs");
 const { handleProjects } = require("./routes/projects");
 const { handleRenderPreflight } = require("./routes/render-preflight");
@@ -108,6 +109,13 @@ async function requestHandler(request, response) {
 
   if (requestUrl.pathname === "/api/settings") {
     const handled = await handleSettings(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
+  }
+
+  if (requestUrl.pathname.startsWith("/api/assets/") || /^\/api\/projects\/[^/]+\/assets/.test(requestUrl.pathname)) {
+    const handled = await handleAssets(request, response, requestUrl, sendJson);
     if (handled) {
       return;
     }

@@ -8,6 +8,28 @@ Tài liệu này ghi lại các bài học kỹ thuật có thể tái sử dụ
 - Entry mới chèn phía trên entry cũ hơn, ngay sau phần quy chuẩn.
 - Chỉ ghi bài học có thể tái sử dụng, không ghi thao tác vụn vặt.
 
+## Cập nhật ngày 28/06/2026 (11:57:53 UTC+7) - Asset upload phải tách URL preview khỏi nguồn media render
+
+### Bối cảnh
+
+Asset lưu trên backend có thể hiển thị đúng ở trang tài nguyên qua `/api/assets/:id/file`, nhưng render worker chạy composition trong workdir riêng.
+
+### Nguyên nhân
+
+- URL tương đối `/api/...` được resolve theo origin của composition/HyperFrames, không chắc trỏ về backend app.
+- Multipart parser buffer toàn bộ video và chuyển qua binary string làm tăng RAM nhiều lần.
+- Ghi nhiều file/DB row tuần tự mà không rollback tạo asset mồ côi khi batch lỗi giữa chừng.
+
+### Cách xử lý đúng
+
+- Stream multipart xuống file tạm, validate size/MIME/magic bytes rồi mới rename thành file chính thức.
+- Rollback toàn bộ file và metadata đã tạo nếu một file trong batch thất bại.
+- Trước render, resolve asset bằng metadata DB, kiểm path thuộc `uploads/`, copy vào composition và đổi payload sang URL local.
+
+### Quy tắc lần sau
+
+Không coi asset hiển thị trong app là bằng chứng render dùng được. Mọi thay đổi asset persistence phải test đủ upload, reload, file serving, rollback và localization vào render workdir.
+
 ## Cập nhật ngày 28/06/2026 (10:58:12 UTC+7) - Dynamic scene type phải đi qua đủ frontend, template và backend schema
 
 ### Bối cảnh

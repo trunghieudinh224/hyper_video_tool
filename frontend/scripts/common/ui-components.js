@@ -3288,7 +3288,6 @@ const AppUI = (() => {
   // 5. Asset Manager View
   const renderAssetsScreen = (container, data) => {
     const list = data.assets || [];
-    const MAX_LOCAL_PROJECT_STORAGE_BYTES = 4 * 1024 * 1024;
     let currentFilter = "all";
     let selectedAssetIds = [];
 
@@ -3417,8 +3416,16 @@ const AppUI = (() => {
               {
                 text: "Xóa",
                 class: "btn-danger",
-                onClick: () => {
-                  const assets = data.assets.filter(a => a.id !== id);
+                onClick: async () => {
+                  let assets = data.assets.filter(a => a.id !== id);
+                  if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+                    try {
+                      assets = await AppBackendApi.deleteAsset(id, "current");
+                    } catch (error) {
+                      showToast(`Không xóa được asset khỏi backend: ${error.message}`, "error");
+                      return;
+                    }
+                  }
                   AppState.updateProjectField("assets", assets);
                   renderAssetsScreen(container, AppState.getProjectData());
                   closeModal();
@@ -3516,11 +3523,21 @@ const AppUI = (() => {
           `Bạn có chắc chắn muốn xóa ${selectedAssetIds.length} tài nguyên đã chọn?`,
           [
             { text: "Hủy", class: "btn-secondary", onClick: closeModal },
-            {
-              text: "Xóa",
-              class: "btn-danger",
-              onClick: () => {
-                const assets = data.assets.filter(a => !selectedAssetIds.includes(a.id));
+              {
+                text: "Xóa",
+                class: "btn-danger",
+              onClick: async () => {
+                let assets = data.assets.filter(a => !selectedAssetIds.includes(a.id));
+                if (typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable()) {
+                  try {
+                    for (const assetId of selectedAssetIds) {
+                      assets = await AppBackendApi.deleteAsset(assetId, "current");
+                    }
+                  } catch (error) {
+                    showToast(`Không xóa được asset khỏi backend: ${error.message}`, "error");
+                    return;
+                  }
+                }
                 AppState.updateProjectField("assets", assets);
                 selectedAssetIds = [];
                 renderAssetsScreen(container, AppState.getProjectData());
@@ -3536,7 +3553,7 @@ const AppUI = (() => {
     const realInput = document.getElementById("real-file-input");
     const uploadBtn = document.getElementById("assets-upload-btn");
 
-    const handleFilesUpload = (files) => {
+    const handleFilesUpload = async (files) => {
       if (files.length === 0) return;
 
       const originalHTML = uploadBtn ? uploadBtn.innerHTML : "Tải tệp lên";
@@ -3547,77 +3564,35 @@ const AppUI = (() => {
 
       showToast(`Đang tải lên ${files.length} tệp tin...`, "info");
 
-      const getSerializedSize = (value) => {
-        try {
-          return new Blob([JSON.stringify(value)]).size;
-        } catch (_error) {
-          return Number.POSITIVE_INFINITY;
+      if (typeof AppBackendApi === "undefined" || !AppBackendApi.isBackendAvailable()) {
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = originalHTML;
         }
-      };
+        showToast("Upload tài nguyên thật cần chạy app qua backend local.", "error");
+        return;
+      }
 
-      const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.addEventListener("load", () => resolve(reader.result || ""));
-        reader.addEventListener("error", () => reject(reader.error || new Error("Không đọc được tệp.")));
-        reader.readAsDataURL(file);
-      });
-
-      Promise.all(files.map((file) => readFileAsDataUrl(file)))
-        .then((urls) => {
-          const assets = [...(data.assets || [])];
-
-          files.forEach((file, index) => {
-            const isImage = file.type.startsWith("image/");
-            const isVideo = file.type.startsWith("video/");
-
-            let type = "image";
-            if (currentFilter !== "all") {
-              type = currentFilter;
-            } else {
-              if (isVideo) {
-                type = "video";
-              } else if (isImage) {
-                type = "image";
-              }
-            }
-
-            const newAsset = {
-              id: "asset_" + (Date.now() + index),
-              name: file.name,
-              type: type,
-              size: (file.size / 1024 / 1024).toFixed(1) + " MB",
-              dateAdded: new Date().toISOString().split('T')[0],
-              url: urls[index],
-              useInVideo: true
-            };
-            assets.push(newAsset);
-          });
-
-          const nextProjectData = {
-            ...AppState.getProjectData(),
-            assets
-          };
-          const serializedSize = getSerializedSize(nextProjectData);
-          if (serializedSize > MAX_LOCAL_PROJECT_STORAGE_BYTES) {
-            if (uploadBtn) {
-              uploadBtn.disabled = false;
-              uploadBtn.innerHTML = originalHTML;
-            }
-            showToast("Tệp quá lớn cho cơ chế lưu tạm hiện tại. Cần backend upload thật trước khi dùng video/asset lớn.", "error");
-            return;
-          }
-
-          AppState.updateProjectField("assets", assets);
-          showToast(`Đã tải lên thành công ${files.length} tệp tài nguyên!`);
-          renderAssetsScreen(container, AppState.getProjectData());
-        })
-        .catch(() => {
-          if (uploadBtn) {
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = originalHTML;
-          }
-          showToast("Không đọc được tệp tải lên. Thử lại bằng tệp khác.", "error");
+      try {
+        const uploadedAssets = await AppBackendApi.uploadAssets(files, {
+          projectId: "current",
+          type: currentFilter === "all" ? "" : currentFilter
         });
+        const existingAssets = (AppState.getProjectData().assets || []).filter((asset) => {
+          return !uploadedAssets.some((uploadedAsset) => uploadedAsset.id === asset.id);
+        });
+        const assets = [...uploadedAssets, ...existingAssets];
+        AppState.updateProjectField("assets", assets);
+        showToast(`Đã tải lên thành công ${uploadedAssets.length} tệp tài nguyên vào backend.`);
+        renderAssetsScreen(container, AppState.getProjectData());
+      } catch (error) {
+        showToast(`Không upload được tài nguyên: ${error.message}`, "error");
+      } finally {
+        if (uploadBtn) {
+          uploadBtn.disabled = false;
+          uploadBtn.innerHTML = originalHTML;
+        }
+      }
     };
 
     if (uploadBtn) {

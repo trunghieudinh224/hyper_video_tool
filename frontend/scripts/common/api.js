@@ -54,11 +54,50 @@ const AppBackendApi = (() => {
     return data.settings || settings;
   };
 
+  const loadAssets = async (projectId = "current") => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/assets`);
+    return Array.isArray(data.assets) ? data.assets : [];
+  };
+
+  const uploadAssets = async (files, options = {}) => {
+    if (!isBackendAvailable()) {
+      throw new Error("Backend API is not available from this page origin.");
+    }
+    const formData = new FormData();
+    Array.from(files || []).forEach((file) => {
+      formData.append("files", file, file.name);
+    });
+    if (options.type) {
+      formData.append("type", options.type);
+    }
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(options.projectId || "current")}/assets`, {
+      method: "POST",
+      body: formData
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || payload.success === false) {
+      const message = payload && payload.message ? payload.message : `Upload failed with status ${response.status}.`;
+      throw new Error(message);
+    }
+    return Array.isArray(payload.data && payload.data.assets) ? payload.data.assets : [];
+  };
+
+  const deleteAsset = async (assetId, projectId = "current") => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}`, {
+      method: "DELETE"
+    });
+    return Array.isArray(data.assets) ? data.assets : [];
+  };
+
   return {
     isBackendAvailable,
     loadCurrentProject,
     saveCurrentProject,
     loadSettings,
-    saveSettings
+    saveSettings,
+    loadAssets,
+    uploadAssets,
+    deleteAsset
   };
 })();

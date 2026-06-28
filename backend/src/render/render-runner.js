@@ -5,6 +5,8 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
+const { getAsset } = require("../db/database");
+const { isSafeAssetFile } = require("../storage/asset-store");
 const { generateVoiceover } = require("../audio/voiceover");
 const { muxVoiceoverIntoVideo } = require("./media");
 const { upsertOutputRecord } = require("./output-manifest");
@@ -147,6 +149,40 @@ function validateJobPayload(payload) {
   return { valid: true, errors: [] };
 }
 
+function localizeRenderAssets(payload, compositionDir) {
+  const localizedPayload = JSON.parse(JSON.stringify(payload));
+  const localizedById = new Map();
+  const assetDir = path.join(compositionDir, "assets");
+
+  const localize = (asset) => {
+    if (!asset || !asset.id) return asset;
+    if (localizedById.has(asset.id)) {
+      return { ...asset, url: localizedById.get(asset.id) };
+    }
+    const storedAsset = getAsset(asset.id);
+    if (!storedAsset || !isSafeAssetFile(storedAsset.filePath)) {
+      return asset;
+    }
+    ensureDirectory(assetDir);
+    const safeId = String(storedAsset.id).replace(/[^a-zA-Z0-9_-]+/g, "-");
+    const filename = `${safeId}${path.extname(storedAsset.filePath)}`;
+    fs.copyFileSync(storedAsset.filePath, path.join(assetDir, filename));
+    const localUrl = `assets/${filename}`;
+    localizedById.set(asset.id, localUrl);
+    return { ...asset, url: localUrl };
+  };
+
+  if (localizedPayload.assets) {
+    localizedPayload.assets.logo = localize(localizedPayload.assets.logo);
+    ["screenshots", "videos", "all"].forEach((key) => {
+      if (Array.isArray(localizedPayload.assets[key])) {
+        localizedPayload.assets[key] = localizedPayload.assets[key].map(localize);
+      }
+    });
+  }
+  return localizedPayload;
+}
+
 function prepareWorkDir(jobId, payload) {
   const templateDir = path.join(config.projectRoot, "templates", payload.template.id);
   const sharedTemplateDir = path.join(config.projectRoot, "templates", "shared");
@@ -160,7 +196,8 @@ function prepareWorkDir(jobId, payload) {
   if (fs.existsSync(sharedTemplateDir)) {
     fs.cpSync(sharedTemplateDir, sharedWorkDir, { recursive: true });
   }
-  fs.writeFileSync(path.join(compositionDir, "render-payload.json"), stableJson(payload));
+  const localizedPayload = localizeRenderAssets(payload, compositionDir);
+  fs.writeFileSync(path.join(compositionDir, "render-payload.json"), stableJson(localizedPayload));
 
   return compositionDir;
 }
@@ -332,5 +369,6 @@ function getRenderJob(jobId) {
 module.exports = {
   SUPPORTED_TEMPLATE_IDS,
   getRenderJob,
+  localizeRenderAssets,
   queueRenderJob
 };

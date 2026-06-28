@@ -4,6 +4,52 @@
 
 in_progress
 
+## Backend Database Roadmap Phase 3 - Asset Upload Local Thật
+
+### Objective
+
+Tài nguyên upload được lưu bền trên disk trong `uploads/` và metadata lưu trong SQLite. Project payload không còn cần chứa `data:` URL/base64 cho asset mới.
+
+### Summary
+
+- Thêm config `uploadsDir`, `uploadImageMaxBytes`, `uploadVideoMaxBytes`.
+- Thêm table SQLite `assets` và index theo project.
+- Thêm DB helpers `listAssets`, `getAsset`, `saveAsset`, `deleteAsset`.
+- Thêm `backend/src/storage/asset-store.js` để validate MIME/size, tạo tên file an toàn, ghi file vào `uploads/{projectId}/`, và chặn xóa file ngoài uploads.
+- Thêm API:
+  - `GET /api/projects/current/assets`
+  - `POST /api/projects/current/assets`
+  - `DELETE /api/projects/current/assets/:assetId`
+  - `GET /api/assets/:assetId/file`
+- Frontend `AppBackendApi` có `loadAssets`, `uploadAssets`, `deleteAsset`.
+- Boot project từ backend sẽ merge `project.assets` bằng asset metadata trong DB.
+- Asset page upload qua `FormData` lên backend, không dùng `FileReader`/data URL nữa.
+- Delete single/bulk asset gọi backend delete, cập nhật state bằng danh sách DB trả về.
+- Phase này chưa làm thumbnail video, transcode/compress, deduplicate hoặc cloud storage.
+- Multipart upload dùng `busboy` để stream xuống disk, không buffer video trong RAM.
+- Chỉ chấp nhận whitelist PNG/JPEG/WebP/GIF/MP4/MOV/WebM và kiểm magic bytes.
+- Batch upload rollback toàn bộ DB/file nếu một file lỗi; delete kiểm project ownership và dùng rename tạm để rollback.
+- File API chặn path ngoài `uploads/` và không trả `filePath` máy local ra frontend.
+- Render worker copy asset DB vào composition và đổi URL sang file local trước khi render.
+
+### Test Report
+
+Status: passed
+
+- `node --check backend/src/config.js` pass.
+- `node --check backend/src/db/database.js` pass.
+- `node --check backend/src/storage/asset-store.js` pass.
+- `node --check backend/src/routes/assets.js` pass.
+- `node --check backend/src/server.js` pass.
+- `node --check frontend/scripts/common/api.js` pass.
+- `node --check frontend/scripts/common/storage.js` pass.
+- `node --check frontend/scripts/common/ui-components.js` pass.
+- `npm --prefix backend run check` pass.
+- API asset smoke pass với DB/uploads tạm: upload PNG logo, list asset, serve `/api/assets/:id/file`, delete asset, file local bị xóa.
+- Chrome headless smoke pass qua backend `http://127.0.0.1:4180/pages/assets.html`: asset card render từ DB metadata, ảnh dùng URL `/api/assets/.../file`, không có data URL.
+- `npm --prefix backend run assets:test` pass: MIME/magic bytes, oversized file, batch rollback, ownership, safe path và render localization.
+- HTTP integration pass: upload, list/reload, GET/HEAD, chặn cross-project delete, delete file/row và reject fake PNG.
+
 ## Backend Database Roadmap Phase 2 - Settings API Và Backend-First Settings
 
 ### Objective

@@ -378,7 +378,14 @@ const AppStorage = (() => {
       try {
         const project = await AppBackendApi.loadCurrentProject();
         if (project) {
-          const normalized = normalizeProjectData(project);
+          let backendAssets = null;
+          try {
+            backendAssets = await AppBackendApi.loadAssets("current");
+          } catch (_assetError) {}
+          const normalized = normalizeProjectData({
+            ...project,
+            assets: Array.isArray(backendAssets) ? backendAssets : project.assets
+          });
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
           } catch (_error) {}

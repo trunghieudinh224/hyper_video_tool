@@ -121,6 +121,39 @@ function serializeSettingsRow(row) {
   };
 }
 
+function serializeAssetRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    name: row.name,
+    type: row.type,
+    mimeType: row.mime_type,
+    sizeBytes: Number(row.size_bytes) || 0,
+    size: formatBytes(Number(row.size_bytes) || 0),
+    filePath: row.file_path,
+    publicUrl: row.public_url,
+    url: row.public_url,
+    useInVideo: row.use_in_video === 1 || row.use_in_video === true,
+    dateAdded: String(row.created_at || "").slice(0, 10),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 function getProjectName(project) {
   const name = String(project.projectName || project.name || "").trim();
   return name || "Untitled Project";
@@ -225,6 +258,80 @@ function getSettings(key = DEFAULT_SETTINGS_KEY) {
   return serializeSettingsRow(rows[0] || null);
 }
 
+function listAssets(projectId = CURRENT_PROJECT_ID) {
+  initDatabase();
+  ensureCurrentProject();
+  const rows = JSON.parse(runSql(
+    `SELECT id, project_id, name, type, mime_type, size_bytes, file_path, public_url, use_in_video, created_at, updated_at
+     FROM assets
+     WHERE project_id = ${sqlString(projectId)}
+     ORDER BY created_at DESC, id DESC;`,
+    { json: true }
+  ) || "[]");
+
+  return rows.map(serializeAssetRow);
+}
+
+function getAsset(assetId, projectId = null) {
+  initDatabase();
+  const projectFilter = projectId ? ` AND project_id = ${sqlString(projectId)}` : "";
+  const rows = JSON.parse(runSql(
+    `SELECT id, project_id, name, type, mime_type, size_bytes, file_path, public_url, use_in_video, created_at, updated_at
+     FROM assets
+     WHERE id = ${sqlString(assetId)}${projectFilter}
+     LIMIT 1;`,
+    { json: true }
+  ) || "[]");
+
+  return serializeAssetRow(rows[0] || null);
+}
+
+function saveAsset(asset) {
+  initDatabase();
+  ensureCurrentProject();
+  const now = new Date().toISOString();
+  const useInVideo = asset.useInVideo === false ? 0 : 1;
+
+  runSql(`
+    INSERT INTO assets (id, project_id, name, type, mime_type, size_bytes, file_path, public_url, use_in_video, created_at, updated_at)
+    VALUES (
+      ${sqlString(asset.id)},
+      ${sqlString(asset.projectId || CURRENT_PROJECT_ID)},
+      ${sqlString(asset.name)},
+      ${sqlString(asset.type)},
+      ${sqlString(asset.mimeType)},
+      ${Number.parseInt(asset.sizeBytes, 10) || 0},
+      ${sqlString(asset.filePath)},
+      ${sqlString(asset.publicUrl)},
+      ${useInVideo},
+      ${sqlString(now)},
+      ${sqlString(now)}
+    )
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      type = excluded.type,
+      mime_type = excluded.mime_type,
+      size_bytes = excluded.size_bytes,
+      file_path = excluded.file_path,
+      public_url = excluded.public_url,
+      use_in_video = excluded.use_in_video,
+      updated_at = excluded.updated_at;
+  `);
+
+  return getAsset(asset.id);
+}
+
+function deleteAsset(assetId, projectId = null) {
+  const asset = getAsset(assetId, projectId);
+  if (!asset) {
+    return null;
+  }
+
+  const projectFilter = projectId ? ` AND project_id = ${sqlString(projectId)}` : "";
+  runSql(`DELETE FROM assets WHERE id = ${sqlString(assetId)}${projectFilter};`);
+  return asset;
+}
+
 module.exports = {
   CURRENT_PROJECT_ID,
   DEFAULT_SETTINGS,
@@ -232,8 +339,12 @@ module.exports = {
   ensureCurrentProject,
   ensureSettings,
   getCurrentProject,
+  getAsset,
   getSettings,
   initDatabase,
+  listAssets,
+  saveAsset,
   saveCurrentProject,
+  deleteAsset,
   saveSettings
 };
