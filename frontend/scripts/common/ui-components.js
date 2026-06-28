@@ -36,11 +36,31 @@ const AppUI = (() => {
       image: "fa-image",
       list: "fa-list",
       tag: "fa-tag",
+      icon: "fa-icons",
       volume: "fa-volume-high"
     };
     const icon = icons[name] || icons.grid;
     const extraClass = className ? ` ${escapeAttribute(className)}` : "";
     return `<i class="fa-solid ${icon} app-icon${extraClass}" aria-hidden="true"></i>`;
+  };
+
+  const normalizeFontAwesomeClass = (value, fallback = "fa-solid fa-circle-info") => {
+    const classes = String(value || "")
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const styleClass = classes.find((item) => /^(fa-solid|fa-regular|fa-brands)$/.test(item)) || "fa-solid";
+    const iconClass = classes.find((item) => /^fa-[a-z0-9-]+$/i.test(item) && !/^(fa-solid|fa-regular|fa-brands)$/.test(item));
+    if (!iconClass) {
+      return fallback;
+    }
+    return `${styleClass} ${iconClass}`;
+  };
+
+  const renderFontAwesomeIcon = (value, className = "") => {
+    const safeClass = normalizeFontAwesomeClass(value);
+    const extraClass = className ? ` ${escapeAttribute(className)}` : "";
+    return `<i class="${escapeAttribute(safeClass)}${extraClass}" aria-hidden="true"></i>`;
   };
 
   const SCENE_ITEM_COLOR_ROLES = [
@@ -67,6 +87,9 @@ const AppUI = (() => {
     }
     if (type === "asset") {
       return { colorRole: "accent", displayStyle: "surface" };
+    }
+    if (type === "icon") {
+      return { colorRole: "accent", displayStyle: "filled" };
     }
     if (type === "list") {
       return { colorRole: "text", displayStyle: "surface" };
@@ -96,6 +119,9 @@ const AppUI = (() => {
           ${renderIcon("image")}
         </span>
       `;
+    }
+    if (slot.type === "icon") {
+      return `<span class="scene-item-icon-mark">${renderFontAwesomeIcon(slot.iconClass || slot.defaultIconClass)}</span>`;
     }
     if (slot.type === "list") {
       return `
@@ -203,6 +229,9 @@ const AppUI = (() => {
     ];
     const presets = ratio === "16:9" ? landscapePresets : portraitPresets;
 
+    if (ratio === "16:9" && type === "icon") {
+      return { x: 10, y: 22, width: 12, height: 14 };
+    }
     if (ratio === "16:9" && (type === "asset" || label.includes("logo"))) {
       return { x: 10, y: 22, width: 16, height: 18 };
     }
@@ -226,6 +255,9 @@ const AppUI = (() => {
     }
     if (type === "media") {
       return { x: 12, y: 58, width: 76, height: 20 };
+    }
+    if (type === "icon") {
+      return { x: 42, y: 24, width: 16, height: 10 };
     }
     if (type === "asset" || label.includes("logo")) {
       return { x: 36, y: 34, width: 28, height: 10 };
@@ -500,6 +532,7 @@ const AppUI = (() => {
     }
     DOM.modalContainer.classList.remove("is-style-editor");
     DOM.modalContainer.classList.remove("is-scene-template-editor");
+    DOM.modalContainer.classList.remove("is-script-segment-editor");
     DOM.modalContainer.classList.remove("is-active");
     DOM.modalContainer.classList.remove("is-leaving");
 
@@ -542,6 +575,7 @@ const AppUI = (() => {
       DOM.modalContainer.classList.remove("is-leaving");
       DOM.modalContainer.classList.remove("is-style-editor");
       DOM.modalContainer.classList.remove("is-scene-template-editor");
+      DOM.modalContainer.classList.remove("is-script-segment-editor");
       modalTimeoutId = null;
     }, 300); // Wait for transition out (300ms)
   };
@@ -1075,6 +1109,16 @@ const AppUI = (() => {
     const sceneTemplates = getProjectSceneTemplates(data);
     const slotTypes = Array.isArray(SCENE_SLOT_TYPES) ? SCENE_SLOT_TYPES : [];
     const slotAnimations = Array.isArray(SCENE_SLOT_ANIMATIONS) ? SCENE_SLOT_ANIMATIONS : [];
+    const getConfiguredVideoAspectRatio = (projectData = data) => {
+      const formats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
+      const selectedFormat = formats.find((format) => format.id === (projectData.video && projectData.video.formatId))
+        || formats.find((format) => format.templateId === projectData.templateId);
+      return (projectData.video && projectData.video.aspectRatio)
+        || projectData.aspectRatio
+        || (selectedFormat && selectedFormat.aspectRatio)
+        || "9:16";
+    };
+    const templateSupportsAspectRatio = (template, ratio) => getSceneTemplateAspectRatios(template).includes(ratio);
     const estimatedDuration = list
       .filter((item) => item.useInVideo)
       .reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
@@ -1087,6 +1131,18 @@ const AppUI = (() => {
       || sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId)
       || sceneTemplates[0]
       || null;
+    const getSceneTemplateForSegment = (segment = {}) => {
+      if (segment.sceneTemplateOverride && Array.isArray(segment.sceneTemplateOverride.slots)) {
+        const baseTemplate = getSceneTemplate(segment.sceneTemplateOverride.baseTemplateId || segment.sceneTemplateId) || {};
+        return {
+          ...baseTemplate,
+          ...segment.sceneTemplateOverride,
+          id: segment.sceneTemplateId || segment.sceneTemplateOverride.id || baseTemplate.id,
+          isSegmentCustom: true
+        };
+      }
+      return getSceneTemplate(segment.sceneTemplateId);
+    };
     const getSlotTypeLabel = (typeId) => {
       const slotType = slotTypes.find((type) => type.id === typeId);
       return slotType ? slotType.label : typeId;
@@ -1094,6 +1150,20 @@ const AppUI = (() => {
     const getAnimationLabel = (animationId) => {
       const animation = slotAnimations.find((item) => item.id === animationId);
       return animation ? animation.label : animationId;
+    };
+    const getSlotContentKey = (slot = {}) => {
+      const key = `${slot.id || ""} ${slot.label || ""}`.toLowerCase();
+      if (key.includes("title") || key.includes("tiêu đề")) return "title";
+      if (key.includes("description") || key.includes("mô tả") || key.includes("noi dung") || key.includes("nội dung")) return "description";
+      if (key.includes("header") || key.includes("kicker") || key.includes("tag") || key.includes("label") || key.includes("cta") || key.includes("điểm nhấn")) return "benefit";
+      return "";
+    };
+    const getSlotTextFallback = (slot, feature = {}) => {
+      const contentKey = getSlotContentKey(slot);
+      if (contentKey === "title") return feature.name || "";
+      if (contentKey === "description") return feature.description || "";
+      if (contentKey === "benefit") return feature.benefit || feature.type || "";
+      return "";
     };
     const getDefaultSlotValue = (slot, feature = {}) => {
       const primaryAssetId = data.primaryAssetId || ((data.assets || [])[0] && (data.assets || [])[0].id) || "";
@@ -1114,19 +1184,35 @@ const AppUI = (() => {
           .slice(0, 4);
         return { ...base, items: fallbackItems };
       }
-      if (slot.id === "title") {
-        return { ...base, text: feature.name || "" };
+      if (slot.type === "icon") {
+        return { ...base, iconClass: normalizeFontAwesomeClass(slot.iconClass || slot.defaultIconClass) };
       }
-      if (slot.id === "description") {
-        return { ...base, text: feature.description || "" };
-      }
-      if (slot.id === "tag" || slot.id === "kicker" || slot.id === "header" || slot.id === "cta") {
-        return { ...base, text: feature.benefit || feature.type || "" };
+      const fallbackText = getSlotTextFallback(slot, feature);
+      if (fallbackText) {
+        return { ...base, text: fallbackText };
       }
       return { ...base, text: "" };
     };
-    const normalizeSegmentSlots = (feature = {}, templateId) => {
-      const template = getSceneTemplate(templateId);
+    const mergeSlotValueWithFallback = (slot, existing = {}, fallback = {}) => {
+      const merged = { ...fallback, ...existing };
+      if ((slot.type === "text" || slot.type === "tag") && !String(merged.text || "").trim() && String(fallback.text || "").trim()) {
+        merged.text = fallback.text;
+      }
+      if (slot.type === "list" && (!Array.isArray(merged.items) || merged.items.filter(Boolean).length === 0) && Array.isArray(fallback.items)) {
+        merged.items = fallback.items;
+      }
+      if (slot.type === "icon") {
+        merged.iconClass = normalizeFontAwesomeClass(merged.iconClass || fallback.iconClass || slot.iconClass || slot.defaultIconClass);
+      }
+      if ((slot.type === "asset" || slot.type === "media") && !merged.assetId && fallback.assetId) {
+        merged.assetId = fallback.assetId;
+      }
+      return merged;
+    };
+    const normalizeSegmentSlots = (feature = {}, templateRef) => {
+      const template = templateRef && Array.isArray(templateRef.slots)
+        ? templateRef
+        : getSceneTemplateForSegment({ ...feature, sceneTemplateId: templateRef || feature.sceneTemplateId });
       if (!template) {
         return {};
       }
@@ -1135,10 +1221,10 @@ const AppUI = (() => {
         const existing = feature.slots && feature.slots[slot.id] ? feature.slots[slot.id] : {};
         const fallback = getDefaultSlotValue(slot, feature);
         const delay = Number.parseFloat(existing.delay);
+        const merged = mergeSlotValueWithFallback(slot, existing, fallback);
 
         normalized[slot.id] = {
-          ...fallback,
-          ...existing,
+          ...merged,
           type: slot.type,
           delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
           animation: existing.animation || fallback.animation,
@@ -1162,6 +1248,9 @@ const AppUI = (() => {
         const items = Array.isArray(value.items) ? value.items.filter(Boolean) : [];
         return items.length ? `${items.length} item` : "Chưa có item";
       }
+      if (slot.type === "icon") {
+        return normalizeFontAwesomeClass(value.iconClass || slot.iconClass || slot.defaultIconClass);
+      }
       return value.text ? value.text : "Chưa có nội dung";
     };
     const validateRequiredSlotValues = (template, slots) => {
@@ -1182,6 +1271,9 @@ const AppUI = (() => {
         }
         if (slot.type === "list") {
           return !Array.isArray(value.items) || value.items.filter(Boolean).length === 0;
+        }
+        if (slot.type === "icon") {
+          return !String(value.iconClass || slot.iconClass || slot.defaultIconClass || "").trim();
         }
         return !String(value.text || "").trim();
       });
@@ -1208,7 +1300,7 @@ const AppUI = (() => {
           <div class="script-list" id="script-sortable-list">
             ${list.map((item, index) => {
               const segmentType = getSegmentType(item.type);
-              const sceneTemplate = getSceneTemplate(item.sceneTemplateId);
+              const sceneTemplate = getSceneTemplateForSegment(item);
               const durationSec = Number.parseInt(item.durationSec, 10) || 8;
               const voiceScript = String(item.voiceoverScript || "").trim();
               return `
@@ -1286,9 +1378,9 @@ const AppUI = (() => {
     `;
 
     const selectedType = selectedItem ? getSegmentType(selectedItem.type) : null;
-    const selectedSceneTemplate = selectedItem ? getSceneTemplate(selectedItem.sceneTemplateId) : null;
+    const selectedSceneTemplate = selectedItem ? getSceneTemplateForSegment(selectedItem) : null;
     const selectedSlotValues = selectedItem && selectedSceneTemplate
-      ? normalizeSegmentSlots(selectedItem, selectedSceneTemplate.id)
+      ? normalizeSegmentSlots(selectedItem, selectedSceneTemplate)
       : {};
     const selectedIndex = selectedItem ? list.findIndex((item) => item.id === selectedItem.id) : -1;
     const selectedDuration = selectedItem ? (Number.parseInt(selectedItem.durationSec, 10) || 8) : 0;
@@ -1450,18 +1542,312 @@ const AppUI = (() => {
     // Modal Form for Add/Edit
     const showFeatureFormModal = (feature = null) => {
       const isEdit = feature !== null;
-      let activeSceneTemplateId = (isEdit && feature.sceneTemplateId)
+      const modalAspectRatio = getConfiguredVideoAspectRatio(AppState.getProjectData());
+      const modalAspectRatioLabel = modalAspectRatio === "16:9" ? "Ngang 16:9" : "Dọc 9:16";
+      const segmentSceneTemplates = sceneTemplates.filter((template) => templateSupportsAspectRatio(template, modalAspectRatio));
+      const getSelectableSceneTemplate = (templateId) => segmentSceneTemplates.find((template) => template.id === templateId) || null;
+      const requestedSceneTemplateId = (isEdit && feature.sceneTemplateId)
         || data.defaultSceneTemplateId
-        || (sceneTemplates[0] && sceneTemplates[0].id)
+        || (segmentSceneTemplates[0] && segmentSceneTemplates[0].id)
         || "";
-      let activeSlotValues = normalizeSegmentSlots(feature || {}, activeSceneTemplateId);
+      const canKeepRequestedTemplate = Boolean(getSelectableSceneTemplate(requestedSceneTemplateId));
+      let activeSceneTemplateId = requestedSceneTemplateId;
+      if (!getSelectableSceneTemplate(activeSceneTemplateId)) {
+        activeSceneTemplateId = (segmentSceneTemplates.find((template) => template.id === data.defaultSceneTemplateId) || segmentSceneTemplates[0] || {}).id || "";
+      }
+      const canUseExistingTemplateOverride = canKeepRequestedTemplate && feature && feature.sceneTemplateOverride && Array.isArray(feature.sceneTemplateOverride.slots);
+      let activeSceneTemplateDraft = canUseExistingTemplateOverride
+        ? {
+          ...(getSceneTemplate(activeSceneTemplateId) || {}),
+          ...feature.sceneTemplateOverride,
+          baseTemplateId: feature.sceneTemplateOverride.baseTemplateId || activeSceneTemplateId
+        }
+        : { ...(getSelectableSceneTemplate(activeSceneTemplateId) || {}) };
+      let hasCustomSceneTemplateDraft = Boolean(canUseExistingTemplateOverride);
+      let activeSlotValues = normalizeSegmentSlots(feature || {}, activeSceneTemplateDraft);
+      let activeModalSlotId = (activeSceneTemplateDraft.slots && activeSceneTemplateDraft.slots[0] && activeSceneTemplateDraft.slots[0].id) || "";
+      const getActiveSceneTemplate = () => activeSceneTemplateDraft && Array.isArray(activeSceneTemplateDraft.slots) ? activeSceneTemplateDraft : getSelectableSceneTemplate(activeSceneTemplateId);
+      const getUniqueSlotId = (label, fallback = "slot") => {
+        const base = String(label || fallback)
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          || fallback;
+        const ids = new Set((getActiveSceneTemplate().slots || []).map((slot) => slot.id));
+        let id = base;
+        let index = 2;
+        while (ids.has(id)) {
+          id = `${base}-${index}`;
+          index += 1;
+        }
+        return id;
+      };
+      const getDefaultSlotLayout = (item = {}, index = 0) => {
+        const type = item.type || "text";
+        if (type === "asset") return { x: 36, y: 18, width: 28, height: 10 };
+        if (type === "media") return { x: 12, y: 52, width: 76, height: 26 };
+        if (type === "icon") return { x: 42, y: 24, width: 16, height: 10 };
+        if (type === "list") return { x: 16, y: 48, width: 68, height: 20 };
+        if (type === "tag") return { x: 22, y: 78, width: 56, height: 8 };
+        return { x: 16, y: Math.min(84, 22 + (index * 11)), width: 68, height: 8 };
+      };
+      const markSceneTemplateCustomized = () => {
+        hasCustomSceneTemplateDraft = true;
+      };
+      const clampNumber = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
+      const syncSegmentCenterGuides = (stage, layout, isActive = true) => {
+        const verticalGuide = stage ? stage.querySelector("[data-center-guide='vertical']") : null;
+        const horizontalGuide = stage ? stage.querySelector("[data-center-guide='horizontal']") : null;
+        if (!verticalGuide || !horizontalGuide || !isActive || !layout) {
+          if (verticalGuide) {
+            verticalGuide.classList.remove("is-visible");
+          }
+          if (horizontalGuide) {
+            horizontalGuide.classList.remove("is-visible");
+          }
+          return;
+        }
+
+        const centerX = layout.x + (layout.width / 2);
+        const centerY = layout.y + (layout.height / 2);
+        verticalGuide.classList.toggle("is-visible", Math.abs(centerX - 50) <= 0.01);
+        horizontalGuide.classList.toggle("is-visible", Math.abs(centerY - 50) <= 0.01);
+      };
+      const syncSegmentLeftGuide = (stage, x) => {
+        const guide = stage ? stage.querySelector("[data-edge-guide='left']") : null;
+        if (!guide || !Number.isFinite(x)) {
+          if (guide) {
+            guide.classList.remove("is-visible");
+          }
+          return;
+        }
+
+        guide.style.left = `${x}%`;
+        guide.classList.add("is-visible");
+      };
+      const snapSegmentLayoutToLeftEdges = (layout, slots = [], activeSlotId = "") => {
+        const snapThreshold = 1.2;
+        const leftEdges = slots
+          .filter((slot) => slot.id !== activeSlotId)
+          .map((slot, index) => getSceneSlotLayout(slot, index, getModalPreviewRatio(getActiveSceneTemplate())).x)
+          .filter((x) => Number.isFinite(x));
+        const matchedX = leftEdges.find((x) => Math.abs(layout.x - x) <= snapThreshold);
+
+        if (!Number.isFinite(matchedX)) {
+          return { layout, guideX: null };
+        }
+
+        return {
+          layout: {
+            ...layout,
+            x: Math.round(clampNumber(matchedX, 0, 100 - layout.width) * 10) / 10
+          },
+          guideX: matchedX
+        };
+      };
+      const snapSegmentLayoutToCenterGuides = (layout) => {
+        const snapThreshold = 1.2;
+        const nextLayout = { ...layout };
+        const centerX = nextLayout.x + (nextLayout.width / 2);
+        const centerY = nextLayout.y + (nextLayout.height / 2);
+
+        if (Math.abs(centerX - 50) <= snapThreshold) {
+          nextLayout.x = 50 - (nextLayout.width / 2);
+        }
+        if (Math.abs(centerY - 50) <= snapThreshold) {
+          nextLayout.y = 50 - (nextLayout.height / 2);
+        }
+
+        nextLayout.x = Math.round(clampNumber(nextLayout.x, 0, 100 - nextLayout.width) * 10) / 10;
+        nextLayout.y = Math.round(clampNumber(nextLayout.y, 0, 100 - nextLayout.height) * 10) / 10;
+        return nextLayout;
+      };
       const renderAssetOptions = (selectedAssetId = "") => (data.assets || []).map((asset) => `
         <option value="${escapeText(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
       `).join("");
+      const isTextSceneItemType = (type) => ["text", "tag", "list"].includes(type);
+      const getSceneItemTypeFamily = (type) => {
+        if (isTextSceneItemType(type)) return "text";
+        if (type === "asset" || type === "media") return "asset";
+        if (type === "icon") return "icon";
+        return type || "text";
+      };
+      const getCompatibleSceneItems = (slot = {}) => {
+        const family = getSceneItemTypeFamily(slot.type);
+        return getProjectSceneItemViews(data).filter((item) => getSceneItemTypeFamily(item.type) === family);
+      };
+      const getSelectedSceneItemId = (slot = {}) => {
+        const compatibleItems = getCompatibleSceneItems(slot);
+        const matched = compatibleItems.find((item) => item.id === slot.sourceItemId)
+          || compatibleItems.find((item) => item.label === (slot.sourceItemLabel || slot.label) && item.type === slot.type)
+          || compatibleItems.find((item) => item.label === slot.label)
+          || compatibleItems[0];
+        return matched ? matched.id : "";
+      };
+      const renderSceneItemSelect = (slot = {}) => {
+        const compatibleItems = getCompatibleSceneItems(slot);
+        const selectedId = getSelectedSceneItemId(slot);
+        return `
+          <select class="form-control scene-slot-item-select" data-slot-field="sceneItemId" aria-label="Chọn scene item">
+            ${compatibleItems.map((item) => `
+              <option value="${escapeAttribute(item.id)}" ${item.id === selectedId ? "selected" : ""}>${escapeText(item.label)}</option>
+            `).join("")}
+          </select>
+        `;
+      };
+      const normalizeSlotFontSize = (value, fallback = 18) => {
+        const parsed = Number.parseInt(value, 10);
+        return Math.max(8, Math.min(96, Number.isFinite(parsed) ? parsed : fallback));
+      };
+      const normalizeSlotFontWeight = (value, fallback = 800) => {
+        const parsed = Number.parseInt(value, 10);
+        const allowed = [300, 400, 500, 600, 700, 800, 900];
+        return allowed.includes(parsed) ? parsed : fallback;
+      };
+      const normalizeSlotTextAlign = (value, fallback = "center") => {
+        const align = String(value || "").trim();
+        return ["left", "center", "right"].includes(align) ? align : fallback;
+      };
+      const getDefaultSlotTextColor = (slot = {}) => {
+        if (slot.type === "tag") return "#9333ea";
+        if (slot.type === "list") return "#d97706";
+        return "#0891b2";
+      };
+      const normalizeSlotTextColor = (value, fallback = "#0891b2") => normalizeHexColor(value, fallback);
+      const getDefaultTextFontSize = (slot = {}) => {
+        if (slot.type === "tag") return 16;
+        if (slot.type === "list") return 16;
+        if (String(slot.id || "").includes("title")) return 28;
+        if (String(slot.id || "").includes("description")) return 22;
+        return 18;
+      };
+      const renderSlotTypographyControls = (slot, value = {}) => {
+        if (!isTextSceneItemType(slot.type)) {
+          return "";
+        }
+        const fontSize = normalizeSlotFontSize(value.fontSize, getDefaultTextFontSize(slot));
+        const fontWeight = normalizeSlotFontWeight(value.fontWeight, slot.type === "tag" ? 800 : 900);
+        const textAlign = normalizeSlotTextAlign(value.textAlign);
+        const textColor = normalizeSlotTextColor(value.textColor, getDefaultSlotTextColor(slot));
+        return `
+          <div class="scene-slot-typography">
+            <label>
+              <span>Font size</span>
+              <input type="number" class="form-control" data-slot-field="fontSize" min="8" max="96" step="1" value="${fontSize}">
+            </label>
+            <label>
+              <span>Font weight</span>
+              <select class="form-control" data-slot-field="fontWeight">
+                ${[300, 400, 500, 600, 700, 800, 900].map((weight) => `
+                  <option value="${weight}" ${weight === fontWeight ? "selected" : ""}>${weight}</option>
+                `).join("")}
+              </select>
+            </label>
+            <label>
+              <span>Align</span>
+              <select class="form-control" data-slot-field="textAlign">
+                ${[
+                  { id: "left", label: "Left" },
+                  { id: "center", label: "Center" },
+                  { id: "right", label: "Right" }
+                ].map((option) => `
+                  <option value="${option.id}" ${option.id === textAlign ? "selected" : ""}>${option.label}</option>
+                `).join("")}
+              </select>
+            </label>
+            <label class="scene-slot-color-field">
+              <span>Màu chữ</span>
+              <button class="scene-slot-color-button" type="button" data-slot-color-picker data-color-label="Màu chữ" aria-label="Chọn màu chữ">
+                <span class="style-pickr-swatch" aria-hidden="true"></span>
+              </button>
+              <input type="hidden" data-slot-field="textColor" value="${escapeAttribute(textColor)}">
+            </label>
+          </div>
+        `;
+      };
+      const backgroundAssets = (data.assets || []).filter((asset) => ["background", "image", "screenshot", "video"].includes(asset.type));
+      const renderBackgroundAssetOptions = (selectedAssetId = "") => backgroundAssets.map((asset) => `
+        <option value="${escapeText(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
+      `).join("");
+      const getSegmentBackgroundDefaults = (background = {}) => ({
+        mode: background.mode === "asset" ? "asset" : "color",
+        assetId: background.assetId || "",
+        colorType: background.colorType === "gradient" ? "gradient" : "solid",
+        color: normalizeHexColor(background.color || "#0f172a", "#0f172a"),
+        gradientFrom: normalizeHexColor(background.gradientFrom || background.color || "#0f172a", "#0f172a"),
+        gradientTo: normalizeHexColor(background.gradientTo || "#1f4fd8", "#1f4fd8"),
+        gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
+      });
+      let activeSegmentBackground = getSegmentBackgroundDefaults(feature && feature.background);
+      const segmentBackgroundColorState = {
+        color: activeSegmentBackground.color,
+        gradientFrom: activeSegmentBackground.gradientFrom,
+        gradientTo: activeSegmentBackground.gradientTo
+      };
+      const renderSegmentBgPickrField = (key, label, className = "") => `
+        <div class="script-bg-pickr-field ${className}">
+          <span>${escapeText(label)}</span>
+          <button class="style-pickr-button" type="button" data-bg-color-key="${key}" data-color-label="${escapeAttribute(label)}" aria-label="Chọn màu ${escapeAttribute(label)}">
+            <span class="style-pickr-swatch" aria-hidden="true"></span>
+            <span class="style-pickr-value">${escapeText(segmentBackgroundColorState[key])}</span>
+          </button>
+        </div>
+      `;
+      const getAssetById = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
+      const getGradientDirectionValue = (direction) => ({
+        "to-right": "to right",
+        "to-left": "to left",
+        "to-bottom": "to bottom",
+        "to-top": "to top"
+      })[direction] || "to right";
+      const collectSegmentBackground = () => {
+        const modeInput = document.getElementById("modal-feat-bg-mode");
+        const assetInput = document.getElementById("modal-feat-bg-asset");
+        const colorTypeInput = document.getElementById("modal-feat-bg-color-type");
+        const gradientDirectionInput = document.getElementById("modal-feat-bg-gradient-direction");
+
+        activeSegmentBackground = getSegmentBackgroundDefaults({
+          mode: modeInput ? modeInput.value : activeSegmentBackground.mode,
+          assetId: assetInput ? assetInput.value : activeSegmentBackground.assetId,
+          colorType: colorTypeInput ? colorTypeInput.value : activeSegmentBackground.colorType,
+          color: segmentBackgroundColorState.color,
+          gradientFrom: segmentBackgroundColorState.gradientFrom,
+          gradientTo: segmentBackgroundColorState.gradientTo,
+          gradientDirection: gradientDirectionInput ? gradientDirectionInput.value : activeSegmentBackground.gradientDirection
+        });
+
+        return activeSegmentBackground;
+      };
+      const getSegmentBackgroundStyle = (background = activeSegmentBackground) => {
+        const config = getSegmentBackgroundDefaults(background);
+        if (config.mode === "color" && config.colorType === "gradient") {
+          return `background:${escapeText(`linear-gradient(${getGradientDirectionValue(config.gradientDirection)}, ${config.gradientFrom}, ${config.gradientTo})`)};`;
+        }
+        if (config.mode === "color") {
+          return `background:${escapeText(config.color)};`;
+        }
+        return "";
+      };
+      const renderSegmentBackgroundLayer = (background = activeSegmentBackground) => {
+        const config = getSegmentBackgroundDefaults(background);
+        if (config.mode !== "asset") {
+          return "";
+        }
+        const asset = getAssetById(config.assetId);
+        if (!asset || !asset.url) {
+          return "";
+        }
+        if (asset.type === "video") {
+          return `<video class="script-segment-preview-background" src="${escapeText(asset.url)}" autoplay muted loop playsinline></video>`;
+        }
+        return `<img class="script-segment-preview-background" src="${escapeText(asset.url)}" alt="">`;
+      };
 
       const collectSlotEditorValues = () => {
         const editor = document.getElementById("modal-scene-slot-editor");
-        const template = getSceneTemplate(activeSceneTemplateId);
+        const template = getActiveSceneTemplate();
         if (!editor || !template) {
           return activeSlotValues;
         }
@@ -1494,9 +1880,27 @@ const AppUI = (() => {
             next.items = listInput
               ? listInput.value.split("\n").map((line) => line.trim()).filter(Boolean)
               : (Array.isArray(current.items) ? current.items : []);
+          } else if (slot.type === "icon") {
+            const iconInput = item.querySelector("[data-slot-field='iconClass']");
+            next.iconClass = normalizeFontAwesomeClass(iconInput ? iconInput.value : (current.iconClass || slot.iconClass || slot.defaultIconClass));
           } else {
             const textInput = item.querySelector("[data-slot-field='text']");
             next.text = textInput ? textInput.value.trim() : (current.text || "");
+          }
+          if (isTextSceneItemType(slot.type)) {
+            const fontSizeInput = item.querySelector("[data-slot-field='fontSize']");
+            const fontWeightInput = item.querySelector("[data-slot-field='fontWeight']");
+            const textAlignInput = item.querySelector("[data-slot-field='textAlign']");
+            const textColorInput = item.querySelector("[data-slot-field='textColor']");
+            next.fontSize = normalizeSlotFontSize(fontSizeInput ? fontSizeInput.value : current.fontSize, getDefaultTextFontSize(slot));
+            next.fontWeight = normalizeSlotFontWeight(fontWeightInput ? fontWeightInput.value : current.fontWeight, slot.type === "tag" ? 800 : 900);
+            next.textAlign = normalizeSlotTextAlign(textAlignInput ? textAlignInput.value : current.textAlign);
+            next.textColor = normalizeSlotTextColor(textColorInput ? textColorInput.value : current.textColor, getDefaultSlotTextColor(slot));
+          } else {
+            delete next.fontSize;
+            delete next.fontWeight;
+            delete next.textAlign;
+            delete next.textColor;
           }
 
           values[slot.id] = next;
@@ -1521,6 +1925,13 @@ const AppUI = (() => {
           `;
         }
 
+        if (slot.type === "icon") {
+          return `
+            <input type="text" class="form-control" data-slot-field="iconClass" value="${escapeText(normalizeFontAwesomeClass(value.iconClass || slot.iconClass || slot.defaultIconClass))}" placeholder="fa-solid fa-code">
+            <div class="form-hint">Nhập class FontAwesome, ví dụ: fa-solid fa-code, fa-solid fa-diagram-project.</div>
+          `;
+        }
+
         if (slot.id === "description") {
           return `
             <textarea class="form-control" rows="3" data-slot-field="text" placeholder="Nội dung hiển thị trong slot">${escapeText(value.text || "")}</textarea>
@@ -1532,35 +1943,72 @@ const AppUI = (() => {
         `;
       };
 
+      const getModalPreviewSlotFontSize = (slot, index, ratio) => {
+        const layout = getSceneSlotLayout(slot, index, ratio);
+        const ratioScale = ratio === "16:9" ? 1.08 : 1;
+        const size = Math.min(18, Math.max(8, (layout.height * 0.68 + layout.width * 0.055) * ratioScale));
+        return Math.round(size * 10) / 10;
+      };
+
+      const getModalSlotPreviewContent = (slot, value = {}, draftSegment = {}) => {
+        if (slot.type === "asset" || slot.type === "media") {
+          const asset = getAssetById(value.assetId);
+          const label = asset ? asset.name || asset.id : slot.label;
+          if (asset && asset.url) {
+            if (asset.type === "video") {
+              return `<video class="script-segment-preview-media" src="${escapeText(asset.url)}" autoplay muted loop playsinline></video>`;
+            }
+            return `<img class="script-segment-preview-media" src="${escapeText(asset.url)}" alt="${escapeText(label)}">`;
+          }
+          return `<span>${escapeText(label)}</span>`;
+        }
+
+        if (slot.type === "list") {
+          const items = Array.isArray(value.items) ? value.items.filter(Boolean) : [];
+          const visibleItems = items.length ? items.slice(0, 4) : [slot.label];
+          return `<span class="script-segment-preview-list">${visibleItems.map((item) => `<em>${escapeText(item)}</em>`).join("")}</span>`;
+        }
+
+        if (slot.type === "icon") {
+          return `<span class="script-segment-preview-icon">${renderFontAwesomeIcon(value.iconClass || slot.iconClass || slot.defaultIconClass)}</span>`;
+        }
+
+        const text = value.text
+          || (slot.id === "title" ? draftSegment.name : "")
+          || (slot.id === "description" ? draftSegment.description : "")
+          || (slot.id === "tag" || slot.id === "kicker" || slot.id === "header" || slot.id === "cta" ? draftSegment.benefit || draftSegment.type : "")
+          || slot.label;
+        return `<span>${escapeText(text)}</span>`;
+      };
+
       const renderSlotEditorHTML = () => {
-        const template = getSceneTemplate(activeSceneTemplateId);
+        const template = getActiveSceneTemplate();
         if (!template) {
           return `<div class="slot-editor-empty">Chưa có scene template để tạo slot.</div>`;
         }
 
         return `
-          <div class="scene-slot-editor-grid">
-            ${template.slots.map((slot) => {
+          <div class="scene-template-slot-list scene-slot-editor-grid">
+            ${template.slots.map((slot, index) => {
               const value = activeSlotValues[slot.id] || getDefaultSlotValue(slot, feature || {});
               const allowedAnimations = (slot.allowedAnimations || []).length ? slot.allowedAnimations : slotAnimations.map((item) => item.id);
               return `
-                <section class="scene-slot-editor-item" data-slot-id="${slot.id}">
-                  <div class="scene-slot-editor-head">
-                    <div>
-                      <strong>${escapeText(slot.label)}</strong>
-                      <span>${escapeText(getSlotTypeLabel(slot.type))}${slot.required ? " · bắt buộc" : " · tùy chọn"}</span>
+                <section class="scene-template-slot-row scene-slot-editor-item ${slot.id === activeModalSlotId ? "is-selected" : ""}" data-slot-id="${slot.id}">
+                  <div class="scene-template-slot-head scene-slot-editor-head">
+                    <span class="scene-template-slot-number scene-slot-number">${index + 1}</span>
+                    <div class="scene-slot-item-select-wrap">
+                      ${renderSceneItemSelect(slot)}
                     </div>
-                    ${slot.required ? `
-                      <span class="scene-slot-required">Required</span>
-                    ` : `
-                      <label class="script-switch scene-slot-toggle">
-                        <input type="checkbox" data-slot-field="enabled" ${value.enabled !== false ? "checked" : ""}>
-                        <span class="script-switch-track" aria-hidden="true"></span>
-                      </label>
-                    `}
+                    <button class="scene-template-slot-remove scene-slot-remove-btn" type="button" data-slot-action="remove" data-slot-id="${escapeAttribute(slot.id)}" aria-label="Xóa slot ${escapeAttribute(slot.label)}">
+                      ${renderIcon("trash")}
+                    </button>
                   </div>
 
-                  ${renderSlotInputHTML(slot, value)}
+                  <div class="scene-slot-value-field form-group">
+                    <label class="form-label">Value${slot.required ? " *" : ""}</label>
+                    ${renderSlotInputHTML(slot, value)}
+                  </div>
+                  ${renderSlotTypographyControls(slot, value)}
 
                   <div class="scene-slot-controls">
                     <label>
@@ -1575,6 +2023,15 @@ const AppUI = (() => {
                         `).join("")}
                       </select>
                     </label>
+                    <div class="scene-slot-state">
+                      ${slot.required ? "" : `
+                        <label class="script-switch scene-slot-toggle">
+                          <input type="checkbox" data-slot-field="enabled" ${value.enabled !== false ? "checked" : ""}>
+                          <span class="script-switch-track" aria-hidden="true"></span>
+                          <span>Bật slot</span>
+                        </label>
+                      `}
+                    </div>
                   </div>
                 </section>
               `;
@@ -1583,69 +2040,514 @@ const AppUI = (() => {
         `;
       };
 
+      const getModalDraftSegment = () => {
+        const typeInput = document.getElementById("modal-feat-type");
+        const nameInput = document.getElementById("modal-feat-name");
+        const descInput = document.getElementById("modal-feat-desc");
+        const benefitInput = document.getElementById("modal-feat-benefit");
+        const durationInput = document.getElementById("modal-feat-duration");
+
+        return {
+          ...(feature || {}),
+          type: typeInput ? typeInput.value : (feature && feature.type) || "feature",
+          name: nameInput ? nameInput.value.trim() : (feature && feature.name) || "",
+          description: descInput ? descInput.value.trim() : (feature && feature.description) || "",
+          benefit: benefitInput ? benefitInput.value.trim() : (feature && feature.benefit) || "",
+          durationSec: durationInput ? durationInput.value : (feature && feature.durationSec) || 8,
+          sceneTemplateId: activeSceneTemplateId
+        };
+      };
+
+      const getModalPreviewRatio = (template) => {
+        const supportedRatios = getSceneTemplateAspectRatios(template);
+        if (supportedRatios.includes(modalAspectRatio)) {
+          return modalAspectRatio;
+        }
+        return supportedRatios[0] || modalAspectRatio;
+      };
+
+      const renderModalPreview = () => {
+        const previewRoot = document.getElementById("script-segment-preview-body");
+        const template = getActiveSceneTemplate();
+        if (!previewRoot || !template) {
+          return;
+        }
+
+        const ratio = getModalPreviewRatio(template);
+        const draftSegment = getModalDraftSegment();
+        const segmentBackground = collectSegmentBackground();
+        const slotValues = collectSlotEditorValues();
+        activeSlotValues = slotValues;
+        const renderSlot = (slot, index) => {
+          const value = slotValues[slot.id] || getDefaultSlotValue(slot, draftSegment);
+          const className = [
+            "scene-template-preview-item",
+            "script-segment-preview-slot",
+            `slot-${escapeAttribute(slot.type)}`,
+            (slot.type === "asset" || slot.type === "media") && value.assetId ? "has-media" : "",
+            slot.id === activeModalSlotId ? "is-selected" : "",
+            value.enabled === false ? "is-disabled" : ""
+          ].filter(Boolean).join(" ");
+          const previewFontSize = isTextSceneItemType(slot.type)
+            ? normalizeSlotFontSize(value.fontSize, getModalPreviewSlotFontSize(slot, index, ratio))
+            : getModalPreviewSlotFontSize(slot, index, ratio);
+          const previewFontWeight = isTextSceneItemType(slot.type)
+            ? normalizeSlotFontWeight(value.fontWeight, slot.type === "tag" ? 800 : 900)
+            : 900;
+          const previewTextAlign = isTextSceneItemType(slot.type)
+            ? normalizeSlotTextAlign(value.textAlign)
+            : "center";
+          const previewJustify = previewTextAlign === "left" ? "flex-start" : previewTextAlign === "right" ? "flex-end" : "center";
+          const previewTextColor = isTextSceneItemType(slot.type)
+            ? normalizeSlotTextColor(value.textColor, getDefaultSlotTextColor(slot))
+            : "";
+          const style = `${getSceneSlotStyle(slot, index, ratio)};--slot-preview-font:${previewFontSize}px;--slot-preview-weight:${previewFontWeight};--slot-preview-align:${previewTextAlign};--slot-preview-justify:${previewJustify};${previewTextColor ? `--slot-preview-color:${previewTextColor};` : ""}`;
+          return `
+            <div
+              class="${className}"
+              role="button"
+              tabindex="-1"
+              style="${style}"
+              title="Kéo để đổi vị trí ${escapeAttribute(slot.label)}"
+              draggable="true"
+              data-preview-slot-id="${escapeAttribute(slot.id)}"
+            >
+              <b class="scene-template-preview-index script-segment-preview-index">${index + 1}</b>
+              ${getModalSlotPreviewContent(slot, value, draftSegment)}
+              <i class="scene-template-resize-handle script-segment-resize-handle" data-resize-handle="se" aria-hidden="true"></i>
+            </div>
+          `;
+        };
+
+        previewRoot.innerHTML = `
+          <div class="scene-template-preview-shell script-segment-preview-shell">
+            <div class="scene-template-preview-stage script-segment-preview-canvas ${ratio === "16:9" ? "is-landscape" : "is-portrait"}" style="${getSegmentBackgroundStyle(segmentBackground)}">
+              ${renderSegmentBackgroundLayer(segmentBackground)}
+              <span class="scene-template-preview-safe script-segment-preview-safe is-top"></span>
+              <span class="scene-template-preview-safe script-segment-preview-safe is-bottom"></span>
+              <span class="scene-template-center-guide script-segment-center-guide is-vertical" data-center-guide="vertical" aria-hidden="true"></span>
+              <span class="scene-template-center-guide script-segment-center-guide is-horizontal" data-center-guide="horizontal" aria-hidden="true"></span>
+              <span class="scene-template-edge-guide script-segment-edge-guide is-left" data-edge-guide="left" aria-hidden="true"></span>
+              ${(template.slots || []).map(renderSlot).join("")}
+            </div>
+          </div>
+        `;
+      };
+
+      const getLayoutFromPointerEvent = (event, fallbackLayout = { width: 68, height: 8 }) => {
+        const canvas = document.querySelector(".script-segment-preview-canvas");
+        if (!canvas) {
+          return fallbackLayout;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        const width = Math.min(90, Math.max(12, Number(fallbackLayout.width) || 68));
+        const height = Math.min(44, Math.max(5, Number(fallbackLayout.height) || 8));
+        const x = ((event.clientX - rect.left) / rect.width) * 100 - (width / 2);
+        const y = ((event.clientY - rect.top) / rect.height) * 100 - (height / 2);
+
+        return snapSegmentLayoutToCenterGuides({
+          x: Math.min(100 - width, Math.max(0, Math.round(x * 10) / 10)),
+          y: Math.min(100 - height, Math.max(0, Math.round(y * 10) / 10)),
+          width,
+          height
+        });
+      };
+
+      const syncDesigner = () => {
+        const slotEditor = document.getElementById("modal-scene-slot-editor");
+        if (slotEditor) {
+          slotEditor.innerHTML = renderSlotEditorHTML();
+        }
+        renderModalPreview();
+        initializeSlotColorPickers();
+      };
+
+      const selectModalSlot = (slotId, shouldScroll = false) => {
+        if (!slotId) {
+          return;
+        }
+        activeModalSlotId = slotId;
+        modalBody.querySelectorAll(".script-segment-preview-slot").forEach((item) => {
+          item.classList.toggle("is-selected", item.getAttribute("data-preview-slot-id") === slotId);
+        });
+        modalBody.querySelectorAll(".scene-slot-editor-item").forEach((item) => {
+          item.classList.toggle("is-selected", item.getAttribute("data-slot-id") === slotId);
+        });
+        if (shouldScroll) {
+          const row = Array.from(modalBody.querySelectorAll(".scene-slot-editor-item")).find((item) => {
+            return item.getAttribute("data-slot-id") === slotId;
+          });
+          if (row) {
+            row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      };
+
+      const addSceneItemToDraft = (itemId, event) => {
+        const sceneItem = getProjectSceneItemViews(data).find((item) => item.id === itemId);
+        if (!sceneItem) {
+          return;
+        }
+
+        activeSlotValues = collectSlotEditorValues();
+        const slotId = getUniqueSlotId(sceneItem.label || sceneItem.id, sceneItem.type || "slot");
+        const nextSlot = {
+          id: slotId,
+          label: sceneItem.label || slotId,
+          sourceItemId: sceneItem.id,
+          sourceItemLabel: sceneItem.label || slotId,
+          type: sceneItem.type || "text",
+          required: false,
+          defaultDelay: 0,
+          allowedAnimations: ["fade-up", "scale-in", "pop", "slide-left"],
+          colorRole: sceneItem.colorRole,
+          displayStyle: sceneItem.displayStyle,
+          iconClass: sceneItem.type === "icon" ? normalizeFontAwesomeClass(sceneItem.iconClass || sceneItem.defaultIconClass) : "",
+          layout: getLayoutFromPointerEvent(event, getDefaultSlotLayout(sceneItem, (activeSceneTemplateDraft.slots || []).length))
+        };
+
+        activeSceneTemplateDraft = {
+          ...activeSceneTemplateDraft,
+          slots: [...(activeSceneTemplateDraft.slots || []), nextSlot]
+        };
+        activeSlotValues[slotId] = getDefaultSlotValue(nextSlot, getModalDraftSegment());
+        activeModalSlotId = slotId;
+        markSceneTemplateCustomized();
+        syncDesigner();
+        selectModalSlot(slotId, true);
+      };
+
+      const updateDraftSlotSceneItem = (slotId, sceneItemId) => {
+        const template = getActiveSceneTemplate();
+        const slots = Array.isArray(template && template.slots) ? template.slots : [];
+        const currentSlot = slots.find((slot) => slot.id === slotId);
+        const sceneItem = getProjectSceneItemViews(data).find((item) => item.id === sceneItemId);
+        if (!currentSlot || !sceneItem) {
+          return;
+        }
+
+        activeSlotValues = collectSlotEditorValues();
+        const nextSlot = {
+          ...currentSlot,
+          label: sceneItem.label || currentSlot.label,
+          sourceItemId: sceneItem.id,
+          sourceItemLabel: sceneItem.label || currentSlot.sourceItemLabel,
+          type: sceneItem.type || currentSlot.type,
+          colorRole: sceneItem.colorRole || getSceneItemAppearanceDefaults(sceneItem).colorRole,
+          displayStyle: sceneItem.displayStyle || getSceneItemAppearanceDefaults(sceneItem).displayStyle,
+          iconClass: sceneItem.type === "icon" ? normalizeFontAwesomeClass(sceneItem.iconClass || sceneItem.defaultIconClass) : ""
+        };
+        const existingValue = activeSlotValues[slotId] || {};
+        const fallbackValue = getDefaultSlotValue(nextSlot, getModalDraftSegment());
+        activeSlotValues[slotId] = {
+          ...fallbackValue,
+          ...existingValue,
+          type: nextSlot.type
+        };
+
+        activeSceneTemplateDraft = {
+          ...template,
+          slots: slots.map((slot) => slot.id === slotId ? nextSlot : slot)
+        };
+        markSceneTemplateCustomized();
+        syncDesigner();
+        selectModalSlot(slotId, true);
+      };
+
+      const moveDraftSlot = (slotId, event) => {
+        const template = getActiveSceneTemplate();
+        const slots = Array.isArray(template.slots) ? template.slots : [];
+        const slot = slots.find((item) => item.id === slotId);
+        if (!slot) {
+          return;
+        }
+
+        activeSceneTemplateDraft = {
+          ...template,
+          slots: slots.map((item) => item.id === slotId
+            ? { ...item, layout: getLayoutFromPointerEvent(event, item.layout || getDefaultSlotLayout(item, slots.indexOf(item))) }
+            : item)
+        };
+        markSceneTemplateCustomized();
+        renderModalPreview();
+      };
+
+      const removeDraftSlot = (slotId) => {
+        const template = getActiveSceneTemplate();
+        activeSlotValues = collectSlotEditorValues();
+        activeSceneTemplateDraft = {
+          ...template,
+          slots: (template.slots || []).filter((slot) => slot.id !== slotId)
+        };
+        delete activeSlotValues[slotId];
+        activeModalSlotId = (activeSceneTemplateDraft.slots && activeSceneTemplateDraft.slots[0] && activeSceneTemplateDraft.slots[0].id) || "";
+        markSceneTemplateCustomized();
+        syncDesigner();
+      };
+
+      const applySceneTemplateSelection = (templateId) => {
+        const nextTemplate = getSelectableSceneTemplate(templateId);
+        if (!nextTemplate) {
+          return;
+        }
+
+        activeSceneTemplateId = templateId;
+        const select = document.getElementById("modal-feat-scene-template");
+        if (select) {
+          select.value = templateId;
+        }
+        activeSceneTemplateDraft = { ...nextTemplate };
+        hasCustomSceneTemplateDraft = false;
+        activeModalSlotId = (nextTemplate.slots && nextTemplate.slots[0] && nextTemplate.slots[0].id) || "";
+        activeSlotValues = normalizeSegmentSlots(getModalDraftSegment(), nextTemplate);
+        syncDesigner();
+      };
+
+      const clearTemplateChangeConfirm = () => {
+        const existing = document.getElementById("script-template-change-confirm");
+        if (existing) {
+          existing.remove();
+        }
+      };
+
+      const showTemplateChangeConfirm = (nextTemplateId, previousTemplateId) => {
+        clearTemplateChangeConfirm();
+        const panel = document.querySelector(".script-segment-designer-controls");
+        if (!panel) {
+          return;
+        }
+
+        const confirmBox = document.createElement("div");
+        confirmBox.id = "script-template-change-confirm";
+        confirmBox.className = "script-template-change-confirm";
+        confirmBox.innerHTML = `
+          <div>
+            <strong>Đổi template sẽ reset custom layout.</strong>
+            <span>Phân đoạn này đã thêm/xóa/kéo scene item khác template gốc.</span>
+          </div>
+          <div>
+            <button class="btn btn-secondary btn-sm" type="button" data-template-confirm="cancel">Giữ custom</button>
+            <button class="btn btn-primary btn-sm" type="button" data-template-confirm="apply">Đổi template</button>
+          </div>
+        `;
+        panel.prepend(confirmBox);
+
+        confirmBox.querySelector("[data-template-confirm='cancel']").addEventListener("click", () => {
+          const select = document.getElementById("modal-feat-scene-template");
+          if (select) {
+            select.value = previousTemplateId;
+          }
+          clearTemplateChangeConfirm();
+        });
+
+        confirmBox.querySelector("[data-template-confirm='apply']").addEventListener("click", () => {
+          clearTemplateChangeConfirm();
+          applySceneTemplateSelection(nextTemplateId);
+        });
+      };
+
+      const subtitleConfig = feature && feature.subtitles && typeof feature.subtitles === "object" ? feature.subtitles : {};
       const modalBody = document.createElement("div");
       modalBody.innerHTML = `
-        <div class="grid-2">
-          <div class="form-group">
-            <label class="form-label" for="modal-feat-type">Loại đoạn</label>
-            <select id="modal-feat-type" class="form-control">
-              ${segmentTypes.map((type) => `
-                <option value="${type.id}" ${type.id === (feature && feature.type ? feature.type : "feature") ? "selected" : ""}>${type.label}</option>
-              `).join("")}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="modal-feat-duration">Thời lượng dự kiến</label>
-            <input type="number" id="modal-feat-duration" class="form-control" min="3" max="30" step="1" value="${isEdit ? (feature.durationSec || 8) : 8}">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-feat-name">Tiêu đề đoạn *</label>
-          <input type="text" id="modal-feat-name" class="form-control" value="${isEdit ? escapeText(feature.name) : ''}" placeholder="Ví dụ: Demo dashboard cảnh báo trễ hạn">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-feat-desc">Nội dung chính *</label>
-          <textarea id="modal-feat-desc" class="form-control" rows="4" placeholder="Đoạn này cần nói gì...">${isEdit ? escapeText(feature.description) : ''}</textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-feat-benefit">Điểm nhấn</label>
-          <input type="text" id="modal-feat-benefit" class="form-control" value="${isEdit ? escapeText(feature.benefit) : ''}" placeholder="Ý quan trọng nhất của đoạn này...">
-        </div>
-        <div class="scene-slot-editor-panel">
-          <div class="scene-slot-editor-title">
-            <div>
-              <span class="script-flow-eyebrow">Scene Template</span>
-              <h3>Layout và slot hiển thị</h3>
+        <div class="script-segment-common-fields">
+          <section class="app-section is-compact script-segment-common-section" aria-label="Thông tin đoạn">
+            <div class="app-section-header">
+              <div>
+                <span class="app-section-eyebrow">${renderIcon("file")} Thông tin đoạn</span>
+                <span class="app-section-helper">Metadata nội bộ cho editor. Nội dung hiển thị nằm trong Slots.</span>
+              </div>
             </div>
-            <select id="modal-feat-scene-template" class="form-control">
-              ${sceneTemplates.map((template) => `
-                <option value="${template.id}" ${template.id === activeSceneTemplateId ? "selected" : ""}>${template.name}</option>
-              `).join("")}
-            </select>
+            <div class="app-section-content script-segment-common-content">
+              <div class="grid-2 script-segment-compact-row">
+                <div class="form-group">
+                  <label class="form-label" for="modal-feat-name">Tiêu đề đoạn *</label>
+                  <input type="text" id="modal-feat-name" class="form-control" value="${isEdit ? escapeText(feature.name) : ''}" placeholder="Ví dụ: Demo dashboard cảnh báo trễ hạn">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="modal-feat-duration">Thời lượng dự kiến</label>
+                  <input type="number" id="modal-feat-duration" class="form-control" min="3" max="30" step="1" value="${isEdit ? (feature.durationSec || 8) : 8}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="modal-feat-desc">Nội dung chính</label>
+                <textarea id="modal-feat-desc" class="form-control" rows="4" placeholder="Ghi chú nội bộ cho editor, không thay thế Value trong slot.">${isEdit ? escapeText(feature.description) : ''}</textarea>
+              </div>
+              <div class="form-group">
+                <label class="script-switch script-switch-modal" for="modal-feat-use">
+                <input type="checkbox" id="modal-feat-use" ${!isEdit || feature.useInVideo ? 'checked' : ''}>
+                  <span class="script-switch-track" aria-hidden="true"></span>
+                  <span class="script-switch-text">Bật đoạn này trong video</span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <div class="script-segment-audio-grid">
+          <section class="app-section is-compact script-segment-voice-section" aria-label="Giọng đọc">
+            <div class="app-section-header">
+              <div>
+                <span class="app-section-eyebrow">${renderIcon("volume")} Giọng đọc</span>
+                <span class="app-section-helper">Kịch bản đọc và audio preview cho đoạn này.</span>
+              </div>
+            </div>
+            <div class="app-section-content script-segment-voice-content">
+              <div class="form-group">
+                <label class="form-label" for="modal-feat-voice">Kịch bản giọng đọc</label>
+                <textarea id="modal-feat-voice" class="form-control" rows="6" placeholder="Câu đọc riêng cho đoạn này...">${isEdit ? escapeText(feature.voiceoverScript) : ''}</textarea>
+                <div id="modal-feat-voice-estimate" class="script-voice-estimate" aria-live="polite"></div>
+                <div class="script-voice-preview">
+                  <button id="modal-feat-voice-preview-btn" class="btn btn-secondary btn-sm" type="button">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+                    <span>Nghe thử</span>
+                  </button>
+                  <span id="modal-feat-voice-preview-status">Tạo audio thật từ voice script hiện tại.</span>
+                </div>
+                <audio id="modal-feat-voice-audio" class="script-voice-audio d-none" controls preload="metadata"></audio>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-section is-compact script-subtitle-section" aria-label="Phụ đề">
+            <div class="app-section-header script-subtitle-section-header">
+              <div>
+                <span class="app-section-eyebrow">${renderIcon("file")} Phụ đề</span>
+                <span class="app-section-helper">Chuẩn bị phụ đề cho đoạn này.</span>
+              </div>
+              <label class="script-switch" for="modal-feat-subtitle-enabled">
+                <input type="checkbox" id="modal-feat-subtitle-enabled" ${subtitleConfig.enabled ? "checked" : ""}>
+                <span class="script-switch-track" aria-hidden="true"></span>
+                <span>Bật</span>
+              </label>
+            </div>
+            <div class="app-section-content script-subtitle-content">
+              <div class="script-subtitle-grid">
+                <label>
+                  <span>Nguồn</span>
+                  <select id="modal-feat-subtitle-mode" class="form-control">
+                    <option value="voice" ${(subtitleConfig.mode || "voice") === "voice" ? "selected" : ""}>Tự lấy từ giọng đọc</option>
+                    <option value="custom" ${subtitleConfig.mode === "custom" ? "selected" : ""}>Text tùy chỉnh</option>
+                    <option value="srt" ${subtitleConfig.mode === "srt" ? "selected" : ""}>SRT / cues</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Kiểu hiển thị</span>
+                  <select id="modal-feat-subtitle-style" class="form-control">
+                    <option value="bottom-caption" ${(subtitleConfig.style || "bottom-caption") === "bottom-caption" ? "selected" : ""}>Caption dưới</option>
+                    <option value="karaoke" ${subtitleConfig.style === "karaoke" ? "selected" : ""}>Karaoke highlight</option>
+                    <option value="minimal" ${subtitleConfig.style === "minimal" ? "selected" : ""}>Tối giản</option>
+                  </select>
+                </label>
+              </div>
+              <label class="script-subtitle-text">
+                <span>Nội dung phụ đề</span>
+                <textarea id="modal-feat-subtitle-text" class="form-control" rows="5" placeholder="Để trống nếu lấy tự động từ kịch bản giọng đọc.">${escapeText(subtitleConfig.text || "")}</textarea>
+              </label>
+            </div>
+          </section>
           </div>
-          <div id="modal-scene-slot-editor">
-            ${renderSlotEditorHTML()}
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="modal-feat-voice">Voice script</label>
-          <textarea id="modal-feat-voice" class="form-control" rows="3" placeholder="Câu đọc riêng cho đoạn này...">${isEdit ? escapeText(feature.voiceoverScript) : ''}</textarea>
-          <div id="modal-feat-voice-estimate" class="script-voice-estimate" aria-live="polite"></div>
-          <div class="script-voice-preview">
-            <button id="modal-feat-voice-preview-btn" class="btn btn-secondary btn-sm" type="button">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
-              <span>Nghe thử</span>
-            </button>
-            <span id="modal-feat-voice-preview-status">Tạo audio thật từ voice script hiện tại.</span>
+
+        <div class="script-segment-designer">
+          <section class="app-section is-compact script-segment-template-section" aria-label="Scene Template">
+            <div class="app-section-header">
+              <div>
+                <span class="app-section-eyebrow">${renderIcon("grid")} Scene Template</span>
+                <span class="app-section-helper">Layout áp dụng · ${escapeText(modalAspectRatioLabel)}</span>
+              </div>
+            </div>
+            <div class="app-section-content script-segment-template-content">
+              <label class="script-segment-template-select">
+                <span>Layout</span>
+                <select id="modal-feat-scene-template" class="form-control" ${segmentSceneTemplates.length ? "" : "disabled"}>
+                  ${segmentSceneTemplates.length ? segmentSceneTemplates.map((template) => `
+                    <option value="${template.id}" ${template.id === activeSceneTemplateId ? "selected" : ""}>${template.name}</option>
+                  `).join("") : `
+                    <option value="">Không có layout ${escapeText(modalAspectRatio)}</option>
+                  `}
+                </select>
+              </label>
+              <div class="script-segment-background-controls" aria-label="Nền phân đoạn">
+                <label class="script-bg-mode-field">
+                  <span>Nền phân đoạn</span>
+                  <select id="modal-feat-bg-mode" class="form-control">
+                    <option value="color" ${activeSegmentBackground.mode === "color" ? "selected" : ""}>Màu nền</option>
+                    <option value="asset" ${activeSegmentBackground.mode === "asset" ? "selected" : ""}>Từ asset</option>
+                  </select>
+                </label>
+                <label class="script-bg-asset-field script-bg-wide-field">
+                  <span>Asset nền</span>
+                  <select id="modal-feat-bg-asset" class="form-control" ${backgroundAssets.length ? "" : "disabled"}>
+                    <option value="">Chưa chọn asset</option>
+                    ${renderBackgroundAssetOptions(activeSegmentBackground.assetId)}
+                  </select>
+                </label>
+                <label class="script-bg-color-type-field">
+                  <span>Kiểu màu</span>
+                  <select id="modal-feat-bg-color-type" class="form-control">
+                    <option value="solid" ${activeSegmentBackground.colorType === "solid" ? "selected" : ""}>Màu đơn</option>
+                    <option value="gradient" ${activeSegmentBackground.colorType === "gradient" ? "selected" : ""}>Gradient</option>
+                  </select>
+                </label>
+                ${renderSegmentBgPickrField("color", "Màu nền", "script-bg-solid-field script-bg-color-field")}
+                ${renderSegmentBgPickrField("gradientFrom", "Từ màu", "script-bg-gradient-field script-bg-color-field")}
+                ${renderSegmentBgPickrField("gradientTo", "Đến màu", "script-bg-gradient-field script-bg-color-field")}
+                <label class="script-bg-gradient-field script-bg-wide-field">
+                  <span>Hướng gradient</span>
+                  <select id="modal-feat-bg-gradient-direction" class="form-control">
+                    <option value="to-right" ${activeSegmentBackground.gradientDirection === "to-right" ? "selected" : ""}>Trái sang phải</option>
+                    <option value="to-left" ${activeSegmentBackground.gradientDirection === "to-left" ? "selected" : ""}>Phải sang trái</option>
+                    <option value="to-bottom" ${activeSegmentBackground.gradientDirection === "to-bottom" ? "selected" : ""}>Trên xuống dưới</option>
+                    <option value="to-top" ${activeSegmentBackground.gradientDirection === "to-top" ? "selected" : ""}>Dưới lên trên</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <div class="script-segment-preview-stack">
+            <section class="scene-template-preview-panel script-segment-preview-panel" aria-label="Preview phân đoạn">
+              <div class="scene-template-editor-section-head">
+                <strong>Preview view</strong>
+                <span>Kéo item vào frame hoặc kéo block đang có để đổi vị trí.</span>
+              </div>
+              <div id="script-segment-preview-body" class="script-segment-preview-body"></div>
+            </section>
           </div>
-          <audio id="modal-feat-voice-audio" class="script-voice-audio d-none" controls preload="metadata"></audio>
-        </div>
-        <div class="form-group">
-          <label class="script-switch script-switch-modal" for="modal-feat-use">
-          <input type="checkbox" id="modal-feat-use" ${!isEdit || feature.useInVideo ? 'checked' : ''}>
-            <span class="script-switch-track" aria-hidden="true"></span>
-            <span class="script-switch-text">Bật đoạn này trong video</span>
-          </label>
+
+          <section class="script-segment-designer-controls">
+            <div class="scene-template-palette script-scene-item-palette">
+              <div class="scene-template-editor-section-head">
+                <strong>Scene items</strong>
+                <span>Kéo item vào preview để tạo slot.</span>
+              </div>
+              <div class="scene-template-palette-list script-scene-item-list" id="script-scene-item-list">
+                ${getProjectSceneItemViews(data).map((item) => `
+                  <button class="scene-template-palette-item script-scene-item-button slot-${escapeAttribute(item.type)}" type="button" draggable="true" data-scene-item-id="${escapeAttribute(item.id)}">
+                    <span class="scene-template-palette-preview" aria-hidden="true">
+                      ${renderSceneItemPreview(item)}
+                    </span>
+                    <span class="scene-template-palette-copy">
+                      <strong>${escapeText(item.label)}</strong>
+                      <small>${escapeText(getSlotTypeLabel(item.type))} · ${escapeText(getSceneItemDisplayStyle(item.displayStyle).label)}</small>
+                    </span>
+                  </button>
+                `).join("")}
+              </div>
+            </div>
+
+            <div class="scene-template-slot-editor scene-slot-editor-panel">
+              <div class="scene-template-slot-toolbar scene-slot-editor-title">
+                <div>
+                  <strong>Slots</strong>
+                  <span>Danh sách slot trong phân đoạn.</span>
+                </div>
+              </div>
+              <div id="modal-scene-slot-editor">
+                ${renderSlotEditorHTML()}
+              </div>
+            </div>
+          </section>
         </div>
       `;
 
@@ -1658,29 +2560,46 @@ const AppUI = (() => {
             text: isEdit ? "Cập nhật" : "Thêm mới",
             class: "btn-primary",
             onClick: () => {
-              const type = document.getElementById("modal-feat-type").value;
+              const typeInput = document.getElementById("modal-feat-type");
+              const benefitInput = document.getElementById("modal-feat-benefit");
+              const type = typeInput ? typeInput.value : ((feature && feature.type) || "feature");
               const name = document.getElementById("modal-feat-name").value.trim();
               const description = document.getElementById("modal-feat-desc").value.trim();
-              const benefit = document.getElementById("modal-feat-benefit").value.trim();
+              const benefit = benefitInput ? benefitInput.value.trim() : ((feature && feature.benefit) || "");
               const voiceoverScript = document.getElementById("modal-feat-voice").value.trim();
+              const subtitles = {
+                enabled: document.getElementById("modal-feat-subtitle-enabled").checked,
+                mode: document.getElementById("modal-feat-subtitle-mode").value,
+                style: document.getElementById("modal-feat-subtitle-style").value,
+                text: document.getElementById("modal-feat-subtitle-text").value.trim()
+              };
               const durationSec = Math.min(30, Math.max(3, Number.parseInt(document.getElementById("modal-feat-duration").value, 10) || 8));
               const useInVideo = document.getElementById("modal-feat-use").checked;
               const sceneTemplateId = document.getElementById("modal-feat-scene-template").value;
+              const background = collectSegmentBackground();
               activeSceneTemplateId = sceneTemplateId;
               const slots = collectSlotEditorValues();
-              const activeTemplate = getSceneTemplate(sceneTemplateId);
+              const activeTemplate = getActiveSceneTemplate();
+              if (!activeTemplate) {
+                showToast(`Chưa có Scene Template cho tỷ lệ ${modalAspectRatio}.`, "error");
+                return;
+              }
+              const sceneTemplateOverride = hasCustomSceneTemplateDraft ? {
+                ...activeTemplate,
+                baseTemplateId: sceneTemplateId,
+                id: sceneTemplateId,
+                name: `${(getSceneTemplate(sceneTemplateId) || activeTemplate).name || "Scene Template"} (custom)`
+              } : null;
 
-              if (!name || !description) {
-                showToast("Cần nhập tiêu đề và nội dung chính của đoạn.", "error");
+              if (!name) {
+                showToast("Cần nhập tiêu đề đoạn.", "error");
                 return;
               }
 
-              if (slots.title && !String(slots.title.text || "").trim()) {
-                slots.title.text = name;
-              }
-              if (slots.description && !String(slots.description.text || "").trim()) {
-                slots.description.text = description;
-              }
+              const slotFallbackSource = { ...(feature || {}), type, name, description, benefit };
+              (activeTemplate.slots || []).forEach((slot) => {
+                slots[slot.id] = mergeSlotValueWithFallback(slot, slots[slot.id] || {}, getDefaultSlotValue(slot, slotFallbackSource));
+              });
 
               const missingRequiredSlots = validateRequiredSlotValues(activeTemplate, slots);
               if (missingRequiredSlots.length > 0) {
@@ -1693,21 +2612,31 @@ const AppUI = (() => {
               if (isEdit) {
                 const idx = features.findIndex(f => f.id === feature.id);
                 if (idx !== -1) {
-                  features[idx] = { ...feature, type, name, description, benefit, voiceoverScript, durationSec, useInVideo, sceneTemplateId, slots };
+                  features[idx] = { ...feature, type, name, description, benefit, voiceoverScript, subtitles, background, durationSec, useInVideo, sceneTemplateId, slots, sceneTemplateOverride };
+                  if (!sceneTemplateOverride) {
+                    delete features[idx].sceneTemplateOverride;
+                  }
                 }
               } else {
-                features.push({
+                const nextFeature = {
                   id: savedFeatureId,
                   type,
                   name,
                   description,
                   benefit,
                   voiceoverScript,
+                  subtitles,
+                  background,
                   durationSec,
                   useInVideo,
                   sceneTemplateId,
-                  slots
-                });
+                  slots,
+                  sceneTemplateOverride
+                };
+                if (!sceneTemplateOverride) {
+                  delete nextFeature.sceneTemplateOverride;
+                }
+                features.push(nextFeature);
               }
 
               selectedScriptSegmentId = savedFeatureId;
@@ -1719,6 +2648,7 @@ const AppUI = (() => {
           }
         ]
       );
+      DOM.modalContainer.classList.add("is-script-segment-editor");
 
       const voiceInput = document.getElementById("modal-feat-voice");
       const durationInput = document.getElementById("modal-feat-duration");
@@ -1728,6 +2658,362 @@ const AppUI = (() => {
       const previewButton = document.getElementById("modal-feat-voice-preview-btn");
       const previewStatus = document.getElementById("modal-feat-voice-preview-status");
       const previewAudio = document.getElementById("modal-feat-voice-audio");
+      const syncSegmentBackgroundControls = () => {
+        const background = collectSegmentBackground();
+        modalBody.classList.toggle("is-bg-asset", background.mode === "asset");
+        modalBody.classList.toggle("is-bg-color", background.mode === "color");
+        modalBody.classList.toggle("is-bg-gradient", background.mode === "color" && background.colorType === "gradient");
+        modalBody.classList.toggle("is-bg-solid", background.mode === "color" && background.colorType !== "gradient");
+      };
+
+      syncSegmentBackgroundControls();
+      renderModalPreview();
+
+      const setSegmentBgPickrButtonColor = (button, color) => {
+        const normalized = normalizeHexColor(color, "#000000");
+        const swatch = button.querySelector(".style-pickr-swatch");
+        const value = button.querySelector(".style-pickr-value");
+        if (swatch) {
+          swatch.style.backgroundColor = normalized;
+        }
+        if (value) {
+          value.textContent = normalized;
+        }
+      };
+      const setSlotColorButtonColor = (button, color) => {
+        const normalized = normalizeHexColor(color, "#0891b2");
+        const swatch = button.querySelector(".style-pickr-swatch");
+        if (swatch) {
+          swatch.style.backgroundColor = normalized;
+        }
+      };
+      const initializeSlotColorPickers = () => {
+        modalBody.querySelectorAll("[data-slot-color-picker]").forEach((button) => {
+          if (button.dataset.pickrReady === "true") {
+            return;
+          }
+
+          const row = button.closest(".scene-slot-editor-item");
+          const input = row ? row.querySelector("[data-slot-field='textColor']") : null;
+          if (!input) {
+            return;
+          }
+
+          button.dataset.pickrReady = "true";
+          setSlotColorButtonColor(button, input.value);
+
+          const syncPickedColor = (nextColor) => {
+            input.value = normalizeHexColor(nextColor, input.value || "#0891b2");
+            setSlotColorButtonColor(button, input.value);
+            renderModalPreview();
+          };
+
+          if (typeof Pickr === "undefined") {
+            const fallbackInput = document.createElement("input");
+            fallbackInput.type = "color";
+            fallbackInput.value = input.value;
+            fallbackInput.setAttribute("aria-hidden", "true");
+            fallbackInput.tabIndex = -1;
+            fallbackInput.style.position = "absolute";
+            fallbackInput.style.width = "1px";
+            fallbackInput.style.height = "1px";
+            fallbackInput.style.opacity = "0";
+            fallbackInput.style.pointerEvents = "none";
+            button.after(fallbackInput);
+            button.addEventListener("click", () => fallbackInput.click());
+            fallbackInput.addEventListener("input", () => syncPickedColor(fallbackInput.value));
+            return;
+          }
+
+          const pickr = Pickr.create({
+            el: button,
+            theme: "classic",
+            default: input.value,
+            useAsButton: true,
+            components: {
+              preview: true,
+              opacity: false,
+              hue: true,
+              interaction: {
+                hex: true,
+                input: true,
+                clear: false,
+                save: false,
+                cancel: false
+              }
+            }
+          });
+
+          pickr.on("change", (color) => syncPickedColor(color.toHEXA().toString()));
+        });
+      };
+
+      modalBody.querySelectorAll(".style-pickr-button[data-bg-color-key]").forEach((button) => {
+        const colorKey = button.getAttribute("data-bg-color-key");
+        const colorLabel = button.getAttribute("data-color-label") || colorKey;
+        setSegmentBgPickrButtonColor(button, segmentBackgroundColorState[colorKey]);
+
+        const syncPickedColor = (nextColor) => {
+          segmentBackgroundColorState[colorKey] = normalizeHexColor(nextColor, segmentBackgroundColorState[colorKey]);
+          setSegmentBgPickrButtonColor(button, segmentBackgroundColorState[colorKey]);
+          syncSegmentBackgroundControls();
+          renderModalPreview();
+        };
+
+        if (typeof Pickr === "undefined") {
+          const fallbackInput = document.createElement("input");
+          fallbackInput.type = "color";
+          fallbackInput.value = segmentBackgroundColorState[colorKey];
+          fallbackInput.setAttribute("aria-hidden", "true");
+          fallbackInput.tabIndex = -1;
+          fallbackInput.style.position = "absolute";
+          fallbackInput.style.width = "1px";
+          fallbackInput.style.height = "1px";
+          fallbackInput.style.opacity = "0";
+          fallbackInput.style.pointerEvents = "none";
+          button.after(fallbackInput);
+          button.title = "Dùng bộ chọn màu mặc định của trình duyệt.";
+          button.addEventListener("click", () => fallbackInput.click());
+          fallbackInput.addEventListener("input", () => syncPickedColor(fallbackInput.value));
+          return;
+        }
+
+        const pickr = Pickr.create({
+          el: button,
+          theme: "classic",
+          default: segmentBackgroundColorState[colorKey],
+          useAsButton: true,
+          components: {
+            preview: true,
+            opacity: false,
+            hue: true,
+            interaction: {
+              hex: true,
+              input: true,
+              clear: false,
+              save: false,
+              cancel: false
+            }
+          }
+        });
+
+        button.setAttribute("aria-label", `Chọn màu ${colorLabel}`);
+        pickr.on("change", (color) => syncPickedColor(color.toHEXA().toString()));
+      });
+      initializeSlotColorPickers();
+
+      modalBody.addEventListener("input", (event) => {
+        if (event.target.closest("#modal-scene-slot-editor, #modal-feat-type, #modal-feat-name, #modal-feat-desc, #modal-feat-benefit, #modal-feat-duration, .script-segment-background-controls")) {
+          if (event.target.closest(".script-segment-background-controls")) {
+            syncSegmentBackgroundControls();
+          }
+          renderModalPreview();
+        }
+      });
+
+      modalBody.addEventListener("change", (event) => {
+        const sceneItemSelect = event.target.closest("[data-slot-field='sceneItemId']");
+        if (sceneItemSelect) {
+          const row = sceneItemSelect.closest(".scene-slot-editor-item");
+          const slotId = row ? row.getAttribute("data-slot-id") : "";
+          updateDraftSlotSceneItem(slotId, sceneItemSelect.value);
+          return;
+        }
+        if (event.target.closest("#modal-scene-slot-editor, #modal-feat-type, #modal-feat-name, #modal-feat-desc, #modal-feat-benefit, #modal-feat-duration, .script-segment-background-controls")) {
+          if (event.target.closest(".script-segment-background-controls")) {
+            syncSegmentBackgroundControls();
+          }
+          renderModalPreview();
+        }
+      });
+
+      modalBody.addEventListener("click", (event) => {
+        const removeButton = event.target.closest("[data-slot-action='remove']");
+        if (removeButton) {
+          removeDraftSlot(removeButton.getAttribute("data-slot-id"));
+        }
+      });
+
+      modalBody.querySelectorAll(".script-scene-item-button").forEach((button) => {
+        button.addEventListener("dragstart", (event) => {
+          event.dataTransfer.setData("application/x-scene-item-id", button.getAttribute("data-scene-item-id"));
+          event.dataTransfer.effectAllowed = "copy";
+        });
+
+        button.addEventListener("click", (event) => {
+          addSceneItemToDraft(button.getAttribute("data-scene-item-id"), event);
+        });
+      });
+
+      modalBody.addEventListener("pointerdown", (event) => {
+        const previewSlot = event.target.closest(".script-segment-preview-slot");
+        if (!previewSlot) {
+          return;
+        }
+
+        const slotId = previewSlot.getAttribute("data-preview-slot-id");
+        selectModalSlot(slotId, true);
+        const canvas = modalBody.querySelector(".script-segment-preview-canvas");
+        const template = getActiveSceneTemplate();
+        const slots = Array.isArray(template && template.slots) ? template.slots : [];
+        const slotIndex = slots.findIndex((slot) => slot.id === slotId);
+        const slot = slots[slotIndex];
+        if (!slot || !canvas) {
+          return;
+        }
+
+        event.preventDefault();
+        activeSlotValues = collectSlotEditorValues();
+
+        if (event.target.closest("[data-resize-handle]")) {
+          event.stopPropagation();
+          const canvasRect = canvas.getBoundingClientRect();
+          const currentLayout = slot.layout || getSceneSlotLayout(slot, slotIndex, getModalPreviewRatio(template));
+          let didResize = false;
+
+          const resizeToPointer = (moveEvent) => {
+            const pointerX = ((moveEvent.clientX - canvasRect.left) / canvasRect.width) * 100;
+            const pointerY = ((moveEvent.clientY - canvasRect.top) / canvasRect.height) * 100;
+            const nextLayout = {
+              ...currentLayout,
+              width: Math.round(clampNumber(pointerX - currentLayout.x, 12, 100 - currentLayout.x) * 10) / 10,
+              height: Math.round(clampNumber(pointerY - currentLayout.y, 5, 100 - currentLayout.y) * 10) / 10
+            };
+
+            didResize = true;
+            activeSceneTemplateDraft = {
+              ...template,
+              slots: slots.map((item) => item.id === slotId ? { ...item, layout: nextLayout } : item)
+            };
+            previewSlot.style.width = `${nextLayout.width}%`;
+            previewSlot.style.height = `${nextLayout.height}%`;
+            syncSegmentCenterGuides(canvas, nextLayout);
+          };
+
+          const onPointerMove = (moveEvent) => {
+            moveEvent.preventDefault();
+            resizeToPointer(moveEvent);
+          };
+          const onPointerUp = (upEvent) => {
+            window.removeEventListener("pointermove", onPointerMove);
+            window.removeEventListener("pointerup", onPointerUp);
+            if (didResize) {
+              resizeToPointer(upEvent);
+              markSceneTemplateCustomized();
+              syncSegmentCenterGuides(canvas, null, false);
+              renderModalPreview();
+            } else {
+              syncSegmentCenterGuides(canvas, null, false);
+            }
+          };
+
+          window.addEventListener("pointermove", onPointerMove);
+          window.addEventListener("pointerup", onPointerUp);
+          return;
+        }
+
+        const canvasRect = canvas.getBoundingClientRect();
+        const itemRect = previewSlot.getBoundingClientRect();
+        const currentLayout = slot.layout || getSceneSlotLayout(slot, slotIndex, getModalPreviewRatio(template));
+        const pointerOffsetX = ((event.clientX - itemRect.left) / canvasRect.width) * 100;
+        const pointerOffsetY = ((event.clientY - itemRect.top) / canvasRect.height) * 100;
+        let didMove = false;
+
+        const moveToPointer = (moveEvent) => {
+          const x = ((moveEvent.clientX - canvasRect.left) / canvasRect.width) * 100 - pointerOffsetX;
+          const y = ((moveEvent.clientY - canvasRect.top) / canvasRect.height) * 100 - pointerOffsetY;
+          const centerSnappedLayout = snapSegmentLayoutToCenterGuides({
+            ...currentLayout,
+            x: Math.round(clampNumber(x, 0, 100 - currentLayout.width) * 10) / 10,
+            y: Math.round(clampNumber(y, 0, 100 - currentLayout.height) * 10) / 10
+          });
+          const snapResult = snapSegmentLayoutToLeftEdges(centerSnappedLayout, slots, slotId);
+          const nextLayout = snapResult.layout;
+
+          didMove = true;
+          activeSceneTemplateDraft = {
+            ...template,
+            slots: slots.map((item) => item.id === slotId ? { ...item, layout: nextLayout } : item)
+          };
+          previewSlot.style.left = `${nextLayout.x}%`;
+          previewSlot.style.top = `${nextLayout.y}%`;
+          syncSegmentCenterGuides(canvas, nextLayout);
+          syncSegmentLeftGuide(canvas, snapResult.guideX);
+        };
+
+        const onPointerMove = (moveEvent) => {
+          moveEvent.preventDefault();
+          moveToPointer(moveEvent);
+        };
+        const onPointerUp = (upEvent) => {
+          window.removeEventListener("pointermove", onPointerMove);
+          window.removeEventListener("pointerup", onPointerUp);
+          if (didMove) {
+            moveToPointer(upEvent);
+            markSceneTemplateCustomized();
+            syncSegmentCenterGuides(canvas, null, false);
+            syncSegmentLeftGuide(canvas, null);
+            renderModalPreview();
+          } else {
+            syncSegmentCenterGuides(canvas, null, false);
+            syncSegmentLeftGuide(canvas, null);
+          }
+        };
+
+        window.addEventListener("pointermove", onPointerMove);
+        window.addEventListener("pointerup", onPointerUp);
+      });
+
+      modalBody.addEventListener("dragstart", (event) => {
+        if (event.target.closest("[data-resize-handle]")) {
+          event.preventDefault();
+          return;
+        }
+        const previewSlot = event.target.closest("[data-preview-slot-id]");
+        if (!previewSlot) {
+          return;
+        }
+        event.dataTransfer.setData("application/x-preview-slot-id", previewSlot.getAttribute("data-preview-slot-id"));
+        event.dataTransfer.effectAllowed = "move";
+      });
+
+      modalBody.addEventListener("dragover", (event) => {
+        if (!event.target.closest(".script-segment-preview-canvas")) {
+          return;
+        }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = event.dataTransfer.types.includes("application/x-scene-item-id") ? "copy" : "move";
+        event.target.closest(".script-segment-preview-canvas").classList.add("is-drag-over");
+      });
+
+      modalBody.addEventListener("dragleave", (event) => {
+        const canvas = event.target.closest(".script-segment-preview-canvas");
+        if (canvas) {
+          canvas.classList.remove("is-drag-over");
+        }
+      });
+
+      modalBody.addEventListener("drop", (event) => {
+        const canvas = event.target.closest(".script-segment-preview-canvas");
+        if (!canvas) {
+          return;
+        }
+
+        event.preventDefault();
+        canvas.classList.remove("is-drag-over");
+
+        const sceneItemId = event.dataTransfer.getData("application/x-scene-item-id");
+        const slotId = event.dataTransfer.getData("application/x-preview-slot-id");
+        if (sceneItemId) {
+          addSceneItemToDraft(sceneItemId, event);
+          syncSegmentCenterGuides(canvas, null, false);
+          return;
+        }
+        if (slotId) {
+          moveDraftSlot(slotId, event);
+          syncSegmentCenterGuides(canvas, null, false);
+        }
+      });
 
       const setPreviewButtonState = (isLoading) => {
         if (!previewButton) {
@@ -1797,10 +3083,20 @@ const AppUI = (() => {
 
       if (sceneTemplateInput && slotEditor) {
         sceneTemplateInput.addEventListener("change", () => {
-          activeSlotValues = collectSlotEditorValues();
-          activeSceneTemplateId = sceneTemplateInput.value;
-          activeSlotValues = normalizeSegmentSlots({ ...(feature || {}), slots: activeSlotValues }, activeSceneTemplateId);
-          slotEditor.innerHTML = renderSlotEditorHTML();
+          const nextTemplateId = sceneTemplateInput.value;
+          if (nextTemplateId === activeSceneTemplateId) {
+            return;
+          }
+
+          const previousTemplateId = activeSceneTemplateId;
+          if (!hasCustomSceneTemplateDraft) {
+            activeSlotValues = collectSlotEditorValues();
+            applySceneTemplateSelection(nextTemplateId);
+            return;
+          }
+
+          sceneTemplateInput.value = previousTemplateId;
+          showTemplateChangeConfirm(nextTemplateId, previousTemplateId);
         });
       }
 
@@ -1992,6 +3288,7 @@ const AppUI = (() => {
   // 5. Asset Manager View
   const renderAssetsScreen = (container, data) => {
     const list = data.assets || [];
+    const MAX_LOCAL_PROJECT_STORAGE_BYTES = 4 * 1024 * 1024;
     let currentFilter = "all";
     let selectedAssetIds = [];
 
@@ -2058,7 +3355,11 @@ const AppUI = (() => {
       grid.innerHTML = filtered.map(item => {
         let thumbContent = "";
         if (item.url) {
-          thumbContent = `<img src="${escapeAttribute(item.url)}" alt="${escapeAttribute(item.name)}">`;
+          if (item.type === "video") {
+            thumbContent = `<video src="${escapeAttribute(item.url)}" muted playsinline preload="metadata"></video>`;
+          } else {
+            thumbContent = `<img src="${escapeAttribute(item.url)}" alt="${escapeAttribute(item.name)}">`;
+          }
         } else {
           // Fallback SVG icon
           thumbContent = `
@@ -2246,50 +3547,77 @@ const AppUI = (() => {
 
       showToast(`Đang tải lên ${files.length} tệp tin...`, "info");
 
-      setTimeout(() => {
-        const assets = [...(data.assets || [])];
-
-        files.forEach((file, index) => {
-          const isImage = file.type.startsWith("image/");
-          const isVideo = file.type.startsWith("video/");
-
-          let type = "image";
-          if (currentFilter !== "all") {
-            type = currentFilter;
-          } else {
-            if (isVideo) {
-              type = "video";
-            } else if (isImage) {
-              type = "image";
-            }
-          }
-
-          let url = "";
-          if (isImage) {
-            url = URL.createObjectURL(file); // Show real uploaded image preview
-          }
-
-          const newAsset = {
-            id: "asset_" + (Date.now() + index),
-            name: file.name,
-            type: type,
-            size: (file.size / 1024 / 1024).toFixed(1) + " MB",
-            dateAdded: new Date().toISOString().split('T')[0],
-            url: url,
-            useInVideo: true
-          };
-          assets.push(newAsset);
-        });
-
-        if (uploadBtn) {
-          uploadBtn.disabled = false;
-          uploadBtn.innerHTML = originalHTML;
+      const getSerializedSize = (value) => {
+        try {
+          return new Blob([JSON.stringify(value)]).size;
+        } catch (_error) {
+          return Number.POSITIVE_INFINITY;
         }
+      };
 
-        AppState.updateProjectField("assets", assets);
-        showToast(`Đã tải lên thành công ${files.length} tệp tài nguyên!`);
-        renderAssetsScreen(container, AppState.getProjectData());
-      }, 1000);
+      const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => resolve(reader.result || ""));
+        reader.addEventListener("error", () => reject(reader.error || new Error("Không đọc được tệp.")));
+        reader.readAsDataURL(file);
+      });
+
+      Promise.all(files.map((file) => readFileAsDataUrl(file)))
+        .then((urls) => {
+          const assets = [...(data.assets || [])];
+
+          files.forEach((file, index) => {
+            const isImage = file.type.startsWith("image/");
+            const isVideo = file.type.startsWith("video/");
+
+            let type = "image";
+            if (currentFilter !== "all") {
+              type = currentFilter;
+            } else {
+              if (isVideo) {
+                type = "video";
+              } else if (isImage) {
+                type = "image";
+              }
+            }
+
+            const newAsset = {
+              id: "asset_" + (Date.now() + index),
+              name: file.name,
+              type: type,
+              size: (file.size / 1024 / 1024).toFixed(1) + " MB",
+              dateAdded: new Date().toISOString().split('T')[0],
+              url: urls[index],
+              useInVideo: true
+            };
+            assets.push(newAsset);
+          });
+
+          const nextProjectData = {
+            ...AppState.getProjectData(),
+            assets
+          };
+          const serializedSize = getSerializedSize(nextProjectData);
+          if (serializedSize > MAX_LOCAL_PROJECT_STORAGE_BYTES) {
+            if (uploadBtn) {
+              uploadBtn.disabled = false;
+              uploadBtn.innerHTML = originalHTML;
+            }
+            showToast("Tệp quá lớn cho cơ chế lưu tạm hiện tại. Cần backend upload thật trước khi dùng video/asset lớn.", "error");
+            return;
+          }
+
+          AppState.updateProjectField("assets", assets);
+          showToast(`Đã tải lên thành công ${files.length} tệp tài nguyên!`);
+          renderAssetsScreen(container, AppState.getProjectData());
+        })
+        .catch(() => {
+          if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalHTML;
+          }
+          showToast("Không đọc được tệp tải lên. Thử lại bằng tệp khác.", "error");
+        });
     };
 
     if (uploadBtn) {
@@ -2630,6 +3958,12 @@ const AppUI = (() => {
           <span>Type là loại dữ liệu. Color role quyết định dùng token Text/Muted/Accent. Display style quyết định có nền, border, pill hay media frame.</span>
         </div>
 
+        <div class="form-group scene-item-icon-config d-none" id="modal-scene-item-icon-config">
+          <label class="form-label" for="modal-scene-item-icon-class">FontAwesome icon</label>
+          <input id="modal-scene-item-icon-class" class="form-control" type="text" value="fa-solid fa-circle-info" placeholder="fa-solid fa-code">
+          <div class="form-hint">Ví dụ: fa-solid fa-code, fa-solid fa-diagram-project, fa-brands fa-github.</div>
+        </div>
+
         <div class="grid-2">
           <div class="form-group">
             <label class="form-label" for="modal-scene-item-color-role">Color role</label>
@@ -2674,6 +4008,13 @@ const AppUI = (() => {
         styleHint.textContent = getSceneItemDisplayStyle(styleSelect.value).hint;
       }
     };
+    const syncSceneItemIconConfig = () => {
+      const typeSelect = modalBody.querySelector("#modal-scene-item-type");
+      const iconConfig = modalBody.querySelector("#modal-scene-item-icon-config");
+      if (iconConfig && typeSelect) {
+        iconConfig.classList.toggle("d-none", typeSelect.value !== "icon");
+      }
+    };
 
     modalBody.querySelector("#modal-scene-item-type").addEventListener("change", (event) => {
       const appearance = getSceneItemAppearanceDefaults({
@@ -2683,9 +4024,11 @@ const AppUI = (() => {
       modalBody.querySelector("#modal-scene-item-color-role").value = appearance.colorRole;
       modalBody.querySelector("#modal-scene-item-display-style").value = appearance.displayStyle;
       syncSceneItemAppearanceHints();
+      syncSceneItemIconConfig();
     });
     modalBody.querySelector("#modal-scene-item-color-role").addEventListener("change", syncSceneItemAppearanceHints);
     modalBody.querySelector("#modal-scene-item-display-style").addEventListener("change", syncSceneItemAppearanceHints);
+    syncSceneItemIconConfig();
 
     showModal("Thêm Scene Item", modalBody, [
       { text: "Hủy", class: "btn-secondary", onClick: closeModal },
@@ -2697,6 +4040,7 @@ const AppUI = (() => {
           const type = document.getElementById("modal-scene-item-type").value;
           const colorRole = document.getElementById("modal-scene-item-color-role").value;
           const displayStyle = document.getElementById("modal-scene-item-display-style").value;
+          const iconClass = normalizeFontAwesomeClass(document.getElementById("modal-scene-item-icon-class").value);
           const enabled = document.getElementById("modal-scene-item-enabled").checked;
 
           if (!label) {
@@ -2729,6 +4073,7 @@ const AppUI = (() => {
             type,
             colorRole,
             displayStyle,
+            iconClass: type === "icon" ? iconClass : "",
             enabled
           });
 
@@ -2796,6 +4141,7 @@ const AppUI = (() => {
       displayStyle: slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle,
       required: Boolean(slot.required),
       defaultDelay: 0,
+      iconClass: slot.iconClass || slot.defaultIconClass || "",
       allowedAnimations: Array.isArray(slot.allowedAnimations) && slot.allowedAnimations.length
         ? [slot.allowedAnimations[0]]
         : ["none"],
@@ -2847,7 +4193,7 @@ const AppUI = (() => {
             title="Kéo để đổi vị trí ${escapeAttribute(slot.label)}"
           >
             <b class="scene-template-preview-index">${index + 1}</b>
-            <span>${escapeText(slot.label)}</span>
+            <span>${slot.type === "icon" ? renderFontAwesomeIcon(slot.iconClass || slot.defaultIconClass, "scene-template-preview-icon") : escapeText(slot.label)}</span>
             <i class="scene-template-resize-handle" data-resize-handle="se" aria-hidden="true"></i>
           </div>
         `).join("")}
@@ -2913,6 +4259,7 @@ const AppUI = (() => {
           type: previousSlot.type || fallbackSlotType,
           colorRole: previousSlot.colorRole || getSceneItemAppearanceDefaults(previousSlot).colorRole,
           displayStyle: previousSlot.displayStyle || getSceneItemAppearanceDefaults(previousSlot).displayStyle,
+          iconClass: previousSlot.iconClass || previousSlot.defaultIconClass || "",
           required: Boolean(row.querySelector('[data-slot-field="required"]')?.checked),
           defaultDelay: Math.max(0, Number(row.querySelector('[data-slot-field="defaultDelay"]')?.value || 0)),
           allowedAnimations: [selectedAnimation],
@@ -3262,10 +4609,12 @@ const AppUI = (() => {
       const nextSlot = {
         id: createSlug(item.label, `slot-${slotDrafts.length + 1}`),
         label: item.label,
+        sourceItemId: item.id,
         sourceItemLabel: item.label,
         type: item.type || fallbackSlotType,
         colorRole: item.colorRole || getSceneItemAppearanceDefaults(item).colorRole,
         displayStyle: item.displayStyle || getSceneItemAppearanceDefaults(item).displayStyle,
+        iconClass: item.type === "icon" ? normalizeFontAwesomeClass(item.iconClass || item.defaultIconClass) : "",
         required: false,
         defaultDelay: 0,
         allowedAnimations: ["none"],
@@ -3501,6 +4850,7 @@ const AppUI = (() => {
     const getSlotTypeIcon = (typeId) => {
       const icons = {
         text: "text",
+        icon: "icon",
         asset: "shapes",
         media: "image",
         list: "list",
@@ -3720,17 +5070,50 @@ const AppUI = (() => {
     <svg class="preview-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7Z"/></svg>
     <span>Chạy thử</span>
   `;
+  const getPreviewSoundButtonHTML = (isMuted) => isMuted ? `
+    <svg class="preview-sound-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm13.7 3 2.65-2.65-1.7-1.7L16 10.3l-2.65-2.65-1.7 1.7L14.3 12l-2.65 2.65 1.7 1.7L16 13.7l2.65 2.65 1.7-1.7L17.7 12Z"/></svg>
+    <span>Silent</span>
+  ` : `
+    <svg class="preview-sound-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm11.5-1.5v9c1.45-.93 2.4-2.55 2.4-4.5s-.95-3.57-2.4-4.5Zm0-4.2v2.25A7.47 7.47 0 0 1 20.5 12a7.47 7.47 0 0 1-5 6.45v2.25A9.6 9.6 0 0 0 22.6 12a9.6 9.6 0 0 0-7.1-8.7Z"/></svg>
+    <span>Âm thanh</span>
+  `;
   let previewSceneTimeSec = 0;
+  let previewAudioPlayer = null;
+  let previewAudioRequestId = 0;
+  let previewAudioMuted = false;
+  let previewAudioStatusState = { message: "", tone: "default" };
+  const previewAudioCache = new Map();
+
+  const stopPreviewAudio = () => {
+    if (!previewAudioPlayer) {
+      return;
+    }
+
+    previewAudioPlayer.pause();
+    try {
+      previewAudioPlayer.currentTime = 0;
+    } catch (_error) {}
+  };
+
   const stopPreviewAutoplay = (showMessage = false) => {
     if (!autoplayTimer) {
+      stopPreviewAudio();
       return;
     }
 
     clearInterval(autoplayTimer);
     autoplayTimer = null;
+    stopPreviewAudio();
     const playButton = document.getElementById("btn-play-preview");
     if (playButton) {
       playButton.innerHTML = getPreviewPlayButtonHTML(false);
+      playButton.disabled = false;
+    }
+    previewAudioStatusState = { message: "Đã dừng voice preview.", tone: "default" };
+    const audioStatus = document.getElementById("preview-audio-status");
+    if (audioStatus) {
+      audioStatus.textContent = previewAudioStatusState.message;
+      audioStatus.classList.remove("is-active", "is-error");
     }
     if (showMessage) {
       showToast("Đã dừng trình chiếu thử.", "info");
@@ -3738,15 +5121,55 @@ const AppUI = (() => {
   };
 
   const renderPreviewScreen = (container, data) => {
-    const activeTemplate = TEMPLATES_LIST.find(t => t.id === data.templateId) || TEMPLATES_LIST[0];
+    const renderFormats = Array.isArray(RENDER_FORMATS) ? RENDER_FORMATS : [];
+    const selectedVideoConfig = data.video || {};
+    const activeRenderFormat = renderFormats.find((format) => format.id === selectedVideoConfig.formatId)
+      || renderFormats.find((format) => format.aspectRatio === selectedVideoConfig.aspectRatio)
+      || renderFormats.find((format) => format.templateId === data.templateId)
+      || renderFormats.find((format) => format.id === "dynamic-story-vertical")
+      || renderFormats[0]
+      || { aspectRatio: "9:16", templateId: "project-showcase-vertical-60s", templateName: "Video ngắn 60 giây (Dọc 9:16)" };
+    const activePreviewRatio = activeRenderFormat.aspectRatio || "9:16";
+    const activeTemplate = TEMPLATES_LIST.find((template) => template.id === activeRenderFormat.templateId)
+      || TEMPLATES_LIST.find((template) => template.ratio === activePreviewRatio)
+      || TEMPLATES_LIST.find((template) => template.id === data.templateId)
+      || TEMPLATES_LIST[0];
+    const activePreviewName = activeRenderFormat.templateName || (activeTemplate && activeTemplate.name) || activeRenderFormat.templateId || "Preview";
     const activeSegments = (data.features || []).filter((item) => item.useInVideo);
     const sceneTemplates = getProjectSceneTemplates(data);
     const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
     const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0] || null;
+    const currentVoiceover = (data.audio && data.audio.voiceover) || {};
     const getSceneTemplate = (templateId) => sceneTemplates.find((template) => template.id === templateId)
       || sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId)
       || sceneTemplates[0]
       || null;
+    const getSceneTemplateForSegment = (segment = {}) => {
+      if (segment.sceneTemplateOverride && Array.isArray(segment.sceneTemplateOverride.slots)) {
+        const baseTemplate = getSceneTemplate(segment.sceneTemplateOverride.baseTemplateId || segment.sceneTemplateId) || {};
+        return {
+          ...baseTemplate,
+          ...segment.sceneTemplateOverride,
+          id: segment.sceneTemplateId || segment.sceneTemplateOverride.id || baseTemplate.id,
+          isSegmentCustom: true
+        };
+      }
+      return getSceneTemplate(segment.sceneTemplateId);
+    };
+    const getSlotContentKey = (slot = {}) => {
+      const key = `${slot.id || ""} ${slot.label || ""}`.toLowerCase();
+      if (key.includes("title") || key.includes("tiêu đề")) return "title";
+      if (key.includes("description") || key.includes("mô tả") || key.includes("noi dung") || key.includes("nội dung")) return "description";
+      if (key.includes("header") || key.includes("kicker") || key.includes("tag") || key.includes("label") || key.includes("cta") || key.includes("điểm nhấn")) return "benefit";
+      return "";
+    };
+    const getSlotTextFallback = (slot, segment = {}) => {
+      const contentKey = getSlotContentKey(slot);
+      if (contentKey === "title") return segment.name || "";
+      if (contentKey === "description") return segment.description || "";
+      if (contentKey === "benefit") return segment.benefit || segment.type || "";
+      return "";
+    };
     const getDefaultSlotValue = (slot, segment = {}) => {
       const primaryAssetId = data.primaryAssetId || ((data.assets || [])[0] && (data.assets || [])[0].id) || "";
       const base = {
@@ -3759,10 +5182,28 @@ const AppUI = (() => {
       if (slot.type === "list") {
         return { ...base, items: [segment.name, segment.description, segment.benefit].map((value) => String(value || "").trim()).filter(Boolean).slice(0, 4) };
       }
-      if (slot.id === "title") return { ...base, text: segment.name || "" };
-      if (slot.id === "description") return { ...base, text: segment.description || "" };
-      if (slot.id === "tag" || slot.id === "kicker" || slot.id === "header" || slot.id === "cta") return { ...base, text: segment.benefit || segment.type || "" };
+      if (slot.type === "icon") {
+        return { ...base, iconClass: normalizeFontAwesomeClass(slot.iconClass || slot.defaultIconClass) };
+      }
+      const fallbackText = getSlotTextFallback(slot, segment);
+      if (fallbackText) return { ...base, text: fallbackText };
       return { ...base, text: "" };
+    };
+    const mergeSlotValueWithFallback = (slot, existing = {}, fallback = {}) => {
+      const merged = { ...fallback, ...existing };
+      if ((slot.type === "text" || slot.type === "tag") && !String(merged.text || "").trim() && String(fallback.text || "").trim()) {
+        merged.text = fallback.text;
+      }
+      if (slot.type === "list" && (!Array.isArray(merged.items) || merged.items.filter(Boolean).length === 0) && Array.isArray(fallback.items)) {
+        merged.items = fallback.items;
+      }
+      if (slot.type === "icon") {
+        merged.iconClass = normalizeFontAwesomeClass(merged.iconClass || fallback.iconClass || slot.iconClass || slot.defaultIconClass);
+      }
+      if ((slot.type === "asset" || slot.type === "media") && !merged.assetId && fallback.assetId) {
+        merged.assetId = fallback.assetId;
+      }
+      return merged;
     };
     const normalizeSegmentSlots = (segment = {}, template) => {
       if (!template) return {};
@@ -3770,9 +5211,9 @@ const AppUI = (() => {
         const existing = segment.slots && segment.slots[slot.id] ? segment.slots[slot.id] : {};
         const fallback = getDefaultSlotValue(slot, segment);
         const delay = Number.parseFloat(existing.delay);
+        const merged = mergeSlotValueWithFallback(slot, existing, fallback);
         slots[slot.id] = {
-          ...fallback,
-          ...existing,
+          ...merged,
           type: slot.type,
           delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
           animation: existing.animation || fallback.animation,
@@ -3782,7 +5223,7 @@ const AppUI = (() => {
       }, {});
     };
     const slotScenes = activeSegments.map((segment, index) => {
-      const sceneTemplate = getSceneTemplate(segment.sceneTemplateId);
+      const sceneTemplate = getSceneTemplateForSegment(segment);
       const durationSec = Math.min(30, Math.max(3, Number.parseInt(segment.durationSec, 10) || (sceneTemplate && sceneTemplate.recommendedDurationSec) || 8));
       return {
         id: segment.id || `segment-${index + 1}`,
@@ -3803,11 +5244,28 @@ const AppUI = (() => {
     }));
     const selectedIdx = Math.min(AppState.getSelectedSceneIndex(), Math.max(scenes.length - 1, 0));
     const currentScene = scenes[selectedIdx] || scenes[0];
-    const ratioClass = activeTemplate.ratio === "9:16" ? "is-vertical" : "is-landscape";
+    const ratioClass = activePreviewRatio === "9:16" ? "is-vertical" : "is-landscape";
     const estimatedDuration = activeSegments.reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
     const sceneDuration = currentScene ? currentScene.duration : "0s";
     const sceneDurationSec = currentScene ? (Number.parseInt(currentScene.durationSec, 10) || Number.parseInt(currentScene.duration, 10) || 8) : 0;
     previewSceneTimeSec = Math.min(previewSceneTimeSec, sceneDurationSec);
+    const getPreviewSceneVoiceScript = (scene) => normalizeText(
+      (scene && scene.segment && scene.segment.voiceoverScript)
+        || (scene && scene.voiceover && scene.voiceover.script)
+        || ""
+    );
+    const currentSceneVoiceScript = getPreviewSceneVoiceScript(currentScene);
+    const defaultAudioStatus = previewAudioMuted
+      ? "Silent đang bật. Preview sẽ chạy không phát voice."
+      : currentSceneVoiceScript
+        ? "Voice preview sẽ phát theo phân đoạn khi bấm Chạy thử."
+        : "Scene này chưa có voice script.";
+    const previewAudioStatusMessage = previewAudioStatusState.message || defaultAudioStatus;
+    const previewAudioStatusClass = previewAudioStatusState.tone === "active"
+      ? " is-active"
+      : previewAudioStatusState.tone === "error"
+        ? " is-error"
+        : "";
     const escapeText = (value) => String(value == null ? "" : value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -3820,8 +5278,8 @@ const AppUI = (() => {
         "Xem trước",
         "Kiểm tra nhanh template, scene và nội dung kịch bản trước khi render.",
         `<div class="preview-header-meta">
-          <span>${activeTemplate.ratio}</span>
-          <strong>${escapeText(activeTemplate.name)}</strong>
+          <span>${escapeText(activePreviewRatio)}</span>
+          <strong>${escapeText(activePreviewName)}</strong>
         </div>`,
         "preview-workspace-header"
       )}
@@ -3841,10 +5299,16 @@ const AppUI = (() => {
             <button id="btn-play-preview" class="btn btn-secondary">
               ${getPreviewPlayButtonHTML(Boolean(autoplayTimer))}
             </button>
+            <button id="btn-preview-sound" class="btn btn-secondary preview-sound-toggle ${previewAudioMuted ? "is-muted" : ""}" type="button" aria-pressed="${previewAudioMuted ? "true" : "false"}" title="${previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview"}">
+              ${getPreviewSoundButtonHTML(previewAudioMuted)}
+            </button>
             <button id="btn-next-scene" class="btn btn-secondary" ${selectedIdx === scenes.length - 1 ? 'disabled' : ''}>
               Cảnh sau
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
             </button>
+          </div>
+          <div class="preview-audio-status${previewAudioStatusClass}" id="preview-audio-status">
+            ${escapeText(previewAudioStatusMessage)}
           </div>
 
           ${currentScene && currentScene.isSlotScene ? `
@@ -3917,9 +5381,97 @@ const AppUI = (() => {
       stopPreviewAutoplay(true);
     };
 
+    const setPreviewAudioStatus = (message, tone = "default") => {
+      previewAudioStatusState = { message, tone };
+      const status = document.getElementById("preview-audio-status");
+      if (!status) {
+        return;
+      }
+      status.textContent = message;
+      status.classList.toggle("is-error", tone === "error");
+      status.classList.toggle("is-active", tone === "active");
+    };
+
+    const setPreviewPlayLoading = (isLoading) => {
+      const button = document.getElementById("btn-play-preview");
+      if (!button) {
+        return;
+      }
+      button.disabled = isLoading;
+      button.innerHTML = isLoading ? `
+        <span>Đang tạo voice...</span>
+      ` : getPreviewPlayButtonHTML(Boolean(autoplayTimer));
+    };
+
+    const getPreviewAudioCacheKey = (script) => [
+      currentVoiceover.provider || "edge-tts",
+      currentVoiceover.language || "vi-VN",
+      currentVoiceover.voiceId || "vi-VN-HoaiMyNeural",
+      currentVoiceover.rate || "+0%",
+      currentVoiceover.volume || "+0%",
+      script
+    ].join("::");
+
+    const loadPreviewSceneAudio = async (scene) => {
+      const script = getPreviewSceneVoiceScript(scene);
+      if (!script) {
+        setPreviewAudioStatus("Scene này chưa có voice script.", "error");
+        return "";
+      }
+      if (!AppRender.previewVoiceover) {
+        setPreviewAudioStatus("Không có API tạo voice preview.", "error");
+        return "";
+      }
+
+      const cacheKey = getPreviewAudioCacheKey(script);
+      if (previewAudioCache.has(cacheKey)) {
+        return previewAudioCache.get(cacheKey);
+      }
+
+      setPreviewAudioStatus("Đang tạo voice preview...", "active");
+      const preview = await AppRender.previewVoiceover({
+        provider: currentVoiceover.provider || "edge-tts",
+        language: currentVoiceover.language || "vi-VN",
+        voiceId: currentVoiceover.voiceId || "vi-VN-HoaiMyNeural",
+        rate: currentVoiceover.rate || "+0%",
+        volume: currentVoiceover.volume || "+0%",
+        script
+      });
+      previewAudioCache.set(cacheKey, preview.audioUrl);
+      return preview.audioUrl;
+    };
+
+    const playPreviewSceneAudio = async (scene) => {
+      if (previewAudioMuted) {
+        setPreviewAudioStatus("Silent đang bật. Preview chạy không phát voice.", "default");
+        return true;
+      }
+      const requestId = ++previewAudioRequestId;
+      try {
+        const audioUrl = await loadPreviewSceneAudio(scene);
+        if (!audioUrl || requestId !== previewAudioRequestId) {
+          return false;
+        }
+
+        if (!previewAudioPlayer) {
+          previewAudioPlayer = new Audio();
+          previewAudioPlayer.preload = "auto";
+        }
+        stopPreviewAudio();
+        previewAudioPlayer.src = audioUrl;
+        await previewAudioPlayer.play();
+        setPreviewAudioStatus("Đang phát voice của phân đoạn hiện tại.", "active");
+        return true;
+      } catch (error) {
+        setPreviewAudioStatus(error.message || "Không phát được voice preview.", "error");
+        showToast(error.message || "Không phát được voice preview.", "error");
+        return false;
+      }
+    };
+
     // Draw canvas content
     if (currentScene && currentScene.isSlotScene) {
-      drawSlotBasedPreviewCanvas(currentScene, data, selectedVideoStyle, previewSceneTimeSec, activeTemplate.ratio);
+      drawSlotBasedPreviewCanvas(currentScene, data, selectedVideoStyle, previewSceneTimeSec, activePreviewRatio);
     } else {
       drawPreviewCanvas(currentScene.id, data);
     }
@@ -3961,27 +5513,62 @@ const AppUI = (() => {
 
     // Play/Pause slide
     const playBtn = document.getElementById("btn-play-preview");
+    const soundBtn = document.getElementById("btn-preview-sound");
+    if (soundBtn) {
+      soundBtn.addEventListener("click", async () => {
+        previewAudioMuted = !previewAudioMuted;
+        previewAudioRequestId += 1;
+        stopPreviewAudio();
+        soundBtn.classList.toggle("is-muted", previewAudioMuted);
+        soundBtn.setAttribute("aria-pressed", previewAudioMuted ? "true" : "false");
+        soundBtn.setAttribute("title", previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview");
+        soundBtn.innerHTML = getPreviewSoundButtonHTML(previewAudioMuted);
+        if (previewAudioMuted) {
+          setPreviewAudioStatus("Silent đang bật. Preview chạy không phát voice.", "default");
+          return;
+        }
+        setPreviewAudioStatus(currentSceneVoiceScript ? "Đã bật âm thanh preview." : "Scene này chưa có voice script.", currentSceneVoiceScript ? "active" : "error");
+        if (autoplayTimer && currentSceneVoiceScript) {
+          await playPreviewSceneAudio(currentScene);
+        }
+      });
+    }
     playBtn.addEventListener("click", () => {
       if (autoplayTimer) {
         clearAutoplay();
       } else {
-        playBtn.innerHTML = getPreviewPlayButtonHTML(true);
-        showToast("Bắt đầu chạy trình chiếu các cảnh quay...");
+        const startPreview = async () => {
+          if (!previewAudioMuted) {
+            setPreviewPlayLoading(true);
+          }
+          await playPreviewSceneAudio(currentScene);
+          autoplayTimer = setInterval(async () => {
+            const activeData = AppState.getProjectData();
+            const activePreviewScene = scenes[localIdx] || currentScene;
+            const currentDuration = activePreviewScene && activePreviewScene.durationSec ? activePreviewScene.durationSec : 3;
+            previewSceneTimeSec = Math.min(currentDuration, previewSceneTimeSec + 0.5);
+            if (previewSceneTimeSec >= currentDuration) {
+              localIdx = (localIdx + 1) % scenes.length;
+              previewSceneTimeSec = 0;
+              AppState.setSelectedSceneIndex(localIdx);
+              await playPreviewSceneAudio(scenes[localIdx]);
+            } else {
+              renderPreviewScreen(container, activeData);
+            }
+          }, 500);
+          if (!previewAudioMuted) {
+            setPreviewPlayLoading(false);
+          }
+          const activePlayBtn = document.getElementById("btn-play-preview");
+          if (activePlayBtn) {
+            activePlayBtn.innerHTML = getPreviewPlayButtonHTML(true);
+          }
+          showToast("Bắt đầu chạy trình chiếu các cảnh quay...");
+        };
 
         let localIdx = selectedIdx;
         previewSceneTimeSec = 0;
-        autoplayTimer = setInterval(() => {
-          const activeData = AppState.getProjectData();
-          const currentDuration = currentScene && currentScene.durationSec ? currentScene.durationSec : 3;
-          previewSceneTimeSec = Math.min(currentDuration, previewSceneTimeSec + 0.5);
-          if (previewSceneTimeSec >= currentDuration) {
-            localIdx = (localIdx + 1) % scenes.length;
-            previewSceneTimeSec = 0;
-            AppState.setSelectedSceneIndex(localIdx);
-          } else {
-            renderPreviewScreen(container, activeData);
-          }
-        }, 500);
+        startPreview();
       }
     });
   };
@@ -4005,6 +5592,35 @@ const AppUI = (() => {
       border: "#334155"
     };
     const getAsset = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
+    const getSegmentBackgroundDefaults = (background = {}) => ({
+      mode: background.mode === "asset" ? "asset" : "color",
+      assetId: background.assetId || "",
+      colorType: background.colorType === "gradient" ? "gradient" : "solid",
+      color: background.color || theme.background,
+      gradientFrom: background.gradientFrom || background.color || theme.background,
+      gradientTo: background.gradientTo || theme.accent,
+      gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
+    });
+    const getGradientDirectionValue = (direction) => ({
+      "to-right": "to right",
+      "to-left": "to left",
+      "to-bottom": "to bottom",
+      "to-top": "to top"
+    })[direction] || "to right";
+    const segmentBackground = getSegmentBackgroundDefaults(scene.segment && scene.segment.background);
+    const renderSegmentBackgroundLayer = () => {
+      if (segmentBackground.mode !== "asset") {
+        return "";
+      }
+      const asset = getAsset(segmentBackground.assetId);
+      if (!asset || !asset.url) {
+        return "";
+      }
+      if (asset.type === "video") {
+        return `<video class="preview-segment-background" src="${escapeText(asset.url)}" autoplay muted loop playsinline></video>`;
+      }
+      return `<img class="preview-segment-background" src="${escapeText(asset.url)}" alt="">`;
+    };
     const getSlotValue = (slotId) => scene.slots && scene.slots[slotId] ? scene.slots[slotId] : {};
     const isVisible = (value) => value.enabled !== false && Number(value.delay || 0) <= currentTimeSec;
     const slotClass = (value) => `preview-slot ${isVisible(value) ? "is-visible" : "is-pending"} anim-${escapeText(value.animation || "none")}`;
@@ -4015,6 +5631,30 @@ const AppUI = (() => {
         ? "16:9"
         : "9:16";
     const slotStyle = (slot, index) => getSceneSlotStyle(slot, index, layoutRatio);
+    const isTextSlotType = (type) => ["text", "tag", "list"].includes(type);
+    const normalizePreviewFontSize = (value) => {
+      const parsed = Number.parseInt(value, 10);
+      return Math.max(8, Math.min(96, Number.isFinite(parsed) ? parsed : 0));
+    };
+    const normalizePreviewFontWeight = (value, fallback = 900) => {
+      const parsed = Number.parseInt(value, 10);
+      return [300, 400, 500, 600, 700, 800, 900].includes(parsed) ? parsed : fallback;
+    };
+    const normalizePreviewTextAlign = (value) => {
+      const align = String(value || "").trim();
+      return ["left", "center", "right"].includes(align) ? align : "center";
+    };
+    const normalizePreviewTextColor = (value, fallback = "#0891b2") => normalizeHexColor(value, fallback);
+    const slotTypographyStyle = (slot, value = {}) => {
+      if (!isTextSlotType(slot.type)) {
+        return "";
+      }
+      const fontSize = normalizePreviewFontSize(value.fontSize);
+      const fontWeight = normalizePreviewFontWeight(value.fontWeight, slot.type === "tag" ? 800 : 900);
+      const textAlign = normalizePreviewTextAlign(value.textAlign);
+      const textColor = normalizePreviewTextColor(value.textColor, slot.type === "tag" ? "#9333ea" : slot.type === "list" ? "#d97706" : "#0891b2");
+      return `${fontSize ? `font-size:${fontSize}px;` : ""}font-weight:${fontWeight};text-align:${textAlign};justify-content:${textAlign === "left" ? "flex-start" : textAlign === "right" ? "flex-end" : "center"};--preview-slot-color:${textColor};`;
+    };
     const getSlotTextValue = (slot, value) => {
       if (slot.type === "list") {
         return "";
@@ -4060,7 +5700,7 @@ const AppUI = (() => {
     const renderFreeSlot = (slot, index) => {
       const value = getSlotValue(slot.id);
       const className = `${slotClass(value)} preview-free-slot slot-${escapeAttribute(slot.type)} scene-item-style-${escapeAttribute(slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle)}`;
-      const style = slotStyle(slot, index);
+      const style = `${slotStyle(slot, index)};${slotTypographyStyle(slot, value)}`;
 
       if (slot.type === "asset" || slot.type === "media") {
         const asset = getAsset(value.assetId);
@@ -4082,6 +5722,14 @@ const AppUI = (() => {
         `;
       }
 
+      if (slot.type === "icon") {
+        return `
+          <div class="${className} preview-free-icon" style="${style}" data-delay="${escapeText(value.delay || 0)}">
+            ${renderFontAwesomeIcon(value.iconClass || slot.iconClass || slot.defaultIconClass)}
+          </div>
+        `;
+      }
+
       return `
         <div class="${className}" style="${style}" data-delay="${escapeText(value.delay || 0)}">
           <span>${escapeText(getSlotTextValue(slot, value))}</span>
@@ -4099,14 +5747,19 @@ const AppUI = (() => {
       `;
     };
 
-    canvas.style.setProperty("--preview-bg", theme.background);
+    canvas.style.setProperty("--preview-bg", scene.segment && scene.segment.background ? "transparent" : theme.background);
     canvas.style.setProperty("--preview-surface", theme.surface);
     canvas.style.setProperty("--preview-surface-alt", theme.surfaceAlt || theme.surface);
     canvas.style.setProperty("--preview-text", theme.text);
     canvas.style.setProperty("--preview-muted", theme.mutedText);
     canvas.style.setProperty("--preview-accent", theme.accent);
     canvas.style.setProperty("--preview-border", theme.border);
-    canvas.style.backgroundColor = theme.background;
+    canvas.style.backgroundColor = segmentBackground.mode === "color" && segmentBackground.colorType === "solid"
+      ? segmentBackground.color
+      : theme.background;
+    canvas.style.backgroundImage = segmentBackground.mode === "color" && segmentBackground.colorType === "gradient"
+      ? `linear-gradient(${getGradientDirectionValue(segmentBackground.gradientDirection)}, ${segmentBackground.gradientFrom}, ${segmentBackground.gradientTo})`
+      : "";
     canvas.style.color = theme.text;
 
     const body = `
@@ -4116,6 +5769,7 @@ const AppUI = (() => {
     `;
 
     canvas.innerHTML = `
+      ${renderSegmentBackgroundLayer()}
       ${body}
       <div class="preview-time-badge">${currentTimeSec.toFixed(1)}s</div>
     `;
@@ -4811,6 +6465,9 @@ const AppUI = (() => {
   // 10. Settings / Options View
   const renderSettingsScreen = (container, data) => {
     const settings = AppStorage.loadSettings();
+    const validationSettings = settings.validation || {};
+    const warnMaxActiveScriptSegments = Boolean(validationSettings.warnMaxActiveScriptSegments);
+    const maxActiveScriptSegments = Math.max(1, Number.parseInt(validationSettings.maxActiveScriptSegments, 10) || 6);
 
     container.innerHTML = `
       ${renderWorkspaceHeader("Cài đặt hệ thống", "Cấu hình môi trường local và import/export dữ liệu dự án.")}
@@ -4831,6 +6488,27 @@ const AppUI = (() => {
               <input type="text" id="set-render-dir" class="form-control" value="${settings.renderFolder || 'outputs/'}">
             </div>
             <button id="settings-save-folders" class="btn btn-primary" style="align-self:flex-end;">Lưu cấu hình</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Cảnh báo kịch bản</h3>
+          </div>
+          <div class="card-body settings-validation-card">
+            <label class="settings-toggle-row" for="set-warn-max-segments">
+              <input id="set-warn-max-segments" type="checkbox" ${warnMaxActiveScriptSegments ? "checked" : ""}>
+              <span class="settings-toggle-track" aria-hidden="true"></span>
+              <span>
+                <strong>Cảnh báo khi quá nhiều đoạn đang bật</strong>
+                <small>Bật nếu mày muốn sidebar báo khi kịch bản vượt ngưỡng tự đặt.</small>
+              </span>
+            </label>
+            <div class="form-group settings-threshold-field">
+              <label class="form-label" for="set-max-active-segments">Ngưỡng cảnh báo số đoạn</label>
+              <input type="number" id="set-max-active-segments" class="form-control" min="1" max="99" step="1" value="${maxActiveScriptSegments}" ${warnMaxActiveScriptSegments ? "" : "disabled"}>
+            </div>
+            <button id="settings-save-validation" class="btn btn-primary" style="align-self:flex-end;">Lưu cảnh báo</button>
           </div>
         </div>
 
@@ -4879,6 +6557,28 @@ const AppUI = (() => {
 
       AppStorage.saveSettings({ ...settings, uploadFolder, renderFolder });
       showToast("Đã lưu thiết lập đường dẫn thành công!");
+    });
+
+    const warnMaxSegmentsInput = document.getElementById("set-warn-max-segments");
+    const maxSegmentsInput = document.getElementById("set-max-active-segments");
+    warnMaxSegmentsInput.addEventListener("change", () => {
+      maxSegmentsInput.disabled = !warnMaxSegmentsInput.checked;
+    });
+    document.getElementById("settings-save-validation").addEventListener("click", () => {
+      const currentSettings = AppStorage.loadSettings();
+      const nextMaxSegments = Math.max(1, Math.min(99, Number.parseInt(maxSegmentsInput.value, 10) || 6));
+      AppStorage.saveSettings({
+        ...currentSettings,
+        validation: {
+          ...(currentSettings.validation || {}),
+          warnMaxActiveScriptSegments: warnMaxSegmentsInput.checked,
+          maxActiveScriptSegments: nextMaxSegments
+        }
+      });
+      const validationResults = AppValidation.validate(AppState.getProjectData());
+      AppState.setValidation(validationResults);
+      showToast("Đã lưu cảnh báo kịch bản.");
+      renderSettingsScreen(container, AppState.getProjectData());
     });
 
     // Export Project Backup
@@ -5092,9 +6792,12 @@ const AppUI = (() => {
       AppState.setValidation(valResults);
 
       // Save to localStorage automatically on changes
-      AppStorage.saveLocalData(data);
-      DOM.saveStatus.textContent = "Đã lưu nháp";
-      DOM.saveStatus.className = "status-pill status-success ml-2";
+      const saved = AppStorage.saveLocalData(data);
+      DOM.saveStatus.textContent = saved ? "Đã lưu nháp" : "Lưu nháp lỗi";
+      DOM.saveStatus.className = `status-pill status-${saved ? "success" : "danger"} ml-2`;
+      if (!saved) {
+        showToast("Không lưu được dữ liệu vào trình duyệt. Dữ liệu có thể quá lớn, hãy xóa asset lớn hoặc chuyển sang backend database/upload.", "error");
+      }
       DOM.topbarProjectName.textContent = data.projectName || "Video chưa đặt tên";
     });
 

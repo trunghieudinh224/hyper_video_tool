@@ -379,6 +379,12 @@ body[data-page="template"] .workspace-subtitle {
   --slot-color: #1d4ed8;
 }
 
+.scene-wire-slot.slot-icon {
+  --slot-bg: rgba(37, 99, 235, 0.12);
+  --slot-border: #2563eb;
+  --slot-color: #1d4ed8;
+}
+
 .scene-wire-slot.slot-text {
   --slot-bg: rgba(6, 182, 212, 0.12);
   --slot-border: #06b6d4;
@@ -445,6 +451,12 @@ body[data-page="template"] .workspace-subtitle {
   --slot-color: #1d4ed8;
 }
 
+.scene-item-view-card.slot-icon {
+  --slot-bg: rgba(37, 99, 235, 0.12);
+  --slot-border: #2563eb;
+  --slot-color: #1d4ed8;
+}
+
 .scene-item-view-card.slot-text {
   --slot-bg: rgba(6, 182, 212, 0.12);
   --slot-border: #06b6d4;
@@ -481,7 +493,8 @@ body[data-page="template"] .workspace-subtitle {
 }
 
 .scene-item-thumb-mark,
-.scene-item-media-mark {
+.scene-item-media-mark,
+.scene-item-icon-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -492,6 +505,11 @@ body[data-page="template"] .workspace-subtitle {
   background: var(--color-surface);
   color: var(--slot-color);
   font-size: 18px;
+}
+
+.scene-item-icon-mark {
+  border-radius: 999px;
+  font-size: 22px;
 }
 
 .scene-item-media-mark {
@@ -1116,6 +1134,14 @@ body[data-page="template"] .pcr-clear {
   text-overflow: ellipsis;
 }
 
+.scene-template-preview-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45em;
+  line-height: 1;
+}
+
 .scene-template-preview-index {
   position: absolute;
   top: 2px;
@@ -1169,6 +1195,12 @@ body[data-page="template"] .pcr-clear {
 }
 
 .scene-template-preview-item.slot-asset {
+  --slot-bg: rgba(37, 99, 235, 0.12);
+  --slot-border: #2563eb;
+  --slot-color: #1d4ed8;
+}
+
+.scene-template-preview-item.slot-icon {
   --slot-bg: rgba(37, 99, 235, 0.12);
   --slot-border: #2563eb;
   --slot-color: #1d4ed8;
@@ -1347,6 +1379,12 @@ body[data-page="template"] .pcr-clear {
 }
 
 .scene-template-palette-item.slot-asset {
+  --slot-bg: rgba(37, 99, 235, 0.12);
+  --slot-border: #2563eb;
+  --slot-color: #1d4ed8;
+}
+
+.scene-template-palette-item.slot-icon {
   --slot-bg: rgba(37, 99, 235, 0.12);
   --slot-border: #2563eb;
   --slot-color: #1d4ed8;
