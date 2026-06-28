@@ -17,7 +17,9 @@ const {
   getCurrentProject,
   getProject,
   listProjects,
+  listRenderOutputs,
   saveProject,
+  saveRenderOutput,
   setActiveProject
 } = require("../src/db/database");
 const { handleProjects } = require("../src/routes/projects");
@@ -92,6 +94,37 @@ async function run() {
   assert.equal(listProjects({ includeArchived: true }).some((item) => item.id === duplicated.id), true);
 
   assert.throws(() => setActiveProject(duplicated.id), /Cannot activate archived project/);
+
+  const output = saveRenderOutput(first.id, {
+    id: "job_1",
+    filename: "codegraph.mp4",
+    outputPath: "outputs/codegraph.mp4",
+    templateId: "dynamic-story",
+    aspectRatio: "9:16",
+    width: 1080,
+    height: 1920,
+    outputSize: 2048,
+    durationMs: 12000,
+    status: "succeeded",
+    completedAt: "2026-06-29T00:00:00.000Z"
+  });
+  assert.equal(output.id, "job_1");
+  assert.equal(output.projectId, first.id);
+  assert.equal(output.resolution, "1080x1920");
+  assert.equal(output.outputSize, 2048);
+  assert.equal(listRenderOutputs(first.id).length, 1);
+  assert.equal(listRenderOutputs(second.id).length, 0);
+
+  const outputsResponse = captureResponse();
+  const outputsHandled = await handleProjects(
+    jsonRequest("GET", `/api/projects/${encodeURIComponent(first.id)}/outputs`),
+    outputsResponse,
+    new URL(`http://localhost/api/projects/${encodeURIComponent(first.id)}/outputs`),
+    sendJson
+  );
+  assert.equal(outputsHandled, true);
+  assert.equal(outputsResponse.statusCode, 200);
+  assert.equal(outputsResponse.payload.data.outputs[0].id, "job_1");
 
   const response = captureResponse();
   const handled = await handleProjects(

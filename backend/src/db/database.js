@@ -65,6 +65,9 @@ function initDatabase() {
   ensureProjectColumn("thumbnail_url", "TEXT");
   ensureProjectColumn("last_rendered_output_id", "TEXT");
   ensureProjectColumn("archived_at", "TEXT");
+  ensureRenderOutputColumn("template_id", "TEXT");
+  ensureRenderOutputColumn("aspect_ratio", "TEXT");
+  ensureRenderOutputColumn("size_bytes", "INTEGER");
   runSql(`
     CREATE INDEX IF NOT EXISTS idx_projects_updated_at
       ON projects(updated_at);
@@ -84,6 +87,16 @@ function initDatabase() {
 function ensureProjectColumn(name, definition) {
   try {
     runSql(`ALTER TABLE projects ADD COLUMN ${name} ${definition};`);
+  } catch (error) {
+    if (!String(error.message || "").includes("duplicate column name")) {
+      throw error;
+    }
+  }
+}
+
+function ensureRenderOutputColumn(name, definition) {
+  try {
+    runSql(`ALTER TABLE render_outputs ADD COLUMN ${name} ${definition};`);
   } catch (error) {
     if (!String(error.message || "").includes("duplicate column name")) {
       throw error;
@@ -189,6 +202,41 @@ function serializeAssetRow(row) {
     dateAdded: String(row.created_at || "").slice(0, 10),
     createdAt: row.created_at,
     updatedAt: row.updated_at
+  };
+}
+
+function serializeOutputRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  const durationSec = Number(row.duration_sec) || 0;
+  const width = Number(row.width) || null;
+  const height = Number(row.height) || null;
+  const outputSize = Number(row.size_bytes) || 0;
+
+  return {
+    id: row.id,
+    jobId: row.id,
+    projectId: row.project_id,
+    filename: row.filename,
+    filePath: row.file_path,
+    outputPath: row.file_path,
+    publicUrl: row.public_url || "",
+    formatId: row.format_id || "",
+    templateId: row.template_id || row.format_id || "",
+    template: row.template || row.template_id || row.format_id || "",
+    aspectRatio: row.aspect_ratio || "",
+    width,
+    height,
+    resolution: width && height ? `${width}x${height}` : "",
+    outputSize,
+    durationMs: durationSec ? Math.round(durationSec * 1000) : null,
+    status: row.status || "succeeded",
+    createdAt: row.created_at,
+    completedAt: row.created_at,
+    dateCreated: String(row.created_at || "").replace("T", " ").slice(0, 19),
+    source: "backend-db"
   };
 }
 
@@ -610,6 +658,96 @@ function deleteAsset(assetId, projectId = null) {
   return asset;
 }
 
+function listRenderOutputs(projectId) {
+  initDatabase();
+  const rows = JSON.parse(runSql(
+    `SELECT id, project_id, filename, file_path, public_url, format_id, template_id, aspect_ratio, width, height, size_bytes, duration_sec, status, created_at
+     FROM render_outputs
+     WHERE project_id = ${sqlString(projectId)}
+     ORDER BY created_at DESC, id DESC;`,
+    { json: true }
+  ) || "[]");
+
+  return rows.map(serializeOutputRow);
+}
+
+function saveRenderOutput(projectId, output) {
+  initDatabase();
+  const project = getProject(projectId);
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`);
+  }
+
+  const now = output.createdAt || output.completedAt || new Date().toISOString();
+  const id = output.id || output.jobId || createId("out");
+  const filename = output.filename || path.basename(output.outputPath || output.filePath || `${id}.mp4`);
+  const filePath = output.filePath || output.outputPath || `outputs/${filename}`;
+  const durationSec = Number.isFinite(Number(output.durationSec))
+    ? Number(output.durationSec)
+    : Number.isFinite(Number(output.durationMs))
+      ? Number(output.durationMs) / 1000
+      : null;
+
+  runSql(`
+    INSERT INTO render_outputs (
+      id,
+      project_id,
+      filename,
+      file_path,
+      public_url,
+      format_id,
+      template_id,
+      aspect_ratio,
+      width,
+      height,
+      size_bytes,
+      duration_sec,
+      status,
+      created_at
+    )
+    VALUES (
+      ${sqlString(id)},
+      ${sqlString(projectId)},
+      ${sqlString(filename)},
+      ${sqlString(filePath)},
+      ${output.publicUrl ? sqlString(output.publicUrl) : "NULL"},
+      ${output.formatId || output.templateId ? sqlString(output.formatId || output.templateId) : "NULL"},
+      ${output.templateId ? sqlString(output.templateId) : "NULL"},
+      ${output.aspectRatio ? sqlString(output.aspectRatio) : "NULL"},
+      ${Number.isFinite(Number(output.width)) ? Number.parseInt(output.width, 10) : "NULL"},
+      ${Number.isFinite(Number(output.height)) ? Number.parseInt(output.height, 10) : "NULL"},
+      ${Number.isFinite(Number(output.outputSize)) ? Number.parseInt(output.outputSize, 10) : "NULL"},
+      ${Number.isFinite(durationSec) ? durationSec : "NULL"},
+      ${sqlString(output.status || "succeeded")},
+      ${sqlString(now)}
+    )
+    ON CONFLICT(id) DO UPDATE SET
+      project_id = excluded.project_id,
+      filename = excluded.filename,
+      file_path = excluded.file_path,
+      public_url = excluded.public_url,
+      format_id = excluded.format_id,
+      template_id = excluded.template_id,
+      aspect_ratio = excluded.aspect_ratio,
+      width = excluded.width,
+      height = excluded.height,
+      size_bytes = excluded.size_bytes,
+      duration_sec = excluded.duration_sec,
+      status = excluded.status,
+      created_at = excluded.created_at;
+  `);
+
+  runSql(`
+    UPDATE projects
+    SET last_rendered_output_id = ${sqlString(id)},
+        status = ${sqlString("rendered")},
+        updated_at = ${sqlString(now)}
+    WHERE id = ${sqlString(projectId)};
+  `);
+
+  return listRenderOutputs(projectId).find((item) => item.id === id) || null;
+}
+
 module.exports = {
   ACTIVE_PROJECT_KEY,
   CURRENT_PROJECT_ID,
@@ -628,10 +766,12 @@ module.exports = {
   initDatabase,
   listAssets,
   listProjects,
+  listRenderOutputs,
   readDefaultProject,
   saveAsset,
   saveCurrentProject,
   saveProject,
+  saveRenderOutput,
   setActiveProject,
   deleteAsset,
   saveSettings

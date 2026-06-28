@@ -742,7 +742,8 @@ const AppRender = (() => {
   });
 
   const listBackendOutputs = async () => {
-    const response = await fetch("/api/outputs", {
+    const projectId = AppStorage.getActiveProjectId ? AppStorage.getActiveProjectId() : "current";
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/outputs`, {
       method: "GET",
       headers: {
         "Accept": "application/json"

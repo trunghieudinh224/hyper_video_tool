@@ -117,6 +117,11 @@ const AppBackendApi = (() => {
     return Array.isArray(data.assets) ? data.assets : [];
   };
 
+  const loadOutputs = async (projectId = "current") => {
+    const data = await requestJson(`/api/projects/${encodeURIComponent(projectId)}/outputs`);
+    return Array.isArray(data.outputs) ? data.outputs : [];
+  };
+
   const uploadAssets = async (files, options = {}) => {
     if (!isBackendAvailable()) {
       throw new Error("Backend API is not available from this page origin.");
@@ -161,6 +166,7 @@ const AppBackendApi = (() => {
     loadSettings,
     saveSettings,
     loadAssets,
+    loadOutputs,
     uploadAssets,
     deleteAsset
   };

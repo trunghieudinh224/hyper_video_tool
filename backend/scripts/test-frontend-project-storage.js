@@ -75,6 +75,14 @@ const context = vm.createContext({
         }
       });
     }
+    if (url === "/api/projects/proj_1/outputs" && !options.method) {
+      return jsonResponse({
+        success: true,
+        data: {
+          outputs: [{ id: "job_1", filename: "codegraph.mp4", projectId: "proj_1" }]
+        }
+      });
+    }
     throw new Error(`Unexpected request: ${options.method || "GET"} ${url}`);
   }
 });
@@ -96,6 +104,7 @@ vm.runInContext(`
   const AppState = { setDirty: () => {}, setProjectData: () => {} };
   ${apiSource}
   ${storageSource}
+  globalThis.__AppBackendApi = AppBackendApi;
   globalThis.__AppStorage = AppStorage;
 `, context);
 
@@ -121,6 +130,11 @@ async function run() {
   const projects = await context.__AppStorage.loadProjectList();
   assert.equal(projects.length, 1);
   assert.equal(projects[0].id, "proj_1");
+
+  const outputs = await context.__AppBackendApi.loadOutputs("proj_1");
+  assert.equal(outputs.length, 1);
+  assert.equal(outputs[0].projectId, "proj_1");
+  assert.equal(requests.at(-1).url, "/api/projects/proj_1/outputs");
 }
 
 run()

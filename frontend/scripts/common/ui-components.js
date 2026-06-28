@@ -6919,17 +6919,7 @@ const AppUI = (() => {
       container.dataset.outputsSynced = "true";
       AppRender.listBackendOutputs()
         .then((backendOutputs) => {
-          if (!backendOutputs.length) {
-            return;
-          }
-
-          const currentOutputs = AppStorage.loadOutputs();
-          const backendIds = new Set(backendOutputs.map((item) => item.id));
-          const mergedOutputs = [
-            ...backendOutputs,
-            ...currentOutputs.filter((item) => !backendIds.has(item.id))
-          ];
-          AppStorage.saveOutputs(mergedOutputs);
+          AppStorage.saveOutputs(backendOutputs);
           renderOutputsScreen(container, AppState.getProjectData());
         })
         .catch(() => {

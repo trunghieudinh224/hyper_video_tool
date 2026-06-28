@@ -7,6 +7,7 @@ const {
   ensureCurrentProject,
   getActiveProject,
   getProject,
+  listRenderOutputs,
   listProjects,
   readDefaultProject,
   saveCurrentProject,
@@ -116,7 +117,7 @@ function sendProject(sendJson, response, row, message = "Project loaded.") {
 }
 
 function parseProjectIdFromPath(pathname) {
-  const match = pathname.match(/^\/api\/projects\/([^/]+)(?:\/(archive|duplicate))?$/);
+  const match = pathname.match(/^\/api\/projects\/([^/]+)(?:\/(archive|duplicate|outputs))?$/);
   if (!match) {
     return null;
   }
@@ -237,6 +238,29 @@ async function handleProjects(request, response, requestUrl, sendJson) {
       return true;
     }
     sendProject(sendJson, response, row, "Project loaded.");
+    return true;
+  }
+
+  if (projectPath && projectPath.action === "outputs" && request.method === "GET") {
+    const row = getProject(projectPath.id);
+    if (!row) {
+      sendJson(response, 404, {
+        success: false,
+        message: "Project not found.",
+        errors: {
+          projectId: "not_found"
+        }
+      });
+      return true;
+    }
+
+    sendJson(response, 200, {
+      success: true,
+      message: "Project outputs loaded.",
+      data: {
+        outputs: listRenderOutputs(projectPath.id)
+      }
+    });
     return true;
   }
 

@@ -5,7 +5,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
-const { getAsset } = require("../db/database");
+const { getActiveProject, getAsset, saveRenderOutput } = require("../db/database");
 const { isSafeAssetFile } = require("../storage/asset-store");
 const { generateVoiceover } = require("../audio/voiceover");
 const { muxVoiceoverIntoVideo } = require("./media");
@@ -101,7 +101,7 @@ function createRelativeAudioResult(voiceoverResult) {
   };
 }
 
-function createJobRecord(payload) {
+function createJobRecord(payload, projectId) {
   const jobId = crypto.randomUUID();
   const now = new Date().toISOString();
   const outputPath = getPayloadOutputPath(jobId, payload);
@@ -114,6 +114,7 @@ function createJobRecord(payload) {
     width: payload.video.width,
     height: payload.video.height,
     resolution: `${payload.video.width}x${payload.video.height}`,
+    projectId,
     projectName: payload.source.projectName,
     outputPath: relativePath(outputPath),
     audio: createInitialAudioState(payload),
@@ -314,6 +315,19 @@ async function executeRenderJob(job, payload) {
     job.updatedAt = job.completedAt;
     job.durationMs = Date.now() - startedAt;
     job.outputRecord = upsertOutputRecord(job);
+    if (job.projectId && job.outputRecord) {
+      job.outputRecord = saveRenderOutput(job.projectId, {
+        ...job.outputRecord,
+        templateId: job.templateId,
+        aspectRatio: job.aspectRatio,
+        width: job.width,
+        height: job.height,
+        outputSize: job.outputSize,
+        durationMs: job.durationMs,
+        status: job.status,
+        completedAt: job.completedAt
+      }) || job.outputRecord;
+    }
     appendLog(job, "SUCCESS", `Render completed: ${job.outputPath}.`);
     return job;
   } catch (error) {
@@ -353,7 +367,8 @@ function queueRenderJob(payload) {
     throw error;
   }
 
-  const job = createJobRecord(payload);
+  const activeProject = getActiveProject();
+  const job = createJobRecord(payload, activeProject.id);
   appendLog(job, "INFO", "Render job queued.");
   jobs.set(job.id, job);
   jobQueue.push({ job, payload });

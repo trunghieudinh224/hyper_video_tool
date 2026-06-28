@@ -100,6 +100,13 @@ async function requestHandler(request, response) {
     return;
   }
 
+  if (requestUrl.pathname.startsWith("/api/assets/") || /^\/api\/projects\/[^/]+\/assets/.test(requestUrl.pathname)) {
+    const handled = await handleAssets(request, response, requestUrl, sendJson);
+    if (handled) {
+      return;
+    }
+  }
+
   if (requestUrl.pathname.startsWith("/api/projects")) {
     const handled = await handleProjects(request, response, requestUrl, sendJson);
     if (handled) {
@@ -109,13 +116,6 @@ async function requestHandler(request, response) {
 
   if (requestUrl.pathname === "/api/settings") {
     const handled = await handleSettings(request, response, requestUrl, sendJson);
-    if (handled) {
-      return;
-    }
-  }
-
-  if (requestUrl.pathname.startsWith("/api/assets/") || /^\/api\/projects\/[^/]+\/assets/.test(requestUrl.pathname)) {
-    const handled = await handleAssets(request, response, requestUrl, sendJson);
     if (handled) {
       return;
     }
@@ -188,4 +188,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createServer };
+module.exports = { createServer, requestHandler };
