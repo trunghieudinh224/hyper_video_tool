@@ -21,12 +21,6 @@ CREATE TABLE IF NOT EXISTS projects (
   archived_at TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_projects_updated_at
-  ON projects(updated_at);
-
-CREATE INDEX IF NOT EXISTS idx_projects_archived_at_updated_at
-  ON projects(archived_at, updated_at);
-
 CREATE TABLE IF NOT EXISTS project_snapshots (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL,

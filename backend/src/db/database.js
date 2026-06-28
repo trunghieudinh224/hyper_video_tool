@@ -66,6 +66,13 @@ function initDatabase() {
   ensureProjectColumn("last_rendered_output_id", "TEXT");
   ensureProjectColumn("archived_at", "TEXT");
   runSql(`
+    CREATE INDEX IF NOT EXISTS idx_projects_updated_at
+      ON projects(updated_at);
+
+    CREATE INDEX IF NOT EXISTS idx_projects_archived_at_updated_at
+      ON projects(archived_at, updated_at);
+  `);
+  runSql(`
     INSERT INTO app_meta (key, value, updated_at)
     VALUES ('schema_version', '1', ${sqlString(new Date().toISOString())})
     ON CONFLICT(key) DO UPDATE SET

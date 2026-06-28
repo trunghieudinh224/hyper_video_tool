@@ -529,6 +529,13 @@ const AppUI = (() => {
     `;
   };
 
+  const escapeHtml = (value) => String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
   const initDOM = () => {
     DOM.themeToggle = document.getElementById("theme-toggle");
     DOM.saveStatus = document.getElementById("save-status");
@@ -7063,9 +7070,29 @@ const AppUI = (() => {
     const validationSettings = settings.validation || {};
     const warnMaxActiveScriptSegments = Boolean(validationSettings.warnMaxActiveScriptSegments);
     const maxActiveScriptSegments = Math.max(1, Number.parseInt(validationSettings.maxActiveScriptSegments, 10) || 6);
+    const backendEnabled = typeof AppBackendApi !== "undefined" && AppBackendApi.isBackendAvailable();
+    const activeProjectMeta = AppStorage.getActiveProjectMeta ? AppStorage.getActiveProjectMeta() : null;
 
     container.innerHTML = `
       ${renderWorkspaceHeader("Cài đặt hệ thống", "Cấu hình môi trường local và import/export dữ liệu dự án.")}
+
+      <div class="section-block settings-projects-block mb-6">
+        <div class="settings-section-header">
+          <div>
+            <h3>Project đã lưu</h3>
+            <p>Load lại project cũ để chỉnh sửa, render lại hoặc tạo project mới từ dữ liệu mặc định Codegraph.</p>
+          </div>
+          <button id="settings-create-project" class="btn btn-primary" ${backendEnabled ? "" : "disabled"}>Tạo project Codegraph mới</button>
+        </div>
+        <div class="settings-active-project">
+          <span>Đang mở:</span>
+          <strong>${escapeHtml(activeProjectMeta && activeProjectMeta.name ? activeProjectMeta.name : data.projectName || "Chưa có project")}</strong>
+          ${activeProjectMeta && activeProjectMeta.slug ? `<code>${escapeHtml(activeProjectMeta.slug)}</code>` : ""}
+        </div>
+        <div id="settings-project-list" class="settings-project-list">
+          ${backendEnabled ? '<div class="settings-project-empty">Đang tải danh sách project...</div>' : '<div class="settings-project-empty">Chạy app qua backend local để dùng lịch sử project database.</div>'}
+        </div>
+      </div>
 
       <div class="grid-2 mb-6">
         <!-- Local Folders Mock configuration -->
@@ -7144,6 +7171,81 @@ const AppUI = (() => {
         </div>
       </div>
     `;
+
+    const renderProjectHistory = async () => {
+      const listEl = document.getElementById("settings-project-list");
+      if (!listEl || !backendEnabled || !AppStorage.loadProjectList) {
+        return;
+      }
+
+      try {
+        const projects = await AppStorage.loadProjectList();
+        const activeId = AppStorage.getActiveProjectId ? AppStorage.getActiveProjectId() : "";
+        if (!projects.length) {
+          listEl.innerHTML = '<div class="settings-project-empty">Chưa có project nào trong database.</div>';
+          return;
+        }
+
+        listEl.innerHTML = projects.map((project) => {
+          const isActive = project.id === activeId;
+          return `
+            <div class="settings-project-row${isActive ? " is-active" : ""}">
+              <div class="settings-project-main">
+                <strong>${escapeHtml(project.name || "Untitled Project")}</strong>
+                <span>${escapeHtml(project.slug || project.id)}</span>
+              </div>
+              <div class="settings-project-meta">
+                ${project.contentType ? `<span>${escapeHtml(project.contentType)}</span>` : ""}
+                ${project.updatedAt ? `<span>${escapeHtml(String(project.updatedAt).slice(0, 19).replace("T", " "))}</span>` : ""}
+              </div>
+              <button class="btn btn-secondary btn-sm" type="button" data-project-load="${escapeHtml(project.id)}" ${isActive ? "disabled" : ""}>
+                ${isActive ? "Đang mở" : "Load"}
+              </button>
+            </div>
+          `;
+        }).join("");
+
+        listEl.querySelectorAll("[data-project-load]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const projectId = button.getAttribute("data-project-load");
+            button.disabled = true;
+            button.textContent = "Đang load...";
+            try {
+              const nextData = await AppStorage.activateProject(projectId);
+              AppState.setProjectData(nextData, true);
+              renderSettingsScreen(container, nextData);
+              showToast("Đã load project từ database.");
+            } catch (error) {
+              button.disabled = false;
+              button.textContent = "Load";
+              showToast(`Không load được project: ${error.message}`, "error");
+            }
+          });
+        });
+      } catch (error) {
+        listEl.innerHTML = `<div class="settings-project-empty">Không tải được danh sách project: ${escapeHtml(error.message)}</div>`;
+      }
+    };
+
+    const createProjectButton = document.getElementById("settings-create-project");
+    if (createProjectButton) {
+      createProjectButton.addEventListener("click", async () => {
+        createProjectButton.disabled = true;
+        createProjectButton.textContent = "Đang tạo...";
+        try {
+          const nextData = await AppStorage.createProjectData(AppStorage.loadSampleData(), { activate: true });
+          AppState.setProjectData(nextData, true);
+          renderSettingsScreen(container, nextData);
+          showToast("Đã tạo project Codegraph mới trong database.");
+        } catch (error) {
+          createProjectButton.disabled = false;
+          createProjectButton.textContent = "Tạo project Codegraph mới";
+          showToast(`Không tạo được project: ${error.message}`, "error");
+        }
+      });
+    }
+
+    renderProjectHistory();
 
     // Save folder configurations
     document.getElementById("settings-save-folders").addEventListener("click", async () => {

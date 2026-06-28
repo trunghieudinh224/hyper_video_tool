@@ -78,3 +78,103 @@
 .settings-threshold-field {
   margin: 0;
 }
+
+.settings-projects-block {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.settings-section-header {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.settings-section-header h3,
+.settings-section-header p {
+  margin: 0;
+}
+
+.settings-section-header p {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
+.settings-active-project,
+.settings-project-row {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.settings-active-project {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.settings-active-project strong {
+  color: var(--color-text);
+}
+
+.settings-active-project code {
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+}
+
+.settings-project-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.settings-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+}
+
+.settings-project-row.is-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-soft);
+}
+
+.settings-project-main,
+.settings-project-meta {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.settings-project-main strong {
+  overflow: hidden;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-project-main span,
+.settings-project-meta span,
+.settings-project-empty {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.settings-project-meta {
+  justify-items: start;
+}
+
+.settings-project-empty {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-alt);
+}
