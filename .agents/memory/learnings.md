@@ -8,6 +8,26 @@ Tài liệu này ghi lại các bài học kỹ thuật có thể tái sử dụ
 - Entry mới chèn phía trên entry cũ hơn, ngay sau phần quy chuẩn.
 - Chỉ ghi bài học có thể tái sử dụng, không ghi thao tác vụn vặt.
 
+## Cập nhật ngày 29/06/2026 (10:37:13 UTC+7) - Setting media phải nối đủ editor, preview và render
+
+### Bối cảnh
+
+Nhạc nền đã chọn và lưu đúng trong project, render payload cũng đã mang source/volume sang backend, nhưng trang Xem trước hoàn toàn không phát nhạc.
+
+### Nguyên nhân
+
+Setting mới chỉ được nối vào form, persistence và render pipeline. Preview player vẫn chỉ quản lý voiceover nên cấu hình nhạc nền tồn tại nhưng không có consumer ở UI xem trước.
+
+### Cách xử lý đúng
+
+- Với media toàn video, dùng player riêng cho từng track cần điều khiển độc lập, ví dụ voiceover và background music.
+- Đồng bộ play, pause, mute, seek, replay, chuyển scene, loop và volume với timeline preview.
+- Browser smoke phải xác nhận đúng source asset, volume, trạng thái loop, hành vi mute và console error; render test vẫn kiểm tra mux riêng.
+
+### Quy tắc lần sau
+
+Mọi setting ảnh hưởng output video phải được rà theo chuỗi hoàn chỉnh: editor → database/storage → preview → render payload → render output. Không coi form lưu được hoặc render payload đúng là feature đã hoàn thành.
+
 ## Cập nhật ngày 28/06/2026 (11:57:53 UTC+7) - Asset upload phải tách URL preview khỏi nguồn media render
 
 ### Bối cảnh
