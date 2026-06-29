@@ -41,7 +41,7 @@ function readMultipart(request, projectId) {
       parser = Busboy({
         headers: request.headers,
         limits: {
-          fileSize: Math.max(config.uploadImageMaxBytes, config.uploadVideoMaxBytes),
+          fileSize: Math.max(config.uploadImageMaxBytes, config.uploadVideoMaxBytes, config.uploadAudioMaxBytes),
           files: MAX_UPLOAD_FILES,
           fields: 10,
           parts: MAX_UPLOAD_FILES + 10

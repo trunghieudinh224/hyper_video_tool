@@ -88,26 +88,72 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
+  gap: var(--space-1);
   flex-wrap: wrap;
+  width: fit-content;
+  margin-inline: auto;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
-.preview-controls .btn {
+.preview-control-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.preview-sound-toggle {
-  min-width: 7.75rem;
+.preview-control-btn:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+  transform: translateY(-1px);
+}
+
+.preview-control-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 56%, transparent);
+  outline-offset: 2px;
+}
+
+.preview-control-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.36;
+  transform: none;
+}
+
+.preview-control-btn.is-primary {
+  color: #fff;
+  background: var(--color-primary);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.preview-control-btn.is-primary:hover:not(:disabled) {
+  color: #fff;
+  background: var(--color-primary-hover);
+}
+
+.preview-auto-next-toggle.is-active {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
 }
 
 .preview-sound-toggle.is-muted {
-  border-color: var(--color-warning);
   color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
 }
 
-.preview-sound-icon {
+.preview-sound-icon,
+.preview-play-icon,
+.preview-auto-next-icon {
   flex: 0 0 auto;
 }
 
@@ -339,9 +385,11 @@
 }
 
 .preview-slot.is-pending {
-  opacity: 0.18;
+  opacity: 0;
   transform: translateY(var(--preview-motion-distance, 10px));
-  filter: blur(1px);
+  visibility: hidden;
+  pointer-events: none;
+  filter: blur(0);
 }
 
 #preview-canvas.motion-style-minimal { --preview-motion-distance: 4px; --preview-motion-duration: 120ms; }
@@ -371,6 +419,7 @@
 .preview-slot.is-visible {
   opacity: 1;
   transform: translateY(0);
+  visibility: visible;
   filter: blur(0);
 }
 
@@ -815,13 +864,11 @@
   }
 
   .preview-controls {
-    align-items: stretch;
-    flex-direction: column;
+    width: fit-content;
   }
 
-  .preview-controls .btn {
-    justify-content: center;
-    min-height: 44px;
-    width: 100%;
+  .preview-control-btn {
+    width: 2.375rem;
+    height: 2.375rem;
   }
 }

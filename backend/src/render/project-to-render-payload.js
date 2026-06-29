@@ -199,7 +199,7 @@ function mapAsset(asset, index) {
     id: text(asset.id, `asset-${index + 1}`),
     name: text(asset.name, `Asset ${index + 1}`),
     type: text(asset.type, "unknown"),
-    url: text(asset.url, ""),
+    url: text(asset.url, text(asset.publicUrl, "")),
     useInVideo: Boolean(asset.useInVideo)
   };
 }
@@ -270,13 +270,20 @@ function getVoiceoverDefaults(language) {
   };
 }
 
-function mapAudioConfig(project = {}) {
+function mapAudioConfig(project = {}, assets = []) {
   const source = project.audio && typeof project.audio === "object" ? project.audio : {};
   const sourceVoiceover = source.voiceover && typeof source.voiceover === "object" ? source.voiceover : {};
   const voiceDefaults = getVoiceoverDefaults(sourceVoiceover.language);
   const sourceBackgroundMusic = source.backgroundMusic && typeof source.backgroundMusic === "object"
     ? source.backgroundMusic
     : {};
+  const backgroundMusicAssetId = text(sourceBackgroundMusic.assetId, "");
+  const backgroundMusicAsset = backgroundMusicAssetId
+    ? assets.find((asset) => asset.id === backgroundMusicAssetId && asset.type === "audio" && asset.url)
+    : null;
+  const backgroundMusicSource = backgroundMusicAssetId
+    ? (backgroundMusicAsset ? backgroundMusicAsset.url : "")
+    : text(sourceBackgroundMusic.source, "");
   const sourceSoundEffects = source.soundEffects && typeof source.soundEffects === "object" ? source.soundEffects : {};
 
   return {
@@ -291,8 +298,8 @@ function mapAudioConfig(project = {}) {
       outputPath: text(sourceVoiceover.outputPath, "")
     },
     backgroundMusic: {
-      enabled: Boolean(sourceBackgroundMusic.enabled),
-      source: text(sourceBackgroundMusic.source, ""),
+      enabled: Boolean(sourceBackgroundMusic.enabled && backgroundMusicSource),
+      source: backgroundMusicSource,
       volume: Number.isFinite(sourceBackgroundMusic.volume) ? sourceBackgroundMusic.volume : DEFAULT_AUDIO.backgroundMusic.volume,
       ducking: sourceBackgroundMusic.ducking !== undefined
         ? Boolean(sourceBackgroundMusic.ducking)
@@ -336,9 +343,37 @@ function normalizeDynamicSlotValue(slot = {}, value = {}) {
   return slotValue;
 }
 
+function normalizeVideoBackground(project = {}) {
+  const background = project.videoBackground && typeof project.videoBackground === "object"
+    ? project.videoBackground
+    : {};
+  if (background.mode === "asset" && text(background.assetId, "")) {
+    return { mode: "asset", assetId: text(background.assetId, "") };
+  }
+  if (background.mode === "color") {
+    return {
+      mode: "color",
+      colorType: background.colorType === "gradient" ? "gradient" : "solid",
+      color: text(background.color, ""),
+      gradientFrom: text(background.gradientFrom, text(background.color, "")),
+      gradientTo: text(background.gradientTo, ""),
+      gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
+    };
+  }
+  return null;
+}
+
 function buildDynamicSlotScenes(project = {}, features = []) {
+  const videoBackground = normalizeVideoBackground(project);
   return features.map((feature, index) => {
-    const template = DYNAMIC_SCENE_TEMPLATES[feature.sceneTemplateId] || DYNAMIC_SCENE_TEMPLATES["intro-stack"];
+    const baseTemplate = DYNAMIC_SCENE_TEMPLATES[feature.sceneTemplateId] || DYNAMIC_SCENE_TEMPLATES["intro-stack"];
+    const template = feature.sceneTemplateOverride && Array.isArray(feature.sceneTemplateOverride.slots)
+      ? {
+        ...baseTemplate,
+        ...feature.sceneTemplateOverride,
+        id: feature.sceneTemplateId || feature.sceneTemplateOverride.id || baseTemplate.id
+      }
+      : baseTemplate;
     const durationSec = Math.min(30, Math.max(3, Number.parseInt(feature.durationSec, 10) || 8));
     const slots = {};
     for (const slot of template.slots) {
@@ -356,6 +391,7 @@ function buildDynamicSlotScenes(project = {}, features = []) {
         max: durationSec
       },
       sceneTemplate: template,
+      background: videoBackground || feature.background || null,
       slots
     };
   });
@@ -397,7 +433,7 @@ function projectToDynamicRenderPayload(project = {}, options = {}) {
       videos: assets.filter((asset) => asset.type === "video" && asset.useInVideo && asset.url).slice(0, 2),
       all: assets
     },
-    audio: mapAudioConfig(project),
+    audio: mapAudioConfig(project, assets),
     scenes
   };
 
@@ -484,7 +520,7 @@ function projectToRenderPayload(project = {}, options = {}) {
       videos,
       all: assets
     },
-    audio: mapAudioConfig(project),
+    audio: mapAudioConfig(project, assets),
     scenes: [
       createScene("intro", "Giới thiệu nội dung", {
         projectName: text(project.projectName, "Dự án chưa đặt tên"),

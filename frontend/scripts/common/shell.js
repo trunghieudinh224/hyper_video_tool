@@ -4,9 +4,9 @@ const AppShell = (() => {
   const navItems = [
     { page: "overview", label: "Tổng quan", icon: "grid", badge: "" },
     { page: "content", label: "Thiết lập video", icon: "file", badge: "badge-content" },
-    { page: "features", label: "Kịch bản", icon: "clock", badge: "badge-features" },
     { page: "assets", label: "Tài nguyên", icon: "image", badge: "badge-assets" },
     { page: "template", label: "Template", icon: "layers", badge: "badge-template" },
+    { page: "features", label: "Kịch bản", icon: "clock", badge: "badge-features" },
     { page: "preview", label: "Xem trước", icon: "film", badge: "" },
     { page: "render", label: "Render", icon: "box", badge: "badge-render" },
     { page: "outputs", label: "Video đã xuất", icon: "video", badge: "" },

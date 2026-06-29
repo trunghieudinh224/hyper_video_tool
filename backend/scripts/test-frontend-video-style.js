@@ -68,4 +68,101 @@ assert.equal(payload.template.config.videoStyle.colorTheme.glow, "rgba(31, 79, 2
 assert.equal(payload.template.config.videoStyle.motionStyle, "minimal");
 assert.equal(payload.template.config.videoStyle.backgroundStyle, "clean-surface");
 
+const backgroundPayload = context.__AppRender.buildRenderPayload({
+  ...project,
+  videoBackground: {
+    mode: "asset",
+    assetId: "asset-global-bg"
+  },
+  assets: [
+    {
+      id: "asset-global-bg",
+      name: "Global Background",
+      type: "background",
+      url: "/uploads/global-bg.png",
+      useInVideo: true
+    }
+  ],
+  features: [
+    {
+      id: "segment-1",
+      name: "Segment 1",
+      description: "Segment custom background should be ignored.",
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      durationSec: 4,
+      background: {
+        mode: "color",
+        color: "#111827"
+      },
+      slots: {
+        title: {
+          type: "text",
+          text: "Segment 1"
+        }
+      }
+    }
+  ]
+});
+
+assert.equal(backgroundPayload.scenes[0].background.mode, "asset");
+assert.equal(backgroundPayload.scenes[0].background.assetId, "asset-global-bg");
+
+const colorBackgroundPayload = context.__AppRender.buildRenderPayload({
+  ...project,
+  videoBackground: {
+    mode: "color",
+    colorType: "gradient",
+    color: "#05070A",
+    gradientFrom: "#05070A",
+    gradientTo: "#22D3EE",
+    gradientDirection: "to-bottom"
+  },
+  features: backgroundPayload.scenes.map((scene, index) => ({
+    id: `segment-color-${index + 1}`,
+    name: scene.headline || "Segment",
+    description: scene.body || "",
+    useInVideo: true,
+    sceneTemplateId: "intro-stack",
+    durationSec: 4,
+    background: {
+      mode: "asset",
+      assetId: "ignored-segment-bg"
+    },
+    slots: {
+      title: {
+        type: "text",
+        text: "Segment"
+      }
+    }
+  }))
+});
+
+assert.equal(colorBackgroundPayload.scenes[0].background.mode, "color");
+assert.equal(colorBackgroundPayload.scenes[0].background.colorType, "gradient");
+assert.equal(colorBackgroundPayload.scenes[0].background.gradientDirection, "to-bottom");
+
+const deletedMusicPayload = context.__AppRender.buildRenderPayload({
+  ...project,
+  assets: [],
+  audio: {
+    ...project.audio,
+    backgroundMusic: {
+      enabled: true,
+      assetId: "asset_deleted_music",
+      source: "/api/assets/asset_deleted_music/file",
+      volume: 0.2,
+      ducking: true
+    }
+  }
+});
+assert.equal(deletedMusicPayload.audio.backgroundMusic.enabled, false);
+assert.equal(deletedMusicPayload.audio.backgroundMusic.source, "");
+
+assert.equal(context.__AppRender.getSceneStartTimeSec([
+  { durationSec: 7 },
+  { durationSec: 8 },
+  { durationSec: 5 }
+], 2), 15);
+
 console.log("Frontend video style payload tests passed.");

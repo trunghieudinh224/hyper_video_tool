@@ -89,6 +89,58 @@ function createMuxVoiceoverArgs({ videoPath, audioPath, outputPath, useShortest 
   ];
 }
 
+function createMuxAudioTracksArgs({ videoPath, voiceoverPath = "", backgroundMusicPath = "", backgroundMusicVolume = 0.12, backgroundMusicDucking = true, durationSeconds = 0, outputPath }) {
+  const hasVoiceover = Boolean(voiceoverPath);
+  const hasBackgroundMusic = Boolean(backgroundMusicPath);
+  const args = ["-y", "-i", videoPath];
+
+  if (hasVoiceover) {
+    args.push("-i", voiceoverPath);
+  }
+  if (hasBackgroundMusic) {
+    args.push("-stream_loop", "-1");
+    if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+      args.push("-t", String(durationSeconds));
+    }
+    args.push("-i", backgroundMusicPath);
+  }
+
+  args.push("-map", "0:v:0", "-c:v", "copy");
+
+  if (hasVoiceover && hasBackgroundMusic) {
+    const voiceoverInputIndex = 1;
+    const backgroundInputIndex = 2;
+    const safeVolume = Math.max(0, Math.min(1, Number.isFinite(backgroundMusicVolume) ? backgroundMusicVolume : 0.12));
+    const mixFilter = backgroundMusicDucking
+      ? `[${backgroundInputIndex}:a]volume=${safeVolume}[bg];[${voiceoverInputIndex}:a]apad,asplit=2[voice_sc][voice_mix];[bg][voice_sc]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[ducked];[voice_mix][ducked]amix=inputs=2:duration=longest:dropout_transition=0[aout]`
+      : `[${backgroundInputIndex}:a]volume=${safeVolume}[bg];[${voiceoverInputIndex}:a][bg]amix=inputs=2:duration=longest:dropout_transition=0[aout]`;
+    args.push("-filter_complex", mixFilter, "-map", "[aout]");
+  } else if (hasVoiceover) {
+    args.push("-map", "1:a:0");
+  } else if (hasBackgroundMusic) {
+    args.push("-map", "1:a:0", "-filter:a", `volume=${Math.max(0, Math.min(1, Number.isFinite(backgroundMusicVolume) ? backgroundMusicVolume : 0.12))}`);
+  } else {
+    throw new Error("At least one audio track is required for muxing.");
+  }
+
+  args.push(
+    "-c:a",
+    "aac"
+  );
+  if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+    args.push("-t", String(durationSeconds));
+  } else {
+    args.push("-shortest");
+  }
+  args.push(
+    "-movflags",
+    "+faststart",
+    outputPath
+  );
+
+  return args;
+}
+
 async function getMediaDurationSeconds(filePath, options = {}) {
   const result = await runProcess(options.ffprobePath || getFfprobePath(), [
     "-v",
@@ -131,6 +183,38 @@ async function muxVoiceoverIntoVideo({ videoPath, audioPath, outputPath }, optio
   return outputPath;
 }
 
+async function muxAudioTracksIntoVideo({ videoPath, voiceoverPath = "", backgroundMusicPath = "", backgroundMusicVolume = 0.12, backgroundMusicDucking = true, outputPath }, options = {}) {
+  if (!fs.existsSync(videoPath)) {
+    throw new Error(`Video file does not exist: ${videoPath}`);
+  }
+
+  if (voiceoverPath && !fs.existsSync(voiceoverPath)) {
+    throw new Error(`Voiceover file does not exist: ${voiceoverPath}`);
+  }
+
+  if (backgroundMusicPath && !fs.existsSync(backgroundMusicPath)) {
+    throw new Error(`Background music file does not exist: ${backgroundMusicPath}`);
+  }
+
+  const tempOutputPath = `${outputPath}.audio.tmp.mp4`;
+  fs.rmSync(tempOutputPath, { force: true });
+  const durationSeconds = backgroundMusicPath
+    ? await getMediaDurationSeconds(videoPath, options)
+    : 0;
+  await runProcess(options.ffmpegPath || getFfmpegPath(), createMuxAudioTracksArgs({
+    videoPath,
+    voiceoverPath,
+    backgroundMusicPath,
+    backgroundMusicVolume,
+    backgroundMusicDucking,
+    durationSeconds,
+    outputPath: tempOutputPath
+  }), options);
+  fs.renameSync(tempOutputPath, outputPath);
+
+  return outputPath;
+}
+
 async function hasAudioStream(filePath, options = {}) {
   const result = await runProcess(options.ffprobePath || getFfprobePath(), [
     "-v",
@@ -148,10 +232,12 @@ async function hasAudioStream(filePath, options = {}) {
 }
 
 module.exports = {
+  createMuxAudioTracksArgs,
   createMuxVoiceoverArgs,
   getMediaDurationSeconds,
   getFfmpegPath,
   getFfprobePath,
   hasAudioStream,
+  muxAudioTracksIntoVideo,
   muxVoiceoverIntoVideo
 };

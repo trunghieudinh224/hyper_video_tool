@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { projectToRenderPayload } = require("../src/render/project-to-render-payload");
 const { validateRenderPayload } = require("../src/render/render-payload-schema");
+const { createMuxAudioTracksArgs } = require("../src/render/media");
 
 const projectRoot = path.resolve(__dirname, "../..");
 const sampleProjectPath = path.join(projectRoot, "data", "sample-project.json");
@@ -32,6 +33,12 @@ if (generatedPayload.version === "dynamic-motion-1.0.0") {
   assert.equal(generatedPayload.scenes.length, 7);
   assert.equal(generatedPayload.scenes.every((scene) => scene.type === "slot"), true);
   assert.equal(generatedPayload.scenes.every((scene) => scene.duration && scene.duration.mode === "fixed"), true);
+  assert.equal(generatedPayload.scenes[0].sceneTemplate.name, "Short-form dev intro");
+  assert.equal(generatedPayload.scenes[0].sceneTemplate.slots.length, 4);
+  assert.equal(generatedPayload.scenes[0].sceneTemplate.slots[0].layout.width, 42);
+  assert.equal(generatedPayload.scenes[0].slots.title.text, "CHO AI AGENT");
+  assert.equal(generatedPayload.scenes[1].sceneTemplate.name, "Short-form problem hook");
+  assert.equal(generatedPayload.scenes[1].slots.title.text, "KHÔNG HIỂU FLOW");
 } else {
   assert.deepEqual(generatedPayload, expectedPayload, "Generated payload must match data/render-payload.sample.json.");
 
@@ -62,6 +69,61 @@ assert.equal(verticalPayload.video.aspectRatio, "9:16");
 assert.equal(verticalPayload.video.width, 1080);
 assert.equal(verticalPayload.video.height, 1920);
 assert.equal(validateRenderPayload(verticalPayload).valid, true, "Vertical payload should be valid.");
+
+const backgroundMusicPayload = projectToRenderPayload({
+  ...project,
+  assets: [
+    ...(project.assets || []),
+    {
+      id: "asset_background_music",
+      name: "background-music.mp3",
+      type: "audio",
+      url: "/api/assets/asset_background_music/file",
+      useInVideo: true
+    }
+  ],
+  audio: {
+    ...(project.audio || {}),
+    backgroundMusic: {
+      enabled: true,
+      assetId: "asset_background_music",
+      volume: 0.35,
+      ducking: true
+    }
+  }
+});
+assert.equal(backgroundMusicPayload.audio.backgroundMusic.enabled, true);
+assert.equal(backgroundMusicPayload.audio.backgroundMusic.source, "/api/assets/asset_background_music/file");
+assert.equal(backgroundMusicPayload.audio.backgroundMusic.volume, 0.35);
+assert.equal(validateRenderPayload(backgroundMusicPayload).valid, true, "Background music payload should be valid.");
+
+const deletedBackgroundMusicPayload = projectToRenderPayload({
+  ...project,
+  assets: project.assets || [],
+  audio: {
+    ...(project.audio || {}),
+    backgroundMusic: {
+      enabled: true,
+      assetId: "asset_deleted_music",
+      source: "/api/assets/asset_deleted_music/file",
+      volume: 0.2,
+      ducking: true
+    }
+  }
+});
+assert.equal(deletedBackgroundMusicPayload.audio.backgroundMusic.enabled, false);
+assert.equal(deletedBackgroundMusicPayload.audio.backgroundMusic.source, "");
+
+const muxAudioArgs = createMuxAudioTracksArgs({
+  videoPath: "/tmp/video.mp4",
+  voiceoverPath: "/tmp/voice.mp3",
+  backgroundMusicPath: "/tmp/music.mp3",
+  backgroundMusicVolume: 0.35,
+  outputPath: "/tmp/output.mp4"
+});
+assert.ok(muxAudioArgs.includes("-filter_complex"), "Voiceover + music mux should use filter_complex.");
+assert.ok(muxAudioArgs.includes("-stream_loop"), "Background music mux should loop the music source.");
+assert.ok(muxAudioArgs.join(" ").includes("volume=0.35"), "Background music volume should be applied.");
 
 const mismatchedVerticalPayload = {
   ...verticalPayload,
@@ -160,6 +222,88 @@ const dynamicSlotPayload = {
 };
 const dynamicSlotValidation = validateRenderPayload(dynamicSlotPayload);
 assert.equal(dynamicSlotValidation.valid, true, `Dynamic slot payload should be valid: ${JSON.stringify(dynamicSlotValidation.errors)}`);
+
+const globalBackgroundPayload = projectToRenderPayload({
+  projectName: "Global background",
+  projectSlug: "global-background",
+  templateId: "dynamic-story-vertical",
+  videoStyleId: "dark-tech",
+  videoBackground: {
+    mode: "asset",
+    assetId: "asset-global-bg"
+  },
+  assets: [
+    {
+      id: "asset-global-bg",
+      name: "Global Background",
+      type: "background",
+      url: "/uploads/global-bg.png",
+      useInVideo: true
+    }
+  ],
+  features: [
+    {
+      id: "segment-1",
+      name: "Segment 1",
+      description: "Segment custom background should be ignored.",
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      durationSec: 4,
+      background: {
+        mode: "color",
+        color: "#111827"
+      },
+      slots: {
+        title: {
+          type: "text",
+          text: "Segment 1"
+        }
+      }
+    }
+  ]
+});
+assert.equal(globalBackgroundPayload.scenes[0].background.mode, "asset");
+assert.equal(globalBackgroundPayload.scenes[0].background.assetId, "asset-global-bg");
+assert.equal(validateRenderPayload(globalBackgroundPayload).valid, true, "Global background payload should validate.");
+
+const globalColorBackgroundPayload = projectToRenderPayload({
+  projectName: "Global color background",
+  projectSlug: "global-color-background",
+  templateId: "dynamic-story-vertical",
+  videoStyleId: "dark-tech",
+  videoBackground: {
+    mode: "color",
+    colorType: "gradient",
+    color: "#05070A",
+    gradientFrom: "#05070A",
+    gradientTo: "#22D3EE",
+    gradientDirection: "to-bottom"
+  },
+  features: [
+    {
+      id: "segment-1",
+      name: "Segment 1",
+      description: "Segment custom background should be ignored.",
+      useInVideo: true,
+      sceneTemplateId: "intro-stack",
+      durationSec: 4,
+      background: {
+        mode: "asset",
+        assetId: "ignored-segment-bg"
+      },
+      slots: {
+        title: {
+          type: "text",
+          text: "Segment 1"
+        }
+      }
+    }
+  ]
+});
+assert.equal(globalColorBackgroundPayload.scenes[0].background.mode, "color");
+assert.equal(globalColorBackgroundPayload.scenes[0].background.colorType, "gradient");
+assert.equal(globalColorBackgroundPayload.scenes[0].background.gradientDirection, "to-bottom");
+assert.equal(validateRenderPayload(globalColorBackgroundPayload).valid, true, "Global color background payload should validate.");
 
 const fallbackPayload = projectToRenderPayload();
 assert.equal(validateRenderPayload(fallbackPayload).valid, true, "Fallback payload should remain valid.");

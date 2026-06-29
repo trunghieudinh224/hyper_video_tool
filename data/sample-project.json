@@ -30,12 +30,22 @@
       "durationSec": 7,
       "useInVideo": true,
       "sceneTemplateId": "intro-stack",
+      "sceneTemplateOverride": {
+        "baseTemplateId": "intro-stack",
+        "name": "Short-form dev intro",
+        "aspectRatios": ["9:16", "16:9"],
+        "slots": [
+          { "id": "kicker", "label": "Badge", "type": "text", "colorRole": "accent", "displayStyle": "filled", "layout": { "x": 29, "y": 28, "width": 42, "height": 8 } },
+          { "id": "title", "label": "Title", "type": "text", "colorRole": "text", "displayStyle": "plain", "layout": { "x": 10, "y": 40, "width": 80, "height": 18 } },
+          { "id": "description", "label": "Description", "type": "text", "colorRole": "mutedText", "displayStyle": "plain", "layout": { "x": 15, "y": 59, "width": 70, "height": 16 } },
+          { "id": "tag", "label": "Pill", "type": "tag", "colorRole": "accent", "displayStyle": "pill", "layout": { "x": 20, "y": 79, "width": 60, "height": 8 } }
+        ]
+      },
       "slots": {
-        "logo": { "type": "asset", "assetId": "asset_codegraph_logo", "delay": 0, "animation": "scale-in", "enabled": true },
-        "kicker": { "type": "text", "text": "CODE INTELLIGENCE", "delay": 0, "animation": "fade-up", "enabled": true },
-        "title": { "type": "text", "text": "Codegraph cho AI Agent", "delay": 0.4, "animation": "typewriter", "enabled": true },
-        "description": { "type": "text", "text": "Bản đồ symbol và call graph giúp agent hiểu codebase trước khi sửa.", "delay": 1.5, "animation": "fade-up", "enabled": true },
-        "tag": { "type": "tag", "text": "Local code graph", "delay": 2.5, "animation": "pop", "enabled": true }
+        "kicker": { "type": "text", "text": "CODE GRAPH", "delay": 0, "animation": "fade-up", "displayAnimation": "glow-soft", "fontSize": 16, "fontWeight": 900, "textAlign": "center", "enabled": true },
+        "title": { "type": "text", "text": "CHO AI AGENT", "delay": 0.35, "animation": "fade-up", "fontSize": 34, "fontWeight": 900, "textAlign": "center", "enabled": true },
+        "description": { "type": "text", "text": "Agent hiểu code trước khi sửa.", "delay": 1.1, "animation": "fade-up", "fontSize": 21, "fontWeight": 800, "textAlign": "center", "enabled": true },
+        "tag": { "type": "tag", "text": "Local code graph", "delay": 1.8, "animation": "pop", "displayAnimation": "float-soft", "fontSize": 18, "fontWeight": 800, "textAlign": "center", "enabled": true }
       }
     },
     {
@@ -48,12 +58,22 @@
       "durationSec": 8,
       "useInVideo": true,
       "sceneTemplateId": "intro-stack",
+      "sceneTemplateOverride": {
+        "baseTemplateId": "intro-stack",
+        "name": "Short-form problem hook",
+        "aspectRatios": ["9:16", "16:9"],
+        "slots": [
+          { "id": "kicker", "label": "Badge", "type": "text", "colorRole": "accent", "displayStyle": "filled", "layout": { "x": 34, "y": 24, "width": 32, "height": 8 } },
+          { "id": "title", "label": "Title", "type": "text", "colorRole": "text", "displayStyle": "plain", "layout": { "x": 9, "y": 37, "width": 82, "height": 20 } },
+          { "id": "description", "label": "Description", "type": "text", "colorRole": "mutedText", "displayStyle": "plain", "layout": { "x": 13, "y": 60, "width": 74, "height": 17 } },
+          { "id": "tag", "label": "Pill", "type": "tag", "colorRole": "accent", "displayStyle": "pill", "layout": { "x": 22, "y": 81, "width": 56, "height": 8 } }
+        ]
+      },
       "slots": {
-        "logo": { "type": "asset", "assetId": "asset_codegraph_map", "delay": 0, "animation": "scale-in", "enabled": true },
-        "kicker": { "type": "text", "text": "VẤN ĐỀ", "delay": 0, "animation": "fade-up", "enabled": true },
-        "title": { "type": "text", "text": "Grep tìm chữ, không hiểu flow", "delay": 0.4, "animation": "fade-up", "enabled": true },
-        "description": { "type": "text", "text": "Agent cần biết symbol thật, caller/callee và impact — không chỉ danh sách file chứa cùng một chuỗi.", "delay": 1.5, "animation": "fade-up", "enabled": true },
-        "tag": { "type": "tag", "text": "Context risk", "delay": 2.5, "animation": "pop", "enabled": true }
+        "kicker": { "type": "text", "text": "GREP", "delay": 0, "animation": "fade-up", "displayAnimation": "glow-soft", "fontSize": 20, "fontWeight": 900, "textAlign": "center", "enabled": true },
+        "title": { "type": "text", "text": "KHÔNG HIỂU FLOW", "delay": 0.35, "animation": "fade-up", "fontSize": 33, "fontWeight": 900, "textAlign": "center", "enabled": true },
+        "description": { "type": "text", "text": "Không thấy caller/callee hay impact.", "delay": 1.1, "animation": "fade-up", "fontSize": 21, "fontWeight": 800, "textAlign": "center", "enabled": true },
+        "tag": { "type": "tag", "text": "Context risk", "delay": 1.9, "animation": "pop", "displayAnimation": "float-soft", "fontSize": 18, "fontWeight": 800, "textAlign": "center", "enabled": true }
       }
     },
     {

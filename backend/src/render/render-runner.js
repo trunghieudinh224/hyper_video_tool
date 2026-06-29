@@ -8,7 +8,7 @@ const { config } = require("../config");
 const { getActiveProject, getAsset, saveRenderOutput } = require("../db/database");
 const { isSafeAssetFile } = require("../storage/asset-store");
 const { generateVoiceover } = require("../audio/voiceover");
-const { muxVoiceoverIntoVideo } = require("./media");
+const { muxAudioTracksIntoVideo } = require("./media");
 const { upsertOutputRecord } = require("./output-manifest");
 const { SUPPORTED_TEMPLATE_IDS, validateRenderPayload } = require("./render-payload-schema");
 
@@ -153,6 +153,7 @@ function validateJobPayload(payload) {
 function localizeRenderAssets(payload, compositionDir) {
   const localizedPayload = JSON.parse(JSON.stringify(payload));
   const localizedById = new Map();
+  const localizedBySource = new Map();
   const assetDir = path.join(compositionDir, "assets");
 
   const localize = (asset) => {
@@ -170,6 +171,9 @@ function localizeRenderAssets(payload, compositionDir) {
     fs.copyFileSync(storedAsset.filePath, path.join(assetDir, filename));
     const localUrl = `assets/${filename}`;
     localizedById.set(asset.id, localUrl);
+    if (asset.url) {
+      localizedBySource.set(asset.url, localUrl);
+    }
     return { ...asset, url: localUrl };
   };
 
@@ -180,6 +184,10 @@ function localizeRenderAssets(payload, compositionDir) {
         localizedPayload.assets[key] = localizedPayload.assets[key].map(localize);
       }
     });
+  }
+  const backgroundMusic = localizedPayload.audio && localizedPayload.audio.backgroundMusic;
+  if (backgroundMusic && backgroundMusic.source && localizedBySource.has(backgroundMusic.source)) {
+    backgroundMusic.source = localizedBySource.get(backgroundMusic.source);
   }
   return localizedPayload;
 }
@@ -200,7 +208,18 @@ function prepareWorkDir(jobId, payload) {
   const localizedPayload = localizeRenderAssets(payload, compositionDir);
   fs.writeFileSync(path.join(compositionDir, "render-payload.json"), stableJson(localizedPayload));
 
-  return compositionDir;
+  return { compositionDir, localizedPayload };
+}
+
+function resolveCompositionMediaPath(compositionDir, source = "") {
+  const normalizedSource = String(source || "").trim();
+  if (!normalizedSource) return "";
+  const resolvedCompositionDir = path.resolve(compositionDir);
+  const resolvedSource = path.resolve(resolvedCompositionDir, normalizedSource);
+  if (!resolvedSource.startsWith(`${resolvedCompositionDir}${path.sep}`)) {
+    throw new Error("Background music must resolve inside the composition directory.");
+  }
+  return resolvedSource;
 }
 
 function appendLog(job, type, message) {
@@ -249,7 +268,9 @@ function runHyperFramesRender(compositionDir, outputPath, job) {
 async function executeRenderJob(job, payload) {
   const outputPath = getPayloadOutputPath(job.id, payload);
   const voiceoverEnabled = Boolean(payload.audio && payload.audio.voiceover && payload.audio.voiceover.enabled);
-  const renderOutputPath = voiceoverEnabled ? getVideoOnlyOutputPath(job.id) : outputPath;
+  const backgroundMusicRequested = Boolean(payload.audio && payload.audio.backgroundMusic && payload.audio.backgroundMusic.enabled && payload.audio.backgroundMusic.source);
+  const needsAudioMux = voiceoverEnabled || backgroundMusicRequested;
+  const renderOutputPath = needsAudioMux ? getVideoOnlyOutputPath(job.id) : outputPath;
   const startedAt = Date.now();
   job.status = "running";
   job.progress = 15;
@@ -259,7 +280,11 @@ async function executeRenderJob(job, payload) {
 
   try {
     ensureDirectory(path.dirname(outputPath));
-    const compositionDir = prepareWorkDir(job.id, payload);
+    const { compositionDir, localizedPayload } = prepareWorkDir(job.id, payload);
+    const backgroundMusic = localizedPayload.audio && localizedPayload.audio.backgroundMusic || {};
+    const backgroundMusicPath = backgroundMusic.enabled
+      ? resolveCompositionMediaPath(compositionDir, backgroundMusic.source)
+      : "";
     appendLog(job, "INFO", `Prepared composition workdir: ${relativePath(compositionDir)}.`);
     if (voiceoverEnabled) {
       appendLog(job, "INFO", "Generating voiceover audio.");
@@ -297,14 +322,17 @@ async function executeRenderJob(job, payload) {
       throw error;
     }
 
-    if (voiceoverEnabled) {
-      appendLog(job, "INFO", "Muxing voiceover into MP4 output.");
-      await muxVoiceoverIntoVideo({
+    if (needsAudioMux) {
+      appendLog(job, "INFO", voiceoverEnabled && backgroundMusicPath ? "Muxing voiceover and background music into MP4 output." : voiceoverEnabled ? "Muxing voiceover into MP4 output." : "Muxing background music into MP4 output.");
+      await muxAudioTracksIntoVideo({
         videoPath: renderOutputPath,
-        audioPath: path.join(config.projectRoot, job.audio.voiceover.outputPath),
+        voiceoverPath: voiceoverEnabled ? path.join(config.projectRoot, job.audio.voiceover.outputPath) : "",
+        backgroundMusicPath,
+        backgroundMusicVolume: Number.isFinite(backgroundMusic.volume) ? backgroundMusic.volume : 0.12,
+        backgroundMusicDucking: backgroundMusic.ducking !== false,
         outputPath
       });
-      appendLog(job, "SUCCESS", "Voiceover audio track attached.");
+      appendLog(job, "SUCCESS", voiceoverEnabled && backgroundMusicPath ? "Voiceover and background music audio tracks attached." : voiceoverEnabled ? "Voiceover audio track attached." : "Background music audio track attached.");
     }
 
     const stats = fs.statSync(outputPath);
@@ -385,5 +413,6 @@ module.exports = {
   SUPPORTED_TEMPLATE_IDS,
   getRenderJob,
   localizeRenderAssets,
+  resolveCompositionMediaPath,
   queueRenderJob
 };

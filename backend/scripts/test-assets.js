@@ -17,6 +17,7 @@ const { localizeRenderAssets } = require("../src/render/render-runner");
 const { deleteAssetFile, isSafeAssetFile } = require("../src/storage/asset-store");
 
 const PNG_BYTES = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
+const MP3_BYTES = Buffer.concat([Buffer.from("ID3", "ascii"), Buffer.alloc(13)]);
 
 function multipartRequest(files, fields = {}) {
   const boundary = `----hvt-test-${Date.now()}`;
@@ -46,6 +47,13 @@ async function run() {
   assert.equal(getAsset(asset.id, "another-project"), null);
   assert.equal(isSafeAssetFile(storedAsset.filePath), true);
 
+  const [audioAsset] = await uploadAssets(multipartRequest([
+    { name: "background-music.mp3", type: "audio/mpeg", content: MP3_BYTES }
+  ], { type: "audio" }), "current");
+  assert.equal(audioAsset.type, "audio");
+  assert.equal(audioAsset.mimeType, "audio/mpeg");
+  assert.equal(isSafeAssetFile(getAsset(audioAsset.id, "current").filePath), true);
+
   await assert.rejects(
     uploadAssets(multipartRequest([
       { name: "valid.png", type: "image/png", content: PNG_BYTES },
@@ -53,8 +61,8 @@ async function run() {
     ]), "current"),
     /does not match/
   );
-  assert.deepEqual(listAssets("current").map((item) => item.id), [asset.id]);
-  assert.equal(fs.readdirSync(path.join(testRoot, "uploads", "current")).length, 1);
+  assert.deepEqual(listAssets("current").map((item) => item.id), [audioAsset.id, asset.id]);
+  assert.equal(fs.readdirSync(path.join(testRoot, "uploads", "current")).length, 2);
 
   await assert.rejects(
     uploadAssets(multipartRequest([
@@ -62,7 +70,7 @@ async function run() {
     ]), "current"),
     /too large/
   );
-  assert.equal(fs.readdirSync(path.join(testRoot, "uploads", "current")).length, 1);
+  assert.equal(fs.readdirSync(path.join(testRoot, "uploads", "current")).length, 2);
 
   const compositionDir = path.join(testRoot, "composition");
   fs.mkdirSync(compositionDir, { recursive: true });
@@ -76,6 +84,8 @@ async function run() {
   assert.equal(isSafeAssetFile(path.join(testRoot, "outside.png")), false);
   deleteAssetFile(storedAsset.filePath);
   deleteAsset(asset.id, "current");
+  deleteAssetFile(getAsset(audioAsset.id, "current").filePath);
+  deleteAsset(audioAsset.id, "current");
   assert.equal(listAssets("current").length, 0);
 }
 

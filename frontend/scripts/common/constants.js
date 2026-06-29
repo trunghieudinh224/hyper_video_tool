@@ -13,6 +13,15 @@ const INITIAL_PROJECT_DATA = {
   contentTone: "technical",
   contentLanguage: "vi-VN",
   primaryAssetId: "",
+  videoBackground: {
+    mode: "none",
+    assetId: "",
+    colorType: "solid",
+    color: "#05070A",
+    gradientFrom: "#05070A",
+    gradientTo: "#22D3EE",
+    gradientDirection: "to-right"
+  },
   problemContext: "",
   solutionWhat: "",
   targetUsers: "",

@@ -189,6 +189,28 @@ async function run() {
     "/api/projects/proj_1/assets"
   ]);
 
+  const cleanedProject = context.__AppStorage.removeAssetReferences({
+    ...project,
+    primaryAssetId: "asset_music",
+    videoBackground: { mode: "asset", assetId: "asset_music" },
+    audio: {
+      ...(project.audio || {}),
+      backgroundMusic: {
+        enabled: true,
+        assetId: "asset_music",
+        source: "/api/assets/asset_music/file",
+        volume: 0.2,
+        ducking: true
+      }
+    }
+  }, ["asset_music"]);
+  assert.equal(cleanedProject.primaryAssetId, "");
+  assert.equal(cleanedProject.videoBackground.mode, "none");
+  assert.equal(cleanedProject.videoBackground.assetId, "");
+  assert.equal(cleanedProject.audio.backgroundMusic.enabled, false);
+  assert.equal(cleanedProject.audio.backgroundMusic.assetId, "");
+  assert.equal(cleanedProject.audio.backgroundMusic.source, "");
+
   const savedProject = await context.__AppStorage.saveProjectData({
     ...project,
     projectName: "Codegraph Updated",

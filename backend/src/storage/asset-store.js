@@ -12,7 +12,12 @@ const MIME_CONFIG = {
   "image/gif": { extension: ".gif", kind: "image", matches: (buffer) => ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6)) },
   "video/mp4": { extension: ".mp4", kind: "video", matches: (buffer) => buffer.toString("ascii", 4, 8) === "ftyp" },
   "video/quicktime": { extension: ".mov", kind: "video", matches: (buffer) => buffer.toString("ascii", 4, 8) === "ftyp" },
-  "video/webm": { extension: ".webm", kind: "video", matches: (buffer) => buffer.subarray(0, 4).equals(Buffer.from("1a45dfa3", "hex")) }
+  "video/webm": { extension: ".webm", kind: "video", matches: (buffer) => buffer.subarray(0, 4).equals(Buffer.from("1a45dfa3", "hex")) },
+  "audio/mpeg": { extension: ".mp3", kind: "audio", matches: (buffer) => buffer.toString("ascii", 0, 3) === "ID3" || (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) },
+  "audio/wav": { extension: ".wav", kind: "audio", matches: (buffer) => buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WAVE" },
+  "audio/x-wav": { extension: ".wav", kind: "audio", matches: (buffer) => buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WAVE" },
+  "audio/mp4": { extension: ".m4a", kind: "audio", matches: (buffer) => buffer.toString("ascii", 4, 8) === "ftyp" },
+  "audio/ogg": { extension: ".ogg", kind: "audio", matches: (buffer) => buffer.toString("ascii", 0, 4) === "OggS" }
 };
 
 function createHttpError(statusCode, message, errors = null) {
@@ -33,9 +38,12 @@ function resolveUploadPath(filePath) {
 
 function getAssetType(mimeType, requestedType = "") {
   const kind = MIME_CONFIG[mimeType].kind;
-  if (requestedType && ["logo", "background", "image", "video", "screenshot"].includes(requestedType)) {
+  if (requestedType && ["logo", "background", "image", "video", "screenshot", "audio"].includes(requestedType)) {
     if (requestedType === "video" && kind !== "video") {
       throw createHttpError(422, "Selected asset type video requires a video file.", { type: "mime_mismatch" });
+    }
+    if (requestedType === "audio" && kind !== "audio") {
+      throw createHttpError(422, "Selected asset type audio requires an audio file.", { type: "mime_mismatch" });
     }
     if (["logo", "background", "image", "screenshot"].includes(requestedType) && kind !== "image") {
       throw createHttpError(422, "Selected image asset type requires an image file.", { type: "mime_mismatch" });
@@ -64,7 +72,7 @@ function getSafeUploadDir(projectId) {
 
 function createStagedAsset({ filename, mimeType, projectId }) {
   if (!filename || !MIME_CONFIG[mimeType]) {
-    throw createHttpError(415, "Only PNG, JPEG, WebP, GIF, MP4, MOV and WebM uploads are supported.", { mimeType });
+    throw createHttpError(415, "Only PNG, JPEG, WebP, GIF, MP4, MOV, WebM, MP3, WAV, M4A and OGG uploads are supported.", { mimeType });
   }
   const assetId = `asset_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
   const uploadDir = getSafeUploadDir(projectId);
@@ -77,7 +85,11 @@ function finalizeStagedAsset(staged, requestedType = "") {
   const tempPath = resolveUploadPath(staged.tempPath);
   const stats = fs.statSync(tempPath);
   const mimeConfig = MIME_CONFIG[staged.mimeType];
-  const maxBytes = mimeConfig.kind === "video" ? config.uploadVideoMaxBytes : config.uploadImageMaxBytes;
+  const maxBytes = mimeConfig.kind === "video"
+    ? config.uploadVideoMaxBytes
+    : mimeConfig.kind === "audio"
+      ? config.uploadAudioMaxBytes
+      : config.uploadImageMaxBytes;
   if (stats.size > maxBytes) {
     throw createHttpError(413, "Uploaded asset is too large.", { maxBytes, sizeBytes: stats.size });
   }

@@ -21,6 +21,33 @@ const AppRender = (() => {
     return /^[+-]\d+%$/.test(normalized) ? normalized : fallback;
   };
 
+  const normalizeBackgroundMusic = (projectData = {}, assets = []) => {
+    const audio = projectData.audio && typeof projectData.audio === "object" ? projectData.audio : {};
+    const backgroundMusic = audio.backgroundMusic && typeof audio.backgroundMusic === "object" ? audio.backgroundMusic : {};
+    const assetId = normalizeText(backgroundMusic.assetId);
+    const asset = assetId
+      ? assets.find((item) => item && item.id === assetId && item.type === "audio" && (item.url || item.publicUrl))
+      : null;
+    const source = assetId
+      ? (asset ? (asset.url || asset.publicUrl) : "")
+      : normalizeText(backgroundMusic.source);
+    const volume = Number.isFinite(backgroundMusic.volume) ? backgroundMusic.volume : 0.12;
+
+    return {
+      enabled: Boolean(backgroundMusic.enabled && source),
+      source,
+      volume: Math.max(0, Math.min(1, volume)),
+      ducking: backgroundMusic.ducking !== undefined ? Boolean(backgroundMusic.ducking) : true
+    };
+  };
+
+  const getSceneStartTimeSec = (scenes = [], sceneIndex = 0) => {
+    const safeIndex = Math.max(0, Math.min(Array.isArray(scenes) ? scenes.length : 0, Number.parseInt(sceneIndex, 10) || 0));
+    return (Array.isArray(scenes) ? scenes : [])
+      .slice(0, safeIndex)
+      .reduce((total, scene) => total + Math.max(0, Number(scene && scene.durationSec) || 0), 0);
+  };
+
   const resolveVideoStyle = (projectData = {}) => {
     const styles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
     const preset = styles.find((style) => style.id === projectData.videoStyleId) || styles[0] || null;
@@ -108,7 +135,7 @@ const AppRender = (() => {
   };
 
   const getUsableAssetUrl = (asset) => {
-    const url = normalizeText(asset && asset.url);
+    const url = normalizeText(asset && (asset.url || asset.publicUrl));
     if (!url || url.startsWith("blob:")) {
       return "";
     }
@@ -117,7 +144,7 @@ const AppRender = (() => {
 
   const toDynamicAsset = (asset, fallbackRole) => ({
     id: asset.id || `asset-${fallbackRole || "media"}`,
-    type: asset.type === "video" ? "video" : "image",
+    type: asset.type === "video" ? "video" : asset.type === "audio" ? "audio" : "image",
     role: asset.type || fallbackRole || "media",
     name: asset.name || asset.title || "Video asset",
     url: getUsableAssetUrl(asset),
@@ -148,6 +175,26 @@ const AppRender = (() => {
     return Array.from(merged.values());
   };
 
+  const normalizeVideoBackground = (projectData = {}) => {
+    const background = projectData.videoBackground && typeof projectData.videoBackground === "object"
+      ? projectData.videoBackground
+      : {};
+    if (background.mode === "asset" && background.assetId) {
+      return { mode: "asset", assetId: background.assetId };
+    }
+    if (background.mode === "color") {
+      return {
+        mode: "color",
+        colorType: background.colorType === "gradient" ? "gradient" : "solid",
+        color: background.color || "",
+        gradientFrom: background.gradientFrom || background.color || "",
+        gradientTo: background.gradientTo || "",
+        gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
+      };
+    }
+    return null;
+  };
+
   const getSceneTemplateForSegment = (segment = {}, projectData = {}) => {
     const templates = getProjectSceneTemplates(projectData);
     if (segment.sceneTemplateOverride && Array.isArray(segment.sceneTemplateOverride.slots)) {
@@ -174,7 +221,7 @@ const AppRender = (() => {
           type: "slot",
           headline: segment.name || `Phân đoạn ${index + 1}`,
           body: segment.description || "",
-          background: segment.background || null,
+          background: normalizeVideoBackground(projectData) || segment.background || null,
           sceneTemplate: sceneTemplate ? {
             id: sceneTemplate.id,
             name: sceneTemplate.name,
@@ -329,10 +376,15 @@ const AppRender = (() => {
       || null;
     const logoAsset = logoSource ? toDynamicAsset(logoSource, "logo") : null;
     const mediaAsset = mediaSource ? toDynamicAsset(mediaSource, "image") : createFallbackDynamicMedia(projectData);
+    const globalBackground = normalizeVideoBackground(projectData);
+    const globalBackgroundSource = globalBackground && globalBackground.mode === "asset"
+      ? selectedAssets.find((asset) => asset.id === globalBackground.assetId)
+      : null;
+    const globalBackgroundAsset = globalBackgroundSource ? toDynamicAsset(globalBackgroundSource, globalBackgroundSource.type || "background") : null;
     const dynamicAssets = activeAssets.length
       ? activeAssets.map((asset) => toDynamicAsset(asset, asset.type || "media"))
       : [];
-    [logoAsset, mediaAsset].filter(Boolean).forEach((asset) => {
+    [logoAsset, mediaAsset, globalBackgroundAsset].filter(Boolean).forEach((asset) => {
       if (!dynamicAssets.some((item) => item.id === asset.id)) {
         dynamicAssets.push(asset);
       }
@@ -341,6 +393,7 @@ const AppRender = (() => {
     const milestones = (projectData.milestones || []).slice(0, 5);
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
+    const backgroundMusic = normalizeBackgroundMusic(projectData, selectedAssets);
     const voiceoverScript = normalizeText(voiceover.script) || buildVoiceoverScriptFromProject(projectData);
     const slotScenes = buildDynamicSlotScenes(projectData);
     const videoStyle = resolveVideoStyle(projectData);
@@ -383,10 +436,7 @@ const AppRender = (() => {
           outputPath: voiceover.outputPath || ""
         },
         backgroundMusic: {
-          enabled: false,
-          source: "",
-          volume: 0.12,
-          ducking: true
+          ...backgroundMusic
         },
         soundEffects: {
           enabled: false,
@@ -421,6 +471,7 @@ const AppRender = (() => {
       || normalizeText(activeFeatures[0] && (activeFeatures[0].benefit || activeFeatures[0].description || activeFeatures[0].name || activeFeatures[0].title));
     const audio = projectData.audio || {};
     const voiceover = audio.voiceover || {};
+    const backgroundMusic = normalizeBackgroundMusic(projectData, selectedAssets);
     const voiceoverState = projectData.voiceover || {};
     const sceneScripts = voiceoverState.sceneScripts || {};
     const scriptDisplayMode = projectData.scriptDisplayMode === "stack" ? "stack" : "sequence";
@@ -577,10 +628,7 @@ const AppRender = (() => {
           outputPath: voiceover.outputPath || ""
         },
         backgroundMusic: {
-          enabled: false,
-          source: "",
-          volume: 0.12,
-          ducking: true
+          ...backgroundMusic
         },
         soundEffects: {
           enabled: false,
@@ -974,6 +1022,7 @@ const AppRender = (() => {
 
   return {
     buildRenderPayload,
+    getSceneStartTimeSec,
     getPreflight,
     getRenderJob,
     listBackendOutputs,

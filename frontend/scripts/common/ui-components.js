@@ -37,6 +37,7 @@ const AppUI = (() => {
       list: "fa-list",
       tag: "fa-tag",
       icon: "fa-icons",
+      music: "fa-music",
       volume: "fa-volume-high"
     };
     const icon = icons[name] || icons.grid;
@@ -438,6 +439,182 @@ const AppUI = (() => {
     const green = Number.parseInt(hex.slice(2, 4), 16);
     const blue = Number.parseInt(hex.slice(4, 6), 16);
     return `rgba(${red}, ${green}, ${blue}, ${Math.round(opacity * 100) / 100})`;
+  };
+
+  const hexToRgb = (hexValue) => {
+    const hex = normalizeHexColor(hexValue, "#000000").slice(1);
+    return {
+      r: Number.parseInt(hex.slice(0, 2), 16),
+      g: Number.parseInt(hex.slice(2, 4), 16),
+      b: Number.parseInt(hex.slice(4, 6), 16)
+    };
+  };
+
+  const rgbToHex = ({ r, g, b }) => `#${[r, g, b].map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+
+  const rgbToHsv = ({ r, g, b }) => {
+    const red = r / 255;
+    const green = g / 255;
+    const blue = b / 255;
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    const delta = max - min;
+    let hue = 0;
+
+    if (delta) {
+      if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+      else if (max === green) hue = 60 * (((blue - red) / delta) + 2);
+      else hue = 60 * (((red - green) / delta) + 4);
+    }
+
+    return {
+      h: hue < 0 ? hue + 360 : hue,
+      s: max === 0 ? 0 : delta / max,
+      v: max
+    };
+  };
+
+  const hsvToRgb = ({ h, s, v }) => {
+    const chroma = v * s;
+    const x = chroma * (1 - Math.abs(((h / 60) % 2) - 1));
+    const match = v - chroma;
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+
+    if (h < 60) [red, green, blue] = [chroma, x, 0];
+    else if (h < 120) [red, green, blue] = [x, chroma, 0];
+    else if (h < 180) [red, green, blue] = [0, chroma, x];
+    else if (h < 240) [red, green, blue] = [0, x, chroma];
+    else if (h < 300) [red, green, blue] = [x, 0, chroma];
+    else [red, green, blue] = [chroma, 0, x];
+
+    return {
+      r: (red + match) * 255,
+      g: (green + match) * 255,
+      b: (blue + match) * 255
+    };
+  };
+
+  let activeSharedColorPicker = null;
+  const closeSharedColorPicker = () => {
+    if (activeSharedColorPicker) {
+      activeSharedColorPicker.remove();
+      activeSharedColorPicker = null;
+    }
+    document.removeEventListener("mousedown", handleSharedColorPickerOutside, true);
+    document.removeEventListener("keydown", handleSharedColorPickerKeydown, true);
+  };
+
+  function handleSharedColorPickerOutside(event) {
+    if (event.target.closest(".script-gradient-color-picker, .style-pickr-button, [data-slot-color-picker]")) {
+      return;
+    }
+    closeSharedColorPicker();
+  }
+
+  function handleSharedColorPickerKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeSharedColorPicker();
+    }
+  }
+
+  const openSharedColorPicker = (button, currentColor, onChange, onClear = null) => {
+    closeSharedColorPicker();
+    const initialHex = normalizeHexColor(currentColor || button.dataset.defaultColor || "#ffffff", "#ffffff");
+    const state = rgbToHsv(hexToRgb(initialHex));
+    const picker = document.createElement("div");
+    picker.className = "script-gradient-color-picker";
+    picker.innerHTML = `
+      <div class="script-gradient-color-current" data-gradient-current aria-hidden="true"></div>
+      <div class="script-gradient-color-plane" data-gradient-plane>
+        <span class="script-gradient-color-plane-thumb" data-gradient-plane-thumb aria-hidden="true"></span>
+      </div>
+      <div class="script-gradient-color-hue" data-gradient-hue>
+        <span class="script-gradient-color-hue-thumb" data-gradient-hue-thumb aria-hidden="true"></span>
+      </div>
+      <div class="script-gradient-color-footer">
+        <input class="form-control" data-gradient-hex-input value="${escapeAttribute(initialHex)}" maxlength="7" spellcheck="false">
+        ${onClear ? `<button class="btn btn-secondary btn-sm" type="button" data-gradient-clear>Transparent</button>` : ""}
+        <button class="btn btn-primary btn-sm" type="button" data-gradient-apply>HEXA</button>
+      </div>
+    `;
+    document.body.appendChild(picker);
+    activeSharedColorPicker = picker;
+
+    const current = picker.querySelector("[data-gradient-current]");
+    const plane = picker.querySelector("[data-gradient-plane]");
+    const planeThumb = picker.querySelector("[data-gradient-plane-thumb]");
+    const hue = picker.querySelector("[data-gradient-hue]");
+    const hueThumb = picker.querySelector("[data-gradient-hue-thumb]");
+    const input = picker.querySelector("[data-gradient-hex-input]");
+
+    const getHex = () => rgbToHex(hsvToRgb(state));
+    const render = (emitChange = true) => {
+      const hex = getHex();
+      const hueHex = rgbToHex(hsvToRgb({ h: state.h, s: 1, v: 1 }));
+      current.style.backgroundColor = hex;
+      plane.style.backgroundColor = hueHex;
+      planeThumb.style.left = `${state.s * 100}%`;
+      planeThumb.style.top = `${(1 - state.v) * 100}%`;
+      hueThumb.style.top = `${(state.h / 360) * 100}%`;
+      input.value = hex;
+      if (emitChange) {
+        onChange(hex);
+      }
+    };
+    const setFromPlane = (event) => {
+      const rect = plane.getBoundingClientRect();
+      state.s = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      state.v = 1 - Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+      render();
+    };
+    const setFromHue = (event) => {
+      const rect = hue.getBoundingClientRect();
+      state.h = Math.max(0, Math.min(359, ((event.clientY - rect.top) / rect.height) * 360));
+      render();
+    };
+    const bindDrag = (target, handler) => {
+      target.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        target.setPointerCapture(event.pointerId);
+        handler(event);
+      });
+      target.addEventListener("pointermove", (event) => {
+        if (event.buttons !== 1) return;
+        handler(event);
+      });
+    };
+
+    const buttonRect = button.getBoundingClientRect();
+    picker.style.top = `${Math.min(window.innerHeight - 232, buttonRect.bottom + 8)}px`;
+    picker.style.left = `${Math.min(Math.max(12, buttonRect.left), window.innerWidth - 356)}px`;
+
+    bindDrag(plane, setFromPlane);
+    bindDrag(hue, setFromHue);
+    input.addEventListener("input", () => {
+      if (!/^#?[0-9a-f]{6}$/i.test(input.value.trim())) return;
+      const next = rgbToHsv(hexToRgb(input.value));
+      state.h = next.h;
+      state.s = next.s;
+      state.v = next.v;
+      render();
+    });
+    picker.querySelector("[data-gradient-apply]").addEventListener("click", closeSharedColorPicker);
+    const clearButton = picker.querySelector("[data-gradient-clear]");
+    if (clearButton) {
+      clearButton.addEventListener("click", () => {
+        onClear();
+        closeSharedColorPicker();
+      });
+    }
+    render(false);
+    document.addEventListener("keydown", handleSharedColorPickerKeydown, true);
+    window.setTimeout(() => {
+      document.addEventListener("mousedown", handleSharedColorPickerOutside, true);
+    }, 0);
   };
 
   const applyStylePreviewVariables = (root, style) => {
@@ -949,6 +1126,7 @@ const AppUI = (() => {
     const voiceoverVoices = VOICEOVER_VOICES || {};
     const savedAudio = data.audio || {};
     const savedVoiceover = savedAudio.voiceover || {};
+    const savedBackgroundMusic = savedAudio.backgroundMusic || {};
     const selectedVoiceLanguage = voiceoverVoices[savedVoiceover.language] ? savedVoiceover.language : "vi-VN";
     const selectedVoiceList = voiceoverVoices[selectedVoiceLanguage] || [];
     const selectedVoiceId = selectedVoiceList.some((voice) => voice.id === savedVoiceover.voiceId)
@@ -971,8 +1149,49 @@ const AppUI = (() => {
     const selectedContentType = data.contentType || "feature";
     const selectedTone = data.contentTone || "technical";
     const selectedLanguage = data.contentLanguage || (savedVoiceover.language || "vi-VN");
-    const selectedPrimaryAssetId = data.primaryAssetId || "";
+    const imageBackgroundAssets = projectAssets.filter((asset) => ["background", "image", "screenshot"].includes(asset.type));
+    const videoBackgroundAssets = projectAssets.filter((asset) => asset.type === "video");
+    const audioAssets = projectAssets.filter((asset) => asset.type === "audio");
+    const normalizeVideoBackgroundConfig = (background = {}) => {
+      const source = background && typeof background === "object" ? background : {};
+      const mode = source.mode === "asset" ? "asset" : source.mode === "color" ? "color" : "none";
+      return {
+        mode,
+        assetId: source.assetId || "",
+        colorType: source.colorType === "gradient" ? "gradient" : "solid",
+        color: normalizeHexColor(source.color || (selectedVideoStyle && selectedVideoStyle.colorTheme && selectedVideoStyle.colorTheme.background) || "#05070A", "#05070A"),
+        gradientFrom: normalizeHexColor(source.gradientFrom || source.color || (selectedVideoStyle && selectedVideoStyle.colorTheme && selectedVideoStyle.colorTheme.background) || "#05070A", "#05070A"),
+        gradientTo: normalizeHexColor(source.gradientTo || (selectedVideoStyle && selectedVideoStyle.colorTheme && selectedVideoStyle.colorTheme.accent) || "#22D3EE", "#22D3EE"),
+        gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(source.gradientDirection) ? source.gradientDirection : "to-right"
+      };
+    };
+    const selectedVideoBackground = normalizeVideoBackgroundConfig(data.videoBackground);
+    const selectedVideoBackgroundAsset = projectAssets.find((asset) => asset.id === selectedVideoBackground.assetId);
+    const selectedVideoBackgroundMode = selectedVideoBackground.mode === "asset"
+      ? (selectedVideoBackgroundAsset && selectedVideoBackgroundAsset.type === "video" ? "video" : "asset")
+      : selectedVideoBackground.mode;
+    const initialVideoBackgroundAssets = selectedVideoBackgroundMode === "video" ? videoBackgroundAssets : imageBackgroundAssets;
+    const videoBackgroundColorState = {
+      color: selectedVideoBackground.color,
+      gradientFrom: selectedVideoBackground.gradientFrom,
+      gradientTo: selectedVideoBackground.gradientTo
+    };
+    const renderVideoBackgroundAssetOptions = (assets, selectedAssetId = "") => assets.map((asset) => `
+      <option value="${escapeAttribute(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
+    `).join("");
+    const renderVideoBgPickrField = (key, label, className = "") => `
+      <div class="form-group content-bg-pickr-field ${className}">
+        <span class="form-label">${escapeText(label)}</span>
+        <div class="form-hint">${key === "color" ? "Màu nền đơn khi không dùng tài nguyên." : key === "gradientFrom" ? "Màu bắt đầu của gradient nền." : "Màu kết thúc của gradient nền."}</div>
+        <button class="style-pickr-button" type="button" data-video-bg-color-key="${key}" data-color-label="${escapeAttribute(label)}" aria-label="Chọn màu ${escapeAttribute(label)}">
+          <span class="style-pickr-swatch" aria-hidden="true"></span>
+          <span class="style-pickr-value">${escapeText(videoBackgroundColorState[key])}</span>
+        </button>
+      </div>
+    `;
     const selectedVideoConfig = data.video || {};
+    const selectedBackgroundMusicAssetId = savedBackgroundMusic.assetId || "";
+    const selectedBackgroundMusicVolume = Math.round(Math.max(0, Math.min(1, Number.isFinite(savedBackgroundMusic.volume) ? savedBackgroundMusic.volume : 0.12)) * 100);
     const selectedVideoFormat = renderFormats.find((format) => format.id === selectedVideoConfig.formatId)
       || renderFormats.find((format) => format.templateId === data.templateId)
       || renderFormats.find((format) => format.id === "dynamic-story-vertical")
@@ -993,84 +1212,6 @@ const AppUI = (() => {
       )}
 
       <form id="content-form" class="page-form-stack content-form-stack">
-        <section class="app-section">
-          <div class="app-section-header">
-            <div>
-              <span class="app-section-eyebrow">${renderIcon("palette")} Video Style</span>
-              <span class="app-section-helper">Chọn phong cách màu áp dụng cho preview và video render. Chỉnh preset chi tiết tại trang Template.</span>
-            </div>
-          </div>
-          <div class="app-section-content">
-            <div class="content-video-style-grid" role="radiogroup" aria-label="Video Style áp dụng cho video">
-              ${videoStyles.map((style) => {
-                const resolvedStyle = resolveVideoStyle(style.id, data) || style;
-                const isSelected = selectedVideoStyle && selectedVideoStyle.id === style.id;
-                return `
-                  <label class="content-video-style-option ${isSelected ? "is-selected" : ""}" data-style-id="${escapeAttribute(style.id)}">
-                    <input type="radio" name="video-style" value="${escapeAttribute(style.id)}" ${isSelected ? "checked" : ""}>
-                    <span class="content-video-style-preview" aria-hidden="true">
-                      <span class="content-video-style-surface"></span>
-                      <span class="content-video-style-line is-strong"></span>
-                      <span class="content-video-style-line"></span>
-                      <span class="content-video-style-accent"></span>
-                    </span>
-                    <span class="content-video-style-copy">
-                      <strong>${escapeText(style.name)}</strong>
-                      <small>${escapeText(style.description)}</small>
-                      <span>${escapeText(resolvedStyle.motionStyle)} · ${escapeText(resolvedStyle.backgroundStyle)}${resolvedStyle.isCustomized ? " · đã chỉnh" : ""}</span>
-                    </span>
-                  </label>
-                `;
-              }).join("")}
-            </div>
-          </div>
-        </section>
-
-        <section class="app-section">
-          <div class="app-section-header">
-            <div>
-              <span class="app-section-eyebrow">${renderIcon("volume")} Voiceover toàn video</span>
-              <span class="app-section-helper">Thiết lập giọng đọc mặc định. Nội dung đọc chi tiết sẽ nằm trong từng đoạn ở trang Kịch bản.</span>
-            </div>
-            <label class="render-voiceover-toggle content-voiceover-toggle">
-              <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""}>
-              <span class="render-voiceover-switch" aria-hidden="true"></span>
-              <span class="render-voiceover-toggle-text">Bật voice</span>
-            </label>
-          </div>
-
-          <div class="app-section-content render-voiceover-controls">
-            <div class="form-group">
-              <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
-              <div class="form-hint">Ngôn ngữ dùng để chọn bộ giọng đọc phù hợp.</div>
-              <select id="render-voiceover-language" class="form-control">
-                ${voiceoverLanguages.map((language) => `
-                  <option value="${language.id}" ${language.id === selectedVoiceLanguage ? "selected" : ""}>${language.label}</option>
-                `).join("")}
-              </select>
-            </div>
-            <div class="form-group render-voiceover-voice-field">
-              <label class="form-label" for="render-voiceover-voice">Giọng đọc</label>
-              <div class="form-hint">Giọng sẽ đọc toàn bộ voiceover của video.</div>
-              <select id="render-voiceover-voice" class="form-control">
-                ${selectedVoiceList.map((voice) => `
-                  <option value="${voice.id}" ${voice.id === selectedVoiceId ? "selected" : ""}>${voice.label}</option>
-                `).join("")}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
-              <div class="form-hint">Điều chỉnh tốc độ đọc áp dụng cho toàn bộ video.</div>
-              <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="render-voiceover-volume">Âm lượng <span id="render-voiceover-volume-value">${formatPercentValue(selectedVoiceVolume)}</span></label>
-              <div class="form-hint">Điều chỉnh âm lượng voiceover trước khi ghép vào video.</div>
-              <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}">
-            </div>
-          </div>
-        </section>
-
         <section class="app-section">
           <div class="app-section-header">
             <div>
@@ -1166,15 +1307,154 @@ const AppUI = (() => {
             <span class="char-counter"><span id="count-shortSummary">0</span>/200 ký tự</span>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="field-primaryAssetId">Asset chính</label>
-            <div class="form-hint">Ảnh/logo/video mặc định để template ưu tiên dùng trước.</div>
-            <select id="field-primaryAssetId" class="form-control">
-              <option value="">Chưa chọn asset chính</option>
-              ${projectAssets.map((asset) => `
-                <option value="${asset.id}" ${asset.id === selectedPrimaryAssetId ? "selected" : ""}>${asset.name || asset.id}</option>
-              `).join("")}
-            </select>
+          </div>
+        </section>
+
+        <section class="app-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("palette")} Video Style</span>
+              <span class="app-section-helper">Chọn phong cách màu áp dụng cho preview và video render. Chỉnh preset chi tiết tại trang Template.</span>
+            </div>
+          </div>
+          <div class="app-section-content">
+            <div class="content-video-style-grid" role="radiogroup" aria-label="Video Style áp dụng cho video">
+              ${videoStyles.map((style) => {
+                const resolvedStyle = resolveVideoStyle(style.id, data) || style;
+                const isSelected = selectedVideoStyle && selectedVideoStyle.id === style.id;
+                return `
+                  <label class="content-video-style-option ${isSelected ? "is-selected" : ""}" data-style-id="${escapeAttribute(style.id)}">
+                    <input type="radio" name="video-style" value="${escapeAttribute(style.id)}" ${isSelected ? "checked" : ""}>
+                    <span class="content-video-style-preview" aria-hidden="true">
+                      <span class="content-video-style-surface"></span>
+                      <span class="content-video-style-line is-strong"></span>
+                      <span class="content-video-style-line"></span>
+                      <span class="content-video-style-accent"></span>
+                    </span>
+                    <span class="content-video-style-copy">
+                      <strong>${escapeText(style.name)}</strong>
+                      <small>${escapeText(style.description)}</small>
+                      <span>${escapeText(resolvedStyle.motionStyle)} · ${escapeText(resolvedStyle.backgroundStyle)}${resolvedStyle.isCustomized ? " · đã chỉnh" : ""}</span>
+                    </span>
+                  </label>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="app-section content-video-background-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("image")} Background và nhạc nền video</span>
+              <span class="app-section-helper">Thiết lập nền chung và nhạc nền cho toàn bộ video. Nếu nền để Không thiết lập, từng phân đoạn mới được custom nền riêng.</span>
+            </div>
+          </div>
+          <div class="app-section-content">
+            <div class="content-video-background-controls" aria-label="Nền video chung">
+              <label class="form-group content-bg-mode-field">
+                <span class="form-label">Nền video</span>
+                <span class="form-hint">Chọn nguồn nền chung cho toàn bộ video.</span>
+                <select id="field-videoBackgroundMode" class="form-control">
+                  <option value="none" ${selectedVideoBackgroundMode === "none" ? "selected" : ""}>Không thiết lập</option>
+                  <option value="color" ${selectedVideoBackgroundMode === "color" ? "selected" : ""}>Màu nền</option>
+                  <option value="asset" ${selectedVideoBackgroundMode === "asset" ? "selected" : ""}>Hình ảnh từ tài nguyên</option>
+                  <option value="video" ${selectedVideoBackgroundMode === "video" ? "selected" : ""}>Video từ tài nguyên</option>
+                </select>
+              </label>
+              <label class="form-group content-bg-asset-field content-bg-wide-field">
+                <span class="form-label">Tài nguyên nền</span>
+                <span class="form-hint">Chọn hình ảnh hoặc video đã upload ở trang Tài nguyên.</span>
+                <select id="field-videoBackgroundAssetId" class="form-control" ${initialVideoBackgroundAssets.length ? "" : "disabled"}>
+                  <option value="">${initialVideoBackgroundAssets.length ? "Chưa chọn tài nguyên" : (selectedVideoBackgroundMode === "video" ? "Project chưa có video" : "Project chưa có hình ảnh")}</option>
+                  ${renderVideoBackgroundAssetOptions(initialVideoBackgroundAssets, selectedVideoBackground.assetId)}
+                </select>
+              </label>
+              <label class="form-group content-bg-color-type-field">
+                <span class="form-label">Kiểu màu</span>
+                <span class="form-hint">Dùng màu đơn hoặc gradient cho nền video.</span>
+                <select id="field-videoBackgroundColorType" class="form-control">
+                  <option value="solid" ${selectedVideoBackground.colorType === "solid" ? "selected" : ""}>Màu đơn</option>
+                  <option value="gradient" ${selectedVideoBackground.colorType === "gradient" ? "selected" : ""}>Gradient</option>
+                </select>
+              </label>
+              ${renderVideoBgPickrField("color", "Màu nền", "content-bg-solid-field content-bg-color-field")}
+              ${renderVideoBgPickrField("gradientFrom", "Từ màu", "content-bg-gradient-field content-bg-color-field")}
+              ${renderVideoBgPickrField("gradientTo", "Đến màu", "content-bg-gradient-field content-bg-color-field")}
+              <label class="form-group content-bg-gradient-field content-bg-wide-field">
+                <span class="form-label">Hướng gradient</span>
+                <span class="form-hint">Hướng chuyển màu khi dùng nền gradient.</span>
+                <select id="field-videoBackgroundGradientDirection" class="form-control">
+                  <option value="to-right" ${selectedVideoBackground.gradientDirection === "to-right" ? "selected" : ""}>Trái sang phải</option>
+                  <option value="to-left" ${selectedVideoBackground.gradientDirection === "to-left" ? "selected" : ""}>Phải sang trái</option>
+                  <option value="to-bottom" ${selectedVideoBackground.gradientDirection === "to-bottom" ? "selected" : ""}>Trên xuống dưới</option>
+                  <option value="to-top" ${selectedVideoBackground.gradientDirection === "to-top" ? "selected" : ""}>Dưới lên trên</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="content-background-music-controls" aria-label="Nhạc nền video">
+              <label class="form-group content-bg-music-asset-field">
+                <span class="form-label">Nhạc nền</span>
+                <span class="form-hint">Chọn file âm thanh đã upload, hoặc để trống nếu không dùng nhạc nền.</span>
+                <select id="field-backgroundMusicAssetId" class="form-control" ${audioAssets.length ? "" : "disabled"}>
+                  <option value="">${audioAssets.length ? "Không chọn nhạc nền" : "Chưa có file âm thanh"}</option>
+                  ${audioAssets.map((asset) => `
+                    <option value="${escapeAttribute(asset.id)}" ${asset.id === selectedBackgroundMusicAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
+                  `).join("")}
+                </select>
+              </label>
+              <label class="form-group content-bg-music-volume-field">
+                <span class="form-label">Âm lượng nhạc nền <strong id="field-backgroundMusicVolumeValue">${selectedBackgroundMusicVolume}%</strong></span>
+                <span class="form-hint">Nên để thấp hơn voiceover để không lấn giọng đọc.</span>
+                <input id="field-backgroundMusicVolume" class="render-voiceover-range" type="range" min="0" max="100" step="5" value="${selectedBackgroundMusicVolume}" ${audioAssets.length ? "" : "disabled"}>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="app-section">
+          <div class="app-section-header">
+            <div>
+              <span class="app-section-eyebrow">${renderIcon("volume")} Voiceover toàn video</span>
+              <span class="app-section-helper">Thiết lập giọng đọc mặc định. Nội dung đọc chi tiết sẽ nằm trong từng đoạn ở trang Kịch bản.</span>
+            </div>
+            <label class="render-voiceover-toggle content-voiceover-toggle">
+              <input id="render-voiceover-enabled" type="checkbox" ${savedVoiceover.enabled ? "checked" : ""}>
+              <span class="render-voiceover-switch" aria-hidden="true"></span>
+              <span class="render-voiceover-toggle-text">Bật voice</span>
+            </label>
+          </div>
+
+          <div class="app-section-content render-voiceover-controls">
+            <div class="form-group">
+              <label class="form-label" for="render-voiceover-language">Ngôn ngữ</label>
+              <div class="form-hint">Ngôn ngữ dùng để chọn bộ giọng đọc phù hợp.</div>
+              <select id="render-voiceover-language" class="form-control">
+                ${voiceoverLanguages.map((language) => `
+                  <option value="${language.id}" ${language.id === selectedVoiceLanguage ? "selected" : ""}>${language.label}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="form-group render-voiceover-voice-field">
+              <label class="form-label" for="render-voiceover-voice">Giọng đọc</label>
+              <div class="form-hint">Giọng sẽ đọc toàn bộ voiceover của video.</div>
+              <select id="render-voiceover-voice" class="form-control">
+                ${selectedVoiceList.map((voice) => `
+                  <option value="${voice.id}" ${voice.id === selectedVoiceId ? "selected" : ""}>${voice.label}</option>
+                `).join("")}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
+              <div class="form-hint">Điều chỉnh tốc độ đọc áp dụng cho toàn bộ video.</div>
+              <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="render-voiceover-volume">Âm lượng <span id="render-voiceover-volume-value">${formatPercentValue(selectedVoiceVolume)}</span></label>
+              <div class="form-hint">Điều chỉnh âm lượng voiceover trước khi ghép vào video.</div>
+              <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}">
+            </div>
           </div>
         </section>
       </form>
@@ -1321,9 +1601,183 @@ const AppUI = (() => {
       }
     };
 
-    ["contentType", "contentLanguage", "contentTone", "primaryAssetId"].forEach(id => {
+    ["contentType", "contentLanguage", "contentTone"].forEach(id => {
       bindSimpleSelect(id);
     });
+
+    const videoBackgroundModeInput = document.getElementById("field-videoBackgroundMode");
+    const videoBackgroundAssetInput = document.getElementById("field-videoBackgroundAssetId");
+    const videoBackgroundColorTypeInput = document.getElementById("field-videoBackgroundColorType");
+    const videoBackgroundGradientDirectionInput = document.getElementById("field-videoBackgroundGradientDirection");
+    const videoBackgroundControls = container.querySelector(".content-video-background-controls");
+    const backgroundMusicAssetInput = document.getElementById("field-backgroundMusicAssetId");
+    const backgroundMusicVolumeInput = document.getElementById("field-backgroundMusicVolume");
+    const backgroundMusicVolumeValue = document.getElementById("field-backgroundMusicVolumeValue");
+
+    const collectVideoBackground = () => {
+      const selectedMode = videoBackgroundModeInput ? videoBackgroundModeInput.value : "none";
+      if (selectedMode === "none") {
+        return { mode: "none", assetId: "" };
+      }
+      if (selectedMode === "asset" || selectedMode === "video") {
+        return {
+          mode: "asset",
+          assetId: videoBackgroundAssetInput ? videoBackgroundAssetInput.value : ""
+        };
+      }
+      return {
+        mode: "color",
+        assetId: "",
+        colorType: videoBackgroundColorTypeInput ? videoBackgroundColorTypeInput.value : "solid",
+        color: videoBackgroundColorState.color,
+        gradientFrom: videoBackgroundColorState.gradientFrom,
+        gradientTo: videoBackgroundColorState.gradientTo,
+        gradientDirection: videoBackgroundGradientDirectionInput ? videoBackgroundGradientDirectionInput.value : "to-right"
+      };
+    };
+
+    const saveVideoBackground = () => {
+      AppState.updateProjectField("videoBackground", collectVideoBackground());
+    };
+
+    const syncVideoBackgroundAssetOptions = () => {
+      if (!videoBackgroundModeInput || !videoBackgroundAssetInput) {
+        return;
+      }
+
+      const isVideoMode = videoBackgroundModeInput.value === "video";
+      const isAssetMode = videoBackgroundModeInput.value === "asset" || isVideoMode;
+      const availableAssets = isVideoMode ? videoBackgroundAssets : imageBackgroundAssets;
+      const selectedAssetId = videoBackgroundAssetInput.value || selectedVideoBackground.assetId;
+      const hasSelectedAsset = availableAssets.some((asset) => asset.id === selectedAssetId);
+      const emptyLabel = availableAssets.length
+        ? "Chưa chọn tài nguyên"
+        : (isVideoMode ? "Project chưa có video" : "Project chưa có hình ảnh");
+
+      videoBackgroundAssetInput.innerHTML = `
+        <option value="">${emptyLabel}</option>
+        ${renderVideoBackgroundAssetOptions(availableAssets, hasSelectedAsset ? selectedAssetId : "")}
+      `;
+      videoBackgroundAssetInput.value = hasSelectedAsset ? selectedAssetId : "";
+      videoBackgroundAssetInput.disabled = !isAssetMode || availableAssets.length === 0;
+    };
+
+    const syncVideoBackgroundControls = () => {
+      if (!videoBackgroundModeInput || !videoBackgroundControls) {
+        return;
+      }
+      syncVideoBackgroundAssetOptions();
+      const background = collectVideoBackground();
+      const selectedMode = videoBackgroundModeInput.value;
+      videoBackgroundControls.classList.toggle("is-bg-none", selectedMode === "none");
+      videoBackgroundControls.classList.toggle("is-bg-asset", selectedMode === "asset" || selectedMode === "video");
+      videoBackgroundControls.classList.toggle("is-bg-video", selectedMode === "video");
+      videoBackgroundControls.classList.toggle("is-bg-color", selectedMode === "color");
+      videoBackgroundControls.classList.toggle("is-bg-gradient", background.mode === "color" && background.colorType === "gradient");
+      videoBackgroundControls.classList.toggle("is-bg-solid", background.mode === "color" && background.colorType !== "gradient");
+    };
+
+    const setVideoBgPickrButtonColor = (button, color) => {
+      const normalized = normalizeHexColor(color, "#000000");
+      const swatch = button.querySelector(".style-pickr-swatch");
+      const value = button.querySelector(".style-pickr-value");
+      if (swatch) {
+        swatch.style.backgroundColor = normalized;
+      }
+      if (value) {
+        value.textContent = normalized;
+      }
+    };
+
+    if (videoBackgroundModeInput) {
+      videoBackgroundModeInput.addEventListener("change", () => {
+        syncVideoBackgroundControls();
+        saveVideoBackground();
+      });
+    }
+    [videoBackgroundAssetInput, videoBackgroundColorTypeInput, videoBackgroundGradientDirectionInput].forEach((input) => {
+      if (!input) return;
+      input.addEventListener("change", () => {
+        syncVideoBackgroundControls();
+        saveVideoBackground();
+      });
+    });
+
+    container.querySelectorAll(".style-pickr-button[data-video-bg-color-key]").forEach((button) => {
+      const colorKey = button.getAttribute("data-video-bg-color-key");
+      setVideoBgPickrButtonColor(button, videoBackgroundColorState[colorKey]);
+      const syncPickedColor = (nextColor) => {
+        videoBackgroundColorState[colorKey] = normalizeHexColor(nextColor, videoBackgroundColorState[colorKey]);
+        setVideoBgPickrButtonColor(button, videoBackgroundColorState[colorKey]);
+        syncVideoBackgroundControls();
+        saveVideoBackground();
+      };
+
+      if (typeof Pickr === "undefined") {
+        button.title = "Chọn màu";
+        button.addEventListener("click", () => openSharedColorPicker(button, videoBackgroundColorState[colorKey], syncPickedColor));
+        return;
+      }
+
+      const pickr = Pickr.create({
+        el: button,
+        theme: "classic",
+        default: videoBackgroundColorState[colorKey],
+        useAsButton: true,
+        components: {
+          preview: true,
+          opacity: false,
+          hue: true,
+          interaction: {
+            hex: true,
+            input: true,
+            clear: false,
+            save: false,
+            cancel: false
+          }
+        }
+      });
+      pickr.on("change", (color) => syncPickedColor(color.toHEXA().toString()));
+    });
+
+    syncVideoBackgroundControls();
+
+    const saveBackgroundMusicSettings = () => {
+      const selectedAssetId = backgroundMusicAssetInput ? backgroundMusicAssetInput.value : "";
+      const selectedAsset = audioAssets.find((asset) => asset.id === selectedAssetId);
+      const volumePercent = Math.max(0, Math.min(100, Number.parseInt(backgroundMusicVolumeInput ? backgroundMusicVolumeInput.value : "12", 10) || 0));
+      const currentAudio = AppState.getProjectData().audio || {};
+      AppState.updateProjectField("audio", {
+        ...currentAudio,
+        backgroundMusic: {
+          ...(currentAudio.backgroundMusic || {}),
+          enabled: Boolean(selectedAssetId),
+          assetId: selectedAssetId,
+          source: selectedAsset ? (selectedAsset.url || selectedAsset.publicUrl || "") : "",
+          volume: volumePercent / 100,
+          ducking: currentAudio.backgroundMusic && currentAudio.backgroundMusic.ducking !== undefined
+            ? Boolean(currentAudio.backgroundMusic.ducking)
+            : true
+        }
+      });
+    };
+
+    const syncBackgroundMusicVolumeLabel = () => {
+      if (backgroundMusicVolumeInput && backgroundMusicVolumeValue) {
+        backgroundMusicVolumeValue.textContent = `${Number.parseInt(backgroundMusicVolumeInput.value, 10) || 0}%`;
+      }
+    };
+
+    if (backgroundMusicAssetInput) {
+      backgroundMusicAssetInput.addEventListener("change", saveBackgroundMusicSettings);
+    }
+    if (backgroundMusicVolumeInput) {
+      backgroundMusicVolumeInput.addEventListener("input", () => {
+        syncBackgroundMusicVolumeLabel();
+        saveBackgroundMusicSettings();
+      });
+    }
+    syncBackgroundMusicVolumeLabel();
 
     // Action buttons click handler
     document.getElementById("content-fill-btn").addEventListener("click", async () => {
@@ -1475,6 +1929,24 @@ const AppUI = (() => {
         merged.assetId = fallback.assetId;
       }
       return merged;
+    };
+    const syncSlotTextWithSegmentFallback = (slot, existing = {}, initial = {}, previousFallback = {}, nextFallback = {}) => {
+      if (!["text", "tag"].includes(slot.type)) {
+        return { ...existing };
+      }
+
+      const currentText = String(existing.text || "").trim();
+      const initialText = String(initial.text || "").trim();
+      const previousText = String(previousFallback.text || "").trim();
+      const nextText = String(nextFallback.text || "").trim();
+      if (!nextText || currentText === nextText || previousText === nextText) {
+        return { ...existing };
+      }
+
+      const shouldFollowSegmentText = !currentText || currentText === initialText || currentText === previousText;
+      return shouldFollowSegmentText
+        ? { ...existing, text: nextText }
+        : { ...existing };
     };
     const normalizeSegmentSlots = (feature = {}, templateRef) => {
       const template = templateRef && Array.isArray(templateRef.slots)
@@ -1808,6 +2280,7 @@ const AppUI = (() => {
         : { ...(getSelectableSceneTemplate(activeSceneTemplateId) || {}) };
       let hasCustomSceneTemplateDraft = Boolean(canUseExistingTemplateOverride);
       let activeSlotValues = normalizeSegmentSlots(feature || {}, activeSceneTemplateDraft);
+      let initialSlotValues = JSON.parse(JSON.stringify(activeSlotValues));
       let activeModalSlotId = (activeSceneTemplateDraft.slots && activeSceneTemplateDraft.slots[0] && activeSceneTemplateDraft.slots[0].id) || "";
       const getActiveSceneTemplate = () => activeSceneTemplateDraft && Array.isArray(activeSceneTemplateDraft.slots) ? activeSceneTemplateDraft : getSelectableSceneTemplate(activeSceneTemplateId);
       const getUniqueSlotId = (label, fallback = "slot") => {
@@ -2089,23 +2562,34 @@ const AppUI = (() => {
       const getAssetById = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
       const imageBackgroundAssets = (data.assets || []).filter((asset) => ["background", "image", "screenshot"].includes(asset.type));
       const videoBackgroundAssets = (data.assets || []).filter((asset) => asset.type === "video");
+      const globalVideoBackground = data.videoBackground && data.videoBackground.mode && data.videoBackground.mode !== "none"
+        ? data.videoBackground
+        : null;
+      const isSegmentBackgroundLocked = Boolean(globalVideoBackground);
       const renderBackgroundAssetOptions = (assets, selectedAssetId = "") => assets.map((asset) => `
         <option value="${escapeAttribute(asset.id)}" ${asset.id === selectedAssetId ? "selected" : ""}>${escapeText(asset.name || asset.id)}</option>
       `).join("");
-      const getSegmentBackgroundDefaults = (background = {}) => ({
-        mode: background.mode === "asset" ? "asset" : "color",
-        assetId: background.assetId || "",
-        colorType: background.colorType === "gradient" ? "gradient" : "solid",
-        color: normalizeHexColor(background.color || selectedSlotTheme.background || "#0f172a", selectedSlotTheme.background || "#0f172a"),
-        gradientFrom: normalizeHexColor(background.gradientFrom || background.color || selectedSlotTheme.background || "#0f172a", selectedSlotTheme.background || "#0f172a"),
-        gradientTo: normalizeHexColor(background.gradientTo || selectedSlotTheme.accent || "#1f4fd8", selectedSlotTheme.accent || "#1f4fd8"),
-        gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
-      });
-      let activeSegmentBackground = getSegmentBackgroundDefaults(feature && feature.background);
-      const selectedBackgroundAsset = getAssetById(activeSegmentBackground.assetId);
-      const initialBackgroundMode = activeSegmentBackground.mode === "asset"
+      const getSegmentBackgroundDefaults = (background = {}) => {
+        const source = background && typeof background === "object" ? background : {};
+        return {
+          mode: source.mode === "asset" ? "asset" : source.mode === "color" ? "color" : "none",
+          assetId: source.assetId || "",
+          colorType: source.colorType === "gradient" ? "gradient" : "solid",
+          color: normalizeHexColor(source.color || selectedSlotTheme.background || "#0f172a", selectedSlotTheme.background || "#0f172a"),
+          gradientFrom: normalizeHexColor(source.gradientFrom || source.color || selectedSlotTheme.background || "#0f172a", selectedSlotTheme.background || "#0f172a"),
+          gradientTo: normalizeHexColor(source.gradientTo || selectedSlotTheme.accent || "#1f4fd8", selectedSlotTheme.accent || "#1f4fd8"),
+          gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(source.gradientDirection) ? source.gradientDirection : "to-right"
+        };
+      };
+      const segmentBackgroundSource = feature && feature.background ? feature.background : { mode: "color" };
+      let activeSegmentBackground = getSegmentBackgroundDefaults(segmentBackgroundSource);
+      const activePreviewBackground = getSegmentBackgroundDefaults(globalVideoBackground || activeSegmentBackground);
+      const selectedBackgroundAsset = getAssetById(activePreviewBackground.assetId);
+      const initialBackgroundMode = isSegmentBackgroundLocked
+        ? "global"
+        : activeSegmentBackground.mode === "asset"
         ? (selectedBackgroundAsset && selectedBackgroundAsset.type === "video" ? "video" : "asset")
-        : "color";
+        : activeSegmentBackground.mode;
       const initialBackgroundAssets = initialBackgroundMode === "video" ? videoBackgroundAssets : imageBackgroundAssets;
       const segmentBackgroundColorState = {
         color: activeSegmentBackground.color,
@@ -2134,6 +2618,10 @@ const AppUI = (() => {
         const gradientDirectionInput = document.getElementById("modal-feat-bg-gradient-direction");
 
         const selectedMode = modeInput ? modeInput.value : activeSegmentBackground.mode;
+        if (selectedMode === "global" || selectedMode === "none") {
+          activeSegmentBackground = getSegmentBackgroundDefaults({ mode: "none" });
+          return null;
+        }
         activeSegmentBackground = getSegmentBackgroundDefaults({
           mode: selectedMode === "video" ? "asset" : selectedMode,
           assetId: assetInput ? assetInput.value : activeSegmentBackground.assetId,
@@ -2148,6 +2636,9 @@ const AppUI = (() => {
       };
       const getSegmentBackgroundStyle = (background = activeSegmentBackground) => {
         const config = getSegmentBackgroundDefaults(background);
+        if (config.mode === "none") {
+          return "";
+        }
         if (config.mode === "color" && config.colorType === "gradient") {
           return `background:${escapeText(`linear-gradient(${getGradientDirectionValue(config.gradientDirection)}, ${config.gradientFrom}, ${config.gradientTo})`)};`;
         }
@@ -2455,7 +2946,7 @@ const AppUI = (() => {
 
         const ratio = getModalPreviewRatio(template);
         const draftSegment = getModalDraftSegment();
-        const segmentBackground = collectSegmentBackground();
+        const segmentBackground = getSegmentBackgroundDefaults(globalVideoBackground || collectSegmentBackground());
         const slotValues = collectSlotEditorValues();
         activeSlotValues = slotValues;
         const renderSlot = (slot, index) => {
@@ -2878,9 +3369,13 @@ const AppUI = (() => {
                 <label class="script-bg-mode-field">
                   <span>Nền phân đoạn</span>
                   <select id="modal-feat-bg-mode" class="form-control">
-                    <option value="color" ${initialBackgroundMode === "color" ? "selected" : ""}>Màu nền</option>
-                    <option value="asset" ${initialBackgroundMode === "asset" ? "selected" : ""}>Hình ảnh từ tài nguyên</option>
-                    <option value="video" ${initialBackgroundMode === "video" ? "selected" : ""}>Video từ tài nguyên</option>
+                    ${isSegmentBackgroundLocked ? `
+                      <option value="global" selected>Theo nền chung</option>
+                    ` : `
+                      <option value="color" ${initialBackgroundMode === "color" ? "selected" : ""}>Màu nền</option>
+                      <option value="asset" ${initialBackgroundMode === "asset" ? "selected" : ""}>Hình ảnh từ tài nguyên</option>
+                      <option value="video" ${initialBackgroundMode === "video" ? "selected" : ""}>Video từ tài nguyên</option>
+                    `}
                   </select>
                 </label>
                 <label class="script-bg-asset-field script-bg-wide-field">
@@ -2979,7 +3474,7 @@ const AppUI = (() => {
               const durationSec = Math.min(30, Math.max(3, Number.parseInt(document.getElementById("modal-feat-duration").value, 10) || 8));
               const useInVideo = document.getElementById("modal-feat-use").checked;
               const sceneTemplateId = document.getElementById("modal-feat-scene-template").value;
-              const background = collectSegmentBackground();
+              const background = isSegmentBackgroundLocked ? null : collectSegmentBackground();
               activeSceneTemplateId = sceneTemplateId;
               const slots = collectSlotEditorValues();
               const activeTemplate = getActiveSceneTemplate();
@@ -3001,7 +3496,10 @@ const AppUI = (() => {
 
               const slotFallbackSource = { ...(feature || {}), type, name, description, benefit };
               (activeTemplate.slots || []).forEach((slot) => {
-                slots[slot.id] = mergeSlotValueWithFallback(slot, slots[slot.id] || {}, getDefaultSlotValue(slot, slotFallbackSource));
+                const previousFallback = getDefaultSlotValue(slot, feature || {});
+                const nextFallback = getDefaultSlotValue(slot, slotFallbackSource);
+                const syncedSlot = syncSlotTextWithSegmentFallback(slot, slots[slot.id] || {}, initialSlotValues[slot.id] || {}, previousFallback, nextFallback);
+                slots[slot.id] = mergeSlotValueWithFallback(slot, syncedSlot, nextFallback);
               });
 
               const missingRequiredSlots = validateRequiredSlotValues(activeTemplate, slots);
@@ -3082,17 +3580,18 @@ const AppUI = (() => {
           ${renderBackgroundAssetOptions(availableAssets, hasSelectedAsset ? selectedAssetId : "")}
         `;
         assetInput.value = hasSelectedAsset ? selectedAssetId : "";
-        assetInput.disabled = !isAssetMode || availableAssets.length === 0;
+        assetInput.disabled = isSegmentBackgroundLocked || !isAssetMode || availableAssets.length === 0;
       };
       const syncSegmentBackgroundControls = () => {
         syncSegmentBackgroundAssetOptions();
         const selectedMode = document.getElementById("modal-feat-bg-mode")?.value || "color";
         const background = collectSegmentBackground();
-        modalBody.classList.toggle("is-bg-asset", selectedMode === "asset" || selectedMode === "video");
+        modalBody.classList.toggle("is-bg-locked", isSegmentBackgroundLocked);
+        modalBody.classList.toggle("is-bg-asset", !isSegmentBackgroundLocked && (selectedMode === "asset" || selectedMode === "video"));
         modalBody.classList.toggle("is-bg-video", selectedMode === "video");
-        modalBody.classList.toggle("is-bg-color", selectedMode === "color");
-        modalBody.classList.toggle("is-bg-gradient", background.mode === "color" && background.colorType === "gradient");
-        modalBody.classList.toggle("is-bg-solid", background.mode === "color" && background.colorType !== "gradient");
+        modalBody.classList.toggle("is-bg-color", !isSegmentBackgroundLocked && selectedMode === "color");
+        modalBody.classList.toggle("is-bg-gradient", !isSegmentBackgroundLocked && background && background.mode === "color" && background.colorType === "gradient");
+        modalBody.classList.toggle("is-bg-solid", !isSegmentBackgroundLocked && background && background.mode === "color" && background.colorType !== "gradient");
       };
 
       syncSegmentBackgroundControls();
@@ -4059,6 +4558,9 @@ const AppUI = (() => {
         } else if (type === "video") {
           icon = "fa-video";
           label = "Video";
+        } else if (type === "audio") {
+          icon = "fa-music";
+          label = "Âm thanh";
         } else if (type === "screenshot") {
           icon = "fa-image";
           label = "Hình ảnh";
@@ -4069,11 +4571,18 @@ const AppUI = (() => {
 
       grid.innerHTML = filtered.map(item => {
         let thumbContent = "";
-        if (item.url) {
+        const assetUrl = item.url || item.publicUrl || "";
+        if (assetUrl) {
           if (item.type === "video") {
-            thumbContent = `<video src="${escapeAttribute(item.url)}" muted playsinline preload="metadata"></video>`;
+            thumbContent = `<video src="${escapeAttribute(assetUrl)}" muted playsinline preload="metadata"></video>`;
+          } else if (item.type === "audio") {
+            thumbContent = `
+              <div class="asset-thumb-icon asset-thumb-audio">
+                <i class="fa-solid fa-music" aria-hidden="true"></i>
+              </div>
+            `;
           } else {
-            thumbContent = `<img src="${escapeAttribute(item.url)}" alt="${escapeAttribute(item.name)}">`;
+            thumbContent = `<img src="${escapeAttribute(assetUrl)}" alt="${escapeAttribute(item.name)}">`;
           }
         } else {
           // Fallback SVG icon
@@ -4142,8 +4651,9 @@ const AppUI = (() => {
                       return;
                     }
                   }
-                  AppState.updateProjectField("assets", assets);
-                  renderAssetsScreen(container, AppState.getProjectData());
+                  const nextData = AppStorage.removeAssetReferences({ ...AppState.getProjectData(), assets }, [id]);
+                  AppState.setProjectData(nextData);
+                  renderAssetsScreen(container, nextData);
                   closeModal();
                   showToast("Đã xóa tài nguyên.", "info");
                 }
@@ -4162,11 +4672,14 @@ const AppUI = (() => {
       if (filter === "video") {
         return "video/*";
       }
-      return "image/*,video/*";
+      if (filter === "audio") {
+        return "audio/*";
+      }
+      return "image/*,video/*,audio/*";
     };
 
     container.innerHTML = `
-      ${renderWorkspaceHeader(`Tài nguyên dự án (${list.length})`, "Quản lý hình ảnh, logo và video demo phục vụ việc render.")}
+      ${renderWorkspaceHeader(`Tài nguyên dự án (${list.length})`, "Quản lý hình ảnh, logo, video demo và âm thanh phục vụ việc render.")}
 
       <input type="file" id="real-file-input" class="d-none" accept="${getAcceptAttribute(currentFilter)}" multiple>
 
@@ -4196,11 +4709,12 @@ const AppUI = (() => {
               <button class="filter-btn" data-filter="background">Ảnh nền</button>
               <button class="filter-btn" data-filter="image">Hình ảnh</button>
               <button class="filter-btn" data-filter="video">Video</button>
+              <button class="filter-btn" data-filter="audio">Âm thanh</button>
             </div>
           </div>
 
           <div class="assets-hint-row">
-            <span class="text-subtle">* Chỉ logo, ảnh nền và hình ảnh dùng trong video mới được render. Kéo thả file vào đây để tải lên nhanh.</span>
+            <span class="text-subtle">* Tài nguyên gồm hình ảnh, video và âm thanh. Chọn tab trước khi upload để gán đúng loại file.</span>
           </div>
 
           <div class="assets-grid"></div>
@@ -4254,9 +4768,10 @@ const AppUI = (() => {
                     return;
                   }
                 }
-                AppState.updateProjectField("assets", assets);
+                const nextData = AppStorage.removeAssetReferences({ ...AppState.getProjectData(), assets }, selectedAssetIds);
+                AppState.setProjectData(nextData);
                 selectedAssetIds = [];
-                renderAssetsScreen(container, AppState.getProjectData());
+                renderAssetsScreen(container, nextData);
                 closeModal();
                 showToast("Đã xóa các tài nguyên đã chọn.", "info");
               }
@@ -4340,13 +4855,17 @@ const AppUI = (() => {
       const files = Array.from(e.dataTransfer.files).filter(file => {
         const isImage = file.type.startsWith("image/");
         const isVideo = file.type.startsWith("video/");
+        const isAudio = file.type.startsWith("audio/");
         if (currentFilter === "logo" || currentFilter === "background" || currentFilter === "image") {
           return isImage;
         }
         if (currentFilter === "video") {
           return isVideo;
         }
-        return isImage || isVideo;
+        if (currentFilter === "audio") {
+          return isAudio;
+        }
+        return isImage || isVideo || isAudio;
       });
 
       handleFilesUpload(files);
@@ -5758,28 +6277,31 @@ const AppUI = (() => {
 
   // 7. Scene Preview View
   let autoplayTimer = null;
+  let previewAutoAdvance = true;
   const getPreviewPlayButtonHTML = (isPlaying) => isPlaying ? `
-    <svg class="preview-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/></svg>
-    <span>Dừng</span>
+    <svg class="preview-play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/></svg>
   ` : `
-    <svg class="preview-play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7Z"/></svg>
-    <span>Chạy thử</span>
+    <svg class="preview-play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7Z"/></svg>
   `;
   const getPreviewSoundButtonHTML = (isMuted) => isMuted ? `
-    <svg class="preview-sound-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm13.7 3 2.65-2.65-1.7-1.7L16 10.3l-2.65-2.65-1.7 1.7L14.3 12l-2.65 2.65 1.7 1.7L16 13.7l2.65 2.65 1.7-1.7L17.7 12Z"/></svg>
-    <span>Silent</span>
+    <svg class="preview-sound-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm13.7 3 2.65-2.65-1.7-1.7L16 10.3l-2.65-2.65-1.7 1.7L14.3 12l-2.65 2.65 1.7 1.7L16 13.7l2.65 2.65 1.7-1.7L17.7 12Z"/></svg>
   ` : `
-    <svg class="preview-sound-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm11.5-1.5v9c1.45-.93 2.4-2.55 2.4-4.5s-.95-3.57-2.4-4.5Zm0-4.2v2.25A7.47 7.47 0 0 1 20.5 12a7.47 7.47 0 0 1-5 6.45v2.25A9.6 9.6 0 0 0 22.6 12a9.6 9.6 0 0 0-7.1-8.7Z"/></svg>
-    <span>Âm thanh</span>
+    <svg class="preview-sound-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Zm11.5-1.5v9c1.45-.93 2.4-2.55 2.4-4.5s-.95-3.57-2.4-4.5Zm0-4.2v2.25A7.47 7.47 0 0 1 20.5 12a7.47 7.47 0 0 1-5 6.45v2.25A9.6 9.6 0 0 0 22.6 12a9.6 9.6 0 0 0-7.1-8.7Z"/></svg>
+  `;
+  const getPreviewAutoAdvanceButtonHTML = (isEnabled) => isEnabled ? `
+    <svg class="preview-auto-next-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h7v4H4V6Zm0 8h7v4H4v-4Zm10.3-7.3L20.6 12l-6.3 5.3V14H12v-4h2.3V6.7Z"/></svg>
+  ` : `
+    <svg class="preview-auto-next-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 7h7.6l-2.3-2.3L14 3l5.2 5.2L14 13.4l-1.7-1.7 2.3-2.3H7a3 3 0 0 0 0 6h7v2.4H7A5.4 5.4 0 1 1 7 7Zm11 8.5h-2.8V13H18v2.5Zm0 4h-2.8V17H18v2.5Z"/></svg>
   `;
   let previewSceneTimeSec = 0;
   let previewAudioPlayer = null;
+  let previewBackgroundMusicPlayer = null;
   let previewAudioRequestId = 0;
   let previewAudioMuted = false;
   let previewAudioStatusState = { message: "", tone: "default" };
   const previewAudioCache = new Map();
 
-  const stopPreviewAudio = () => {
+  const stopPreviewVoiceAudio = () => {
     if (!previewAudioPlayer) {
       return;
     }
@@ -5790,18 +6312,36 @@ const AppUI = (() => {
     } catch (_error) {}
   };
 
+  const stopPreviewBackgroundMusic = () => {
+    if (!previewBackgroundMusicPlayer) {
+      return;
+    }
+
+    previewBackgroundMusicPlayer.pause();
+    try {
+      previewBackgroundMusicPlayer.currentTime = 0;
+    } catch (_error) {}
+  };
+
+  const stopPreviewAudio = () => {
+    stopPreviewVoiceAudio();
+    stopPreviewBackgroundMusic();
+  };
+
   const stopPreviewAutoplay = (showMessage = false) => {
     if (!autoplayTimer) {
       stopPreviewAudio();
       return;
     }
 
-    clearInterval(autoplayTimer);
+    cancelAnimationFrame(autoplayTimer);
     autoplayTimer = null;
     stopPreviewAudio();
     const playButton = document.getElementById("btn-play-preview");
     if (playButton) {
       playButton.innerHTML = getPreviewPlayButtonHTML(false);
+      playButton.setAttribute("aria-label", "Chạy thử");
+      playButton.setAttribute("title", "Chạy thử");
       playButton.disabled = false;
     }
     previewAudioStatusState = { message: "Đã dừng voice preview.", tone: "default" };
@@ -5813,6 +6353,39 @@ const AppUI = (() => {
     if (showMessage) {
       showToast("Đã dừng trình chiếu thử.", "info");
     }
+  };
+
+  const updatePreviewPlaybackTime = (timeSec) => {
+    const normalizedTimeSec = Math.max(0, Number(timeSec) || 0);
+    previewSceneTimeSec = normalizedTimeSec;
+
+    const timeRange = document.getElementById("preview-time-range");
+    if (timeRange) {
+      timeRange.value = String(normalizedTimeSec);
+    }
+
+    const timeLabel = document.getElementById("preview-time-label");
+    if (timeLabel) {
+      const durationSec = Number.parseFloat(timeLabel.getAttribute("data-duration-sec")) || 0;
+      timeLabel.textContent = `${normalizedTimeSec.toFixed(1)}s / ${durationSec}s`;
+    }
+
+    const timeBadge = document.getElementById("preview-time-badge");
+    if (timeBadge) {
+      timeBadge.textContent = `${normalizedTimeSec.toFixed(1)}s`;
+    }
+
+    document.querySelectorAll("#preview-canvas .preview-slot[data-delay]").forEach((slotElement) => {
+      const delaySec = Number.parseFloat(slotElement.getAttribute("data-delay")) || 0;
+      const isVisible = delaySec <= normalizedTimeSec;
+      slotElement.classList.toggle("is-visible", isVisible);
+      slotElement.classList.toggle("is-pending", !isVisible);
+    });
+
+    document.querySelectorAll(".preview-slot-timing-item[data-delay]").forEach((slotElement) => {
+      const delaySec = Number.parseFloat(slotElement.getAttribute("data-delay")) || 0;
+      slotElement.classList.toggle("is-visible", delaySec <= normalizedTimeSec);
+    });
   };
 
   const renderPreviewScreen = (container, data) => {
@@ -5835,6 +6408,15 @@ const AppUI = (() => {
     const videoStyles = Array.isArray(VIDEO_STYLES) ? VIDEO_STYLES : [];
     const selectedVideoStyle = resolveVideoStyle(data.videoStyleId, data) || videoStyles[0] || null;
     const currentVoiceover = (data.audio && data.audio.voiceover) || {};
+    const currentBackgroundMusic = (data.audio && data.audio.backgroundMusic) || {};
+    const backgroundMusicAsset = (data.assets || []).find((asset) => asset.id === currentBackgroundMusic.assetId);
+    const backgroundMusicSource = normalizeText(
+      currentBackgroundMusic.assetId
+        ? (backgroundMusicAsset && (backgroundMusicAsset.url || backgroundMusicAsset.publicUrl)) || ""
+        : currentBackgroundMusic.source || ""
+    );
+    const backgroundMusicEnabled = Boolean(currentBackgroundMusic.enabled && backgroundMusicSource);
+    const backgroundMusicVolume = Math.max(0, Math.min(1, Number.isFinite(currentBackgroundMusic.volume) ? currentBackgroundMusic.volume : 0.12));
     const getSceneTemplate = (templateId) => sceneTemplates.find((template) => template.id === templateId)
       || sceneTemplates.find((template) => template.id === data.defaultSceneTemplateId)
       || sceneTemplates[0]
@@ -5952,11 +6534,16 @@ const AppUI = (() => {
         || ""
     );
     const currentSceneVoiceScript = getPreviewSceneVoiceScript(currentScene);
+    const currentSceneStartSec = AppRender.getSceneStartTimeSec(scenes, selectedIdx);
     const defaultAudioStatus = previewAudioMuted
-      ? "Silent đang bật. Preview sẽ chạy không phát voice."
+      ? "Silent đang bật. Preview sẽ chạy không phát âm thanh."
       : currentSceneVoiceScript
-        ? "Voice preview sẽ phát theo phân đoạn khi bấm Chạy thử."
-        : "Scene này chưa có voice script.";
+        ? backgroundMusicEnabled
+          ? "Voice và nhạc nền sẽ phát khi bấm Chạy thử."
+          : "Voice preview sẽ phát theo phân đoạn khi bấm Chạy thử."
+        : backgroundMusicEnabled
+          ? "Nhạc nền sẽ phát khi bấm Chạy thử."
+          : "Scene này chưa có voice script hoặc nhạc nền.";
     const previewAudioStatusMessage = previewAudioStatusState.message || defaultAudioStatus;
     const previewAudioStatusClass = previewAudioStatusState.tone === "active"
       ? " is-active"
@@ -5988,20 +6575,21 @@ const AppUI = (() => {
             </div>
           </div>
 
-          <div class="preview-controls">
-            <button id="btn-prev-scene" class="btn btn-secondary" ${selectedIdx === 0 ? 'disabled' : ''}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-              Cảnh trước
+          <div class="preview-controls" role="group" aria-label="Điều khiển preview">
+            <button id="btn-prev-scene" class="preview-control-btn" type="button" title="Cảnh trước" aria-label="Cảnh trước" ${selectedIdx === 0 ? 'disabled' : ''}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 5.5 8.5 12l7 6.5V5.5Z"/></svg>
             </button>
-            <button id="btn-play-preview" class="btn btn-secondary">
+            <button id="btn-play-preview" class="preview-control-btn is-primary" type="button" title="${autoplayTimer ? "Dừng" : "Chạy thử"}" aria-label="${autoplayTimer ? "Dừng" : "Chạy thử"}">
               ${getPreviewPlayButtonHTML(Boolean(autoplayTimer))}
             </button>
-            <button id="btn-preview-sound" class="btn btn-secondary preview-sound-toggle ${previewAudioMuted ? "is-muted" : ""}" type="button" aria-pressed="${previewAudioMuted ? "true" : "false"}" title="${previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview"}">
+            <button id="btn-preview-sound" class="preview-control-btn preview-sound-toggle ${previewAudioMuted ? "is-muted" : ""}" type="button" aria-pressed="${previewAudioMuted ? "true" : "false"}" aria-label="${previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview"}" title="${previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview"}">
               ${getPreviewSoundButtonHTML(previewAudioMuted)}
             </button>
-            <button id="btn-next-scene" class="btn btn-secondary" ${selectedIdx === scenes.length - 1 ? 'disabled' : ''}>
-              Cảnh sau
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            <button id="btn-preview-auto-next" class="preview-control-btn preview-auto-next-toggle ${previewAutoAdvance ? "is-active" : ""}" type="button" aria-pressed="${previewAutoAdvance ? "true" : "false"}" aria-label="${previewAutoAdvance ? "Đang tự chuyển cảnh" : "Đang lặp lại cảnh hiện tại"}" title="${previewAutoAdvance ? "Tự chuyển cảnh đang bật" : "Lặp lại cảnh hiện tại"}">
+              ${getPreviewAutoAdvanceButtonHTML(previewAutoAdvance)}
+            </button>
+            <button id="btn-next-scene" class="preview-control-btn" type="button" title="Cảnh sau" aria-label="Cảnh sau" ${selectedIdx === scenes.length - 1 ? 'disabled' : ''}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 5.5v13l7-6.5-7-6.5Z"/></svg>
             </button>
           </div>
           <div class="preview-audio-status${previewAudioStatusClass}" id="preview-audio-status">
@@ -6012,7 +6600,7 @@ const AppUI = (() => {
             <div class="preview-time-control">
               <label for="preview-time-range">
                 <span>Thời điểm scene</span>
-                <strong>${previewSceneTimeSec.toFixed(1)}s / ${sceneDurationSec}s</strong>
+                <strong id="preview-time-label" data-duration-sec="${sceneDurationSec}">${previewSceneTimeSec.toFixed(1)}s / ${sceneDurationSec}s</strong>
               </label>
               <input id="preview-time-range" type="range" min="0" max="${sceneDurationSec}" step="0.1" value="${previewSceneTimeSec}">
             </div>
@@ -6055,7 +6643,7 @@ const AppUI = (() => {
             ` : currentScene && currentScene.isSlotScene && currentScene.sceneTemplate ? currentScene.sceneTemplate.slots.map((slot) => {
               const value = currentScene.slots[slot.id] || {};
               return `
-              <div class="preview-slot-timing-item ${Number(value.delay) <= previewSceneTimeSec ? "is-visible" : ""}">
+              <div class="preview-slot-timing-item ${Number(value.delay) <= previewSceneTimeSec ? "is-visible" : ""}" data-delay="${escapeText(value.delay || 0)}">
                 <span>${escapeText(Number(value.delay || 0).toFixed(1))}s</span>
                 <strong>${escapeText(slot.label)}</strong>
                 <small>${escapeText(value.animation || "none")}</small>
@@ -6096,8 +6684,10 @@ const AppUI = (() => {
       }
       button.disabled = isLoading;
       button.innerHTML = isLoading ? `
-        <span>Đang tạo voice...</span>
+        <svg class="preview-play-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10h-3a7 7 0 1 1-7-7V2Z"/></svg>
       ` : getPreviewPlayButtonHTML(Boolean(autoplayTimer));
+      button.setAttribute("aria-label", isLoading ? "Đang tạo voice" : (autoplayTimer ? "Dừng" : "Chạy thử"));
+      button.setAttribute("title", isLoading ? "Đang tạo voice" : (autoplayTimer ? "Dừng" : "Chạy thử"));
     };
 
     const getPreviewAudioCacheKey = (script) => [
@@ -6138,14 +6728,14 @@ const AppUI = (() => {
       return preview.audioUrl;
     };
 
-    const playPreviewSceneAudio = async (scene) => {
+    const playPreviewSceneAudio = async (scene, preparedAudioUrl = "") => {
       if (previewAudioMuted) {
-        setPreviewAudioStatus("Silent đang bật. Preview chạy không phát voice.", "default");
+        setPreviewAudioStatus("Silent đang bật. Preview chạy không phát âm thanh.", "default");
         return true;
       }
       const requestId = ++previewAudioRequestId;
       try {
-        const audioUrl = await loadPreviewSceneAudio(scene);
+        const audioUrl = preparedAudioUrl || await loadPreviewSceneAudio(scene);
         if (!audioUrl || requestId !== previewAudioRequestId) {
           return false;
         }
@@ -6154,14 +6744,69 @@ const AppUI = (() => {
           previewAudioPlayer = new Audio();
           previewAudioPlayer.preload = "auto";
         }
-        stopPreviewAudio();
+        stopPreviewVoiceAudio();
         previewAudioPlayer.src = audioUrl;
         await previewAudioPlayer.play();
-        setPreviewAudioStatus("Đang phát voice của phân đoạn hiện tại.", "active");
+        setPreviewAudioStatus(backgroundMusicEnabled ? "Đang phát voice và nhạc nền." : "Đang phát voice của phân đoạn hiện tại.", "active");
         return true;
       } catch (error) {
         setPreviewAudioStatus(error.message || "Không phát được voice preview.", "error");
         showToast(error.message || "Không phát được voice preview.", "error");
+        return false;
+      }
+    };
+
+    const seekPreviewBackgroundMusic = (timeSec) => {
+      if (!previewBackgroundMusicPlayer) {
+        return;
+      }
+      const duration = Number(previewBackgroundMusicPlayer.duration);
+      const normalizedTime = Math.max(0, Number(timeSec) || 0);
+      const applySeek = () => {
+        const activeDuration = Number(previewBackgroundMusicPlayer.duration);
+        try {
+          previewBackgroundMusicPlayer.currentTime = Number.isFinite(activeDuration) && activeDuration > 0
+            ? normalizedTime % activeDuration
+            : normalizedTime;
+        } catch (_error) {}
+      };
+      if (Number.isFinite(duration) && duration > 0) {
+        applySeek();
+      } else if (typeof previewBackgroundMusicPlayer.addEventListener === "function") {
+        previewBackgroundMusicPlayer.addEventListener("loadedmetadata", applySeek, { once: true });
+      } else {
+        try {
+          previewBackgroundMusicPlayer.currentTime = Number.isFinite(duration) && duration > 0
+          ? normalizedTime % duration
+          : normalizedTime;
+        } catch (_error) {}
+      }
+    };
+
+    const playPreviewBackgroundMusic = async (startTimeSec = 0) => {
+      if (previewAudioMuted || !backgroundMusicEnabled) {
+        return false;
+      }
+      try {
+        if (!previewBackgroundMusicPlayer) {
+          previewBackgroundMusicPlayer = new Audio();
+          previewBackgroundMusicPlayer.preload = "auto";
+          previewBackgroundMusicPlayer.loop = true;
+        }
+        if (previewBackgroundMusicPlayer.__hvtSource !== backgroundMusicSource) {
+          previewBackgroundMusicPlayer.src = backgroundMusicSource;
+          previewBackgroundMusicPlayer.__hvtSource = backgroundMusicSource;
+        }
+        previewBackgroundMusicPlayer.volume = backgroundMusicVolume;
+        seekPreviewBackgroundMusic(startTimeSec);
+        await previewBackgroundMusicPlayer.play();
+        if (!currentSceneVoiceScript) {
+          setPreviewAudioStatus("Đang phát nhạc nền.", "active");
+        }
+        return true;
+      } catch (error) {
+        setPreviewAudioStatus(error.message || "Không phát được nhạc nền preview.", "error");
+        showToast(error.message || "Không phát được nhạc nền preview.", "error");
         return false;
       }
     };
@@ -6204,13 +6849,17 @@ const AppUI = (() => {
     if (timeRange) {
       timeRange.addEventListener("input", () => {
         previewSceneTimeSec = Number.parseFloat(timeRange.value) || 0;
-        renderPreviewScreen(container, AppState.getProjectData());
+        updatePreviewPlaybackTime(previewSceneTimeSec);
+        if (autoplayTimer && backgroundMusicEnabled) {
+          seekPreviewBackgroundMusic(currentSceneStartSec + previewSceneTimeSec);
+        }
       });
     }
 
     // Play/Pause slide
     const playBtn = document.getElementById("btn-play-preview");
     const soundBtn = document.getElementById("btn-preview-sound");
+    const autoNextBtn = document.getElementById("btn-preview-auto-next");
     if (soundBtn) {
       soundBtn.addEventListener("click", async () => {
         previewAudioMuted = !previewAudioMuted;
@@ -6218,16 +6867,35 @@ const AppUI = (() => {
         stopPreviewAudio();
         soundBtn.classList.toggle("is-muted", previewAudioMuted);
         soundBtn.setAttribute("aria-pressed", previewAudioMuted ? "true" : "false");
+        soundBtn.setAttribute("aria-label", previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview");
         soundBtn.setAttribute("title", previewAudioMuted ? "Bật âm thanh preview" : "Tắt âm thanh preview");
         soundBtn.innerHTML = getPreviewSoundButtonHTML(previewAudioMuted);
         if (previewAudioMuted) {
-          setPreviewAudioStatus("Silent đang bật. Preview chạy không phát voice.", "default");
+          setPreviewAudioStatus("Silent đang bật. Preview chạy không phát âm thanh.", "default");
           return;
         }
-        setPreviewAudioStatus(currentSceneVoiceScript ? "Đã bật âm thanh preview." : "Scene này chưa có voice script.", currentSceneVoiceScript ? "active" : "error");
-        if (autoplayTimer && currentSceneVoiceScript) {
-          await playPreviewSceneAudio(currentScene);
+        setPreviewAudioStatus(
+          currentSceneVoiceScript || backgroundMusicEnabled ? "Đã bật âm thanh preview." : "Scene này chưa có voice script hoặc nhạc nền.",
+          currentSceneVoiceScript || backgroundMusicEnabled ? "active" : "error"
+        );
+        if (autoplayTimer) {
+          const voiceAudioUrl = currentSceneVoiceScript ? await loadPreviewSceneAudio(currentScene) : "";
+          await Promise.all([
+            playPreviewBackgroundMusic(currentSceneStartSec + previewSceneTimeSec),
+            voiceAudioUrl ? playPreviewSceneAudio(currentScene, voiceAudioUrl) : Promise.resolve(false)
+          ]);
         }
+      });
+    }
+    if (autoNextBtn) {
+      autoNextBtn.addEventListener("click", () => {
+        previewAutoAdvance = !previewAutoAdvance;
+        autoNextBtn.classList.toggle("is-active", previewAutoAdvance);
+        autoNextBtn.setAttribute("aria-pressed", previewAutoAdvance ? "true" : "false");
+        autoNextBtn.setAttribute("aria-label", previewAutoAdvance ? "Đang tự chuyển cảnh" : "Đang lặp lại cảnh hiện tại");
+        autoNextBtn.setAttribute("title", previewAutoAdvance ? "Tự chuyển cảnh đang bật" : "Lặp lại cảnh hiện tại");
+        autoNextBtn.innerHTML = getPreviewAutoAdvanceButtonHTML(previewAutoAdvance);
+        setPreviewAudioStatus(previewAutoAdvance ? "Hết phân đoạn sẽ tự chuyển cảnh tiếp theo." : "Hết phân đoạn sẽ replay lại cảnh hiện tại.", "default");
       });
     }
     playBtn.addEventListener("click", () => {
@@ -6238,33 +6906,64 @@ const AppUI = (() => {
           if (!previewAudioMuted) {
             setPreviewPlayLoading(true);
           }
-          await playPreviewSceneAudio(currentScene);
-          autoplayTimer = setInterval(async () => {
-            const activeData = AppState.getProjectData();
+          const voiceAudioUrl = !previewAudioMuted && currentSceneVoiceScript
+            ? await loadPreviewSceneAudio(currentScene)
+            : "";
+          await Promise.all([
+            playPreviewBackgroundMusic(currentSceneStartSec + previewSceneTimeSec),
+            voiceAudioUrl ? playPreviewSceneAudio(currentScene, voiceAudioUrl) : Promise.resolve(false)
+          ]);
+          let sceneStartedAt = performance.now() - (previewSceneTimeSec * 1000);
+          const tickPreviewPlayback = (timestamp) => {
             const activePreviewScene = scenes[localIdx] || currentScene;
             const currentDuration = activePreviewScene && activePreviewScene.durationSec ? activePreviewScene.durationSec : 3;
-            previewSceneTimeSec = Math.min(currentDuration, previewSceneTimeSec + 0.5);
-            if (previewSceneTimeSec >= currentDuration) {
-              localIdx = (localIdx + 1) % scenes.length;
+            const nextTimeSec = Math.min(currentDuration, (timestamp - sceneStartedAt) / 1000);
+            updatePreviewPlaybackTime(nextTimeSec);
+            if (nextTimeSec >= currentDuration) {
               previewSceneTimeSec = 0;
-              AppState.setSelectedSceneIndex(localIdx);
-              await playPreviewSceneAudio(scenes[localIdx]);
-            } else {
-              renderPreviewScreen(container, activeData);
+              sceneStartedAt = timestamp;
+              if (previewAutoAdvance) {
+                localIdx = (localIdx + 1) % scenes.length;
+                if (localIdx === 0) {
+                  seekPreviewBackgroundMusic(0);
+                }
+                AppState.setSelectedSceneIndex(localIdx);
+                if (getPreviewSceneVoiceScript(scenes[localIdx])) {
+                  void playPreviewSceneAudio(scenes[localIdx]);
+                } else if (backgroundMusicEnabled) {
+                  setPreviewAudioStatus("Đang phát nhạc nền.", "active");
+                }
+              } else {
+                updatePreviewPlaybackTime(0);
+                const activeSceneStartSec = AppRender.getSceneStartTimeSec(scenes, localIdx);
+                seekPreviewBackgroundMusic(activeSceneStartSec);
+                if (getPreviewSceneVoiceScript(activePreviewScene)) {
+                  void playPreviewSceneAudio(activePreviewScene);
+                } else if (backgroundMusicEnabled) {
+                  setPreviewAudioStatus("Đang phát nhạc nền.", "active");
+                }
+              }
             }
-          }, 500);
+            if (autoplayTimer) {
+              autoplayTimer = requestAnimationFrame(tickPreviewPlayback);
+            }
+          };
+          autoplayTimer = requestAnimationFrame(tickPreviewPlayback);
           if (!previewAudioMuted) {
             setPreviewPlayLoading(false);
           }
           const activePlayBtn = document.getElementById("btn-play-preview");
           if (activePlayBtn) {
             activePlayBtn.innerHTML = getPreviewPlayButtonHTML(true);
+            activePlayBtn.setAttribute("aria-label", "Dừng");
+            activePlayBtn.setAttribute("title", "Dừng");
           }
           showToast("Bắt đầu chạy trình chiếu các cảnh quay...");
         };
 
         let localIdx = selectedIdx;
         previewSceneTimeSec = 0;
+        updatePreviewPlaybackTime(0);
         startPreview();
       }
     });
@@ -6291,22 +6990,28 @@ const AppUI = (() => {
       border: "#334155"
     };
     const getAsset = (assetId) => (data.assets || []).find((asset) => asset.id === assetId);
-    const getSegmentBackgroundDefaults = (background = {}) => ({
-      mode: background.mode === "asset" ? "asset" : "color",
-      assetId: background.assetId || "",
-      colorType: background.colorType === "gradient" ? "gradient" : "solid",
-      color: background.color || theme.background,
-      gradientFrom: background.gradientFrom || background.color || theme.background,
-      gradientTo: background.gradientTo || theme.accent,
-      gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(background.gradientDirection) ? background.gradientDirection : "to-right"
-    });
+    const globalVideoBackground = data.videoBackground && data.videoBackground.mode && data.videoBackground.mode !== "none"
+      ? data.videoBackground
+      : null;
+    const getSegmentBackgroundDefaults = (background = {}) => {
+      const source = background && typeof background === "object" ? background : {};
+      return {
+        mode: source.mode === "asset" ? "asset" : source.mode === "color" ? "color" : "none",
+        assetId: source.assetId || "",
+        colorType: source.colorType === "gradient" ? "gradient" : "solid",
+        color: source.color || theme.background,
+        gradientFrom: source.gradientFrom || source.color || theme.background,
+        gradientTo: source.gradientTo || theme.accent,
+        gradientDirection: ["to-right", "to-left", "to-bottom", "to-top"].includes(source.gradientDirection) ? source.gradientDirection : "to-right"
+      };
+    };
     const getGradientDirectionValue = (direction) => ({
       "to-right": "to right",
       "to-left": "to left",
       "to-bottom": "to bottom",
       "to-top": "to top"
     })[direction] || "to right";
-    const segmentBackground = getSegmentBackgroundDefaults(scene.segment && scene.segment.background);
+    const segmentBackground = getSegmentBackgroundDefaults(globalVideoBackground || (scene.segment && scene.segment.background));
     ["minimal", "dynamic", "soft", "sharp"].forEach((style) => canvas.classList.remove(`motion-style-${style}`));
     ["dark-grid", "clean-surface", "media-focus", "plain", "subtle-grid"].forEach((style) => canvas.classList.remove(`background-style-${style}`));
     canvas.classList.add(`motion-style-${videoStyle && videoStyle.motionStyle || "dynamic"}`);
@@ -6383,7 +7088,7 @@ const AppUI = (() => {
       const fontWeight = normalizePreviewFontWeight(value.fontWeight, slot.type === "tag" ? 800 : 900);
       const textAlign = normalizePreviewTextAlign(value.textAlign);
       const textColor = normalizePreviewTextColor(value.textColor) || getPreviewRoleColor(slot);
-      return `${fontSize ? `font-size:${fontSize}px;` : ""}font-weight:${fontWeight};text-align:${textAlign};justify-content:${textAlign === "left" ? "flex-start" : textAlign === "right" ? "flex-end" : "center"};--preview-slot-color:${textColor};`;
+      return `${fontSize ? `font-size:calc(${fontSize}px * var(--preview-font-scale, 1));` : ""}font-weight:${fontWeight};text-align:${textAlign};justify-content:${textAlign === "left" ? "flex-start" : textAlign === "right" ? "flex-end" : "center"};--preview-slot-color:${textColor};`;
     };
     const getSlotTextValue = (slot, value) => {
       if (slot.type === "list") {
@@ -6495,7 +7200,7 @@ const AppUI = (() => {
       `;
     };
 
-    canvas.style.setProperty("--preview-bg", scene.segment && scene.segment.background ? "transparent" : theme.background);
+    canvas.style.setProperty("--preview-bg", segmentBackground.mode !== "none" ? "transparent" : theme.background);
     canvas.style.setProperty("--preview-surface", theme.surface);
     canvas.style.setProperty("--preview-surface-alt", theme.surfaceAlt || theme.surface);
     canvas.style.setProperty("--preview-text", theme.text);
@@ -6504,6 +7209,9 @@ const AppUI = (() => {
     canvas.style.setProperty("--preview-accent-soft", theme.accentSoft || theme.accent);
     canvas.style.setProperty("--preview-border", theme.border);
     canvas.style.setProperty("--preview-glow", theme.glow || "transparent");
+    const canvasRect = canvas.getBoundingClientRect();
+    const previewFontScale = Math.min(1, Math.max(0.72, (canvasRect && canvasRect.width ? canvasRect.width : 320) / 320));
+    canvas.style.setProperty("--preview-font-scale", previewFontScale.toFixed(3));
     canvas.style.backgroundColor = segmentBackground.mode === "color" && segmentBackground.colorType === "solid"
       ? segmentBackground.color
       : theme.background;
@@ -6522,7 +7230,7 @@ const AppUI = (() => {
     canvas.innerHTML = `
       ${renderSegmentBackgroundLayer()}
       ${body}
-      <div class="preview-time-badge">${currentTimeSec.toFixed(1)}s</div>
+      <div class="preview-time-badge" id="preview-time-badge">${currentTimeSec.toFixed(1)}s</div>
     `;
   };
 
