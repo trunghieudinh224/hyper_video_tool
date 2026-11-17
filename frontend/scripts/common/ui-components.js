@@ -4,9 +4,11 @@ const AppUI = (() => {
   // DOM Cache
   const DOM = {};
   const VOICE_ESTIMATE_BASE_WPM = 185;
+  const MIN_SLOT_DELAY_SEC = 0.1;
 
   // Internal view states
   let templateRatioFilter = "9:16";
+  let activeAssetsFilter = "all";
   let selectedScriptSegmentId = null;
   let modalTimeoutId = null;
 
@@ -282,7 +284,7 @@ const AppUI = (() => {
     ].join(";");
   };
 
-  const normalizeSubtitleFontSize = (value, fallback = 11) => {
+  const normalizeSubtitleFontSize = (value, fallback = 16) => {
     const parsed = Number.parseInt(value, 10);
     return Math.max(8, Math.min(48, Number.isFinite(parsed) ? parsed : fallback));
   };
@@ -299,11 +301,14 @@ const AppUI = (() => {
   };
 
   const normalizeSubtitleLayout = (layout = {}) => {
-    const width = Math.max(20, Math.min(92, Number(layout.width) || 90));
-    const height = Math.max(6, Math.min(34, Number(layout.height) || 14));
+    const source = layout && typeof layout === "object" ? layout : {};
+    const width = Math.max(20, Math.min(92, Number(source.width) || 90));
+    const height = Math.max(6, Math.min(34, Number(source.height) || 14));
+    const x = Number.isFinite(Number(source.x)) ? Number(source.x) : 5;
+    const y = Number.isFinite(Number(source.y)) ? Number(source.y) : 74;
     return {
-      x: Math.max(0, Math.min(100 - width, Number(layout.x) || 5)),
-      y: Math.max(0, Math.min(100 - height, Number(layout.y) || 74)),
+      x: Math.max(0, Math.min(100 - width, x)),
+      y: Math.max(0, Math.min(100 - height, y)),
       width,
       height
     };
@@ -314,7 +319,7 @@ const AppUI = (() => {
     mode: ["voice", "custom", "srt"].includes(subtitles.mode) ? subtitles.mode : "voice",
     style: ["bottom-caption", "karaoke", "minimal"].includes(subtitles.style) ? subtitles.style : "bottom-caption",
     text: String(subtitles.text || ""),
-    fontSize: normalizeSubtitleFontSize(subtitles.fontSize, 11),
+    fontSize: normalizeSubtitleFontSize(subtitles.fontSize, 16),
     fontWeight: normalizeSubtitleFontWeight(subtitles.fontWeight, 500),
     maxLines: normalizeSubtitleMaxLines(subtitles.maxLines, 3),
     layout: normalizeSubtitleLayout(subtitles.layout)
@@ -329,10 +334,6 @@ const AppUI = (() => {
       `height:${normalized.height}%`
     ].join(";");
   };
-
-  const renderSubtitleSkeletonLines = (lineCount = 3) => Array.from({ length: normalizeSubtitleMaxLines(lineCount, 3) })
-    .map((_, index) => `<span style="width:${index === 0 ? 100 : index === 1 ? 86 : 72}%;"></span>`)
-    .join("");
 
   const getSceneTemplateAspectClass = (template, ratio = "") => {
     if (ratio === "16:9") {
@@ -640,7 +641,7 @@ const AppUI = (() => {
   };
 
   const countVoiceWords = (value) => {
-    const text = normalizeText(value);
+    const text = normalizeText(String(value || "").replace(/\[(?:\/)?(?:vi|en|ja)\]/gi, ""));
     if (!text) {
       return 0;
     }
@@ -1407,7 +1408,7 @@ const AppUI = (() => {
               <label class="form-group content-bg-music-volume-field">
                 <span class="form-label">Âm lượng nhạc nền <strong id="field-backgroundMusicVolumeValue">${selectedBackgroundMusicVolume}%</strong></span>
                 <span class="form-hint">Nên để thấp hơn voiceover để không lấn giọng đọc.</span>
-                <input id="field-backgroundMusicVolume" class="render-voiceover-range" type="range" min="0" max="100" step="5" value="${selectedBackgroundMusicVolume}" ${audioAssets.length ? "" : "disabled"}>
+                <input id="field-backgroundMusicVolume" class="render-voiceover-range" type="range" min="0" max="100" step="1" value="${selectedBackgroundMusicVolume}" ${audioAssets.length ? "" : "disabled"}>
               </label>
             </div>
           </div>
@@ -1448,12 +1449,12 @@ const AppUI = (() => {
             <div class="form-group">
               <label class="form-label" for="render-voiceover-rate">Tốc độ đọc <span id="render-voiceover-rate-value">${formatPercentValue(selectedVoiceRate)}</span></label>
               <div class="form-hint">Điều chỉnh tốc độ đọc áp dụng cho toàn bộ video.</div>
-              <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="5" value="${selectedVoiceRate}">
+              <input id="render-voiceover-rate" class="render-voiceover-range" type="range" min="-30" max="50" step="1" value="${selectedVoiceRate}">
             </div>
             <div class="form-group">
               <label class="form-label" for="render-voiceover-volume">Âm lượng <span id="render-voiceover-volume-value">${formatPercentValue(selectedVoiceVolume)}</span></label>
               <div class="form-hint">Điều chỉnh âm lượng voiceover trước khi ghép vào video.</div>
-              <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="5" value="${selectedVoiceVolume}">
+              <input id="render-voiceover-volume" class="render-voiceover-range" type="range" min="-50" max="50" step="1" value="${selectedVoiceVolume}">
             </div>
           </div>
         </section>
@@ -1890,7 +1891,7 @@ const AppUI = (() => {
       const primaryAssetId = data.primaryAssetId || ((data.assets || [])[0] && (data.assets || [])[0].id) || "";
       const base = {
         type: slot.type,
-        delay: Number.isFinite(slot.defaultDelay) ? slot.defaultDelay : 0,
+        delay: Number.isFinite(slot.defaultDelay) ? Math.max(MIN_SLOT_DELAY_SEC, slot.defaultDelay) : MIN_SLOT_DELAY_SEC,
         animation: "none",
         displayAnimation: "none"
       };
@@ -1965,7 +1966,7 @@ const AppUI = (() => {
         normalized[slot.id] = {
           ...merged,
           type: slot.type,
-          delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
+          delay: Number.isFinite(delay) ? Math.max(MIN_SLOT_DELAY_SEC, delay) : fallback.delay,
           animation: existing.animation || fallback.animation || "none",
           displayAnimation: existing.displayAnimation || fallback.displayAnimation || "none",
           enabled: true
@@ -2283,6 +2284,10 @@ const AppUI = (() => {
       let initialSlotValues = JSON.parse(JSON.stringify(activeSlotValues));
       let activeModalSlotId = (activeSceneTemplateDraft.slots && activeSceneTemplateDraft.slots[0] && activeSceneTemplateDraft.slots[0].id) || "";
       const getActiveSceneTemplate = () => activeSceneTemplateDraft && Array.isArray(activeSceneTemplateDraft.slots) ? activeSceneTemplateDraft : getSelectableSceneTemplate(activeSceneTemplateId);
+      const getActiveSceneTemplateSlotCount = () => {
+        const template = getActiveSceneTemplate();
+        return Array.isArray(template && template.slots) ? template.slots.length : 0;
+      };
       const getUniqueSlotId = (label, fallback = "slot") => {
         const base = String(label || fallback)
           .toLowerCase()
@@ -2532,7 +2537,7 @@ const AppUI = (() => {
                 `).join("")}
               </select>
             </label>
-            ${renderSlotColorButton("textColor", "Màu chữ", textColor, getDefaultSlotTextColor(slot), { emptyLabel: "Theo Video Style" })}
+            ${renderSlotColorButton("textColor", "Màu chữ", textColor, getDefaultSlotTextColor(slot), { emptyLabel: getDefaultSlotTextColor(slot) })}
           </div>
         `;
       };
@@ -2694,7 +2699,7 @@ const AppUI = (() => {
           const next = {
             ...current,
             type: slot.type,
-            delay: Number.isFinite(delay) ? Math.max(0, delay) : current.delay,
+            delay: Number.isFinite(delay) ? Math.max(MIN_SLOT_DELAY_SEC, delay) : Math.max(MIN_SLOT_DELAY_SEC, current.delay || MIN_SLOT_DELAY_SEC),
             animation: animationInput ? animationInput.value : (current.animation || "none"),
             displayAnimation: displayAnimationInput ? displayAnimationInput.value : (current.displayAnimation || "none"),
             enabled: true
@@ -2832,7 +2837,6 @@ const AppUI = (() => {
               return `
                 <section class="scene-template-slot-row scene-slot-editor-item ${slot.id === activeModalSlotId ? "is-selected" : ""}" data-slot-id="${slot.id}">
                   <div class="scene-template-slot-head scene-slot-editor-head">
-                    <span class="scene-template-slot-number scene-slot-number">${index + 1}</span>
                     <div class="scene-slot-item-select-wrap">
                       ${renderSceneItemSelect(slot)}
                     </div>
@@ -2851,7 +2855,7 @@ const AppUI = (() => {
                   <div class="scene-slot-controls">
                     <label>
                       <span>Delay</span>
-                      <input type="number" class="form-control" data-slot-field="delay" min="0" max="30" step="0.1" value="${escapeText(value.delay)}">
+                      <input type="number" class="form-control" data-slot-field="delay" min="${MIN_SLOT_DELAY_SEC}" max="30" step="0.1" value="${escapeText(Math.max(MIN_SLOT_DELAY_SEC, Number(value.delay) || MIN_SLOT_DELAY_SEC))}">
                     </label>
                     <label>
                       <span>Appear animation</span>
@@ -2919,6 +2923,12 @@ const AppUI = (() => {
         if (!config.enabled) {
           return "";
         }
+        const firstSrtCue = config.mode === "srt" ? parsePreviewSrt(config.text)[0] : null;
+        const sample = config.mode === "custom"
+          ? config.text
+          : config.mode === "srt"
+            ? firstSrtCue && firstSrtCue.text
+            : document.getElementById("modal-feat-voice")?.value || feature?.voiceoverScript || "";
         return `
           <div
             class="script-segment-preview-subtitle"
@@ -2928,10 +2938,7 @@ const AppUI = (() => {
             title="Kéo để đổi vị trí phụ đề"
             data-preview-subtitle="true"
           >
-            <strong>Phụ đề</strong>
-            <span class="script-segment-subtitle-skeleton" aria-hidden="true">
-              ${renderSubtitleSkeletonLines(config.maxLines)}
-            </span>
+            <strong>${escapeText(String(sample || "Chưa có nội dung phụ đề").replace(/\[(?:\/)?(?:vi|en|ja)\]/gi, "").slice(0, 120))}</strong>
             <i class="scene-template-resize-handle script-segment-resize-handle" data-subtitle-resize-handle="se" aria-hidden="true"></i>
           </div>
         `;
@@ -2973,7 +2980,7 @@ const AppUI = (() => {
             ? (normalizeSlotTextColor(value.textColor) || getDefaultSlotTextColor(slot))
             : "";
           const slotBackgroundColor = !isTextSceneItemType(slot.type)
-            ? (normalizeSlotBackgroundColor(value.backgroundColor) || getSlotStyleBackground(slot))
+            ? (normalizeSlotBackgroundColor(value.backgroundColor) || "transparent")
             : getSlotStyleBackground(slot);
           const slotBorderColor = normalizeSlotBorderColor(value.borderColor) || getDefaultSlotBorderColor();
           const slotBorderWidth = !isTextSceneItemType(slot.type) ? getSlotBorderWidthPx(value.borderWidth) : 1;
@@ -2988,7 +2995,6 @@ const AppUI = (() => {
               draggable="true"
               data-preview-slot-id="${escapeAttribute(slot.id)}"
             >
-              <b class="scene-template-preview-index script-segment-preview-index">${index + 1}</b>
               ${getModalSlotPreviewContent(slot, value, draftSegment)}
               <i class="scene-template-resize-handle script-segment-resize-handle" data-resize-handle="se" aria-hidden="true"></i>
             </div>
@@ -3038,6 +3044,10 @@ const AppUI = (() => {
         if (slotEditor) {
           slotEditor.innerHTML = renderSlotEditorHTML();
         }
+        const slotCount = document.getElementById("scene-slot-count");
+        if (slotCount) {
+          slotCount.textContent = getActiveSceneTemplateSlotCount();
+        }
         renderModalPreview();
         initializeSlotColorPickers();
       };
@@ -3078,7 +3088,7 @@ const AppUI = (() => {
           sourceItemLabel: sceneItem.label || slotId,
           type: sceneItem.type || "text",
           required: false,
-          defaultDelay: 0,
+          defaultDelay: MIN_SLOT_DELAY_SEC,
           allowedAnimations: ["fade-up", "scale-in", "pop", "slide-left"],
           colorRole: sceneItem.colorRole,
           displayStyle: sceneItem.displayStyle,
@@ -3275,6 +3285,13 @@ const AppUI = (() => {
               <div class="form-group">
                 <label class="form-label" for="modal-feat-voice">Kịch bản giọng đọc</label>
                 <textarea id="modal-feat-voice" class="form-control" rows="6" placeholder="Câu đọc riêng cho đoạn này...">${isEdit ? escapeText(feature.voiceoverScript) : ''}</textarea>
+                <div class="script-voice-language-tools" aria-label="Đánh dấu ngôn ngữ cho đoạn được chọn">
+                  <span>Chọn từ cần đổi giọng:</span>
+                  <button class="btn btn-secondary btn-sm" type="button" data-voice-lang="vi">VI</button>
+                  <button class="btn btn-secondary btn-sm" type="button" data-voice-lang="en">EN</button>
+                  <button class="btn btn-secondary btn-sm" type="button" data-voice-lang="ja">JA</button>
+                </div>
+                <div class="form-hint">Ví dụ: Xin chào [en]CodeGraph[/en]. Chữ Nhật tự chuyển sang giọng Nhật; từ English trong câu Việt cần đánh dấu.</div>
                 <div id="modal-feat-voice-estimate" class="script-voice-estimate" aria-live="polite"></div>
                 <div class="script-voice-preview">
                   <button id="modal-feat-voice-preview-btn" class="btn btn-secondary btn-sm" type="button">
@@ -3442,7 +3459,7 @@ const AppUI = (() => {
             <div class="scene-template-slot-editor scene-slot-editor-panel">
               <div class="scene-template-slot-toolbar scene-slot-editor-title">
                 <div>
-                  <strong>Slots</strong>
+                  <strong>Slots <span id="scene-slot-count" class="scene-slot-count">${getActiveSceneTemplateSlotCount()}</span></strong>
                   <span>Danh sách slot trong phân đoạn.</span>
                 </div>
               </div>
@@ -4289,6 +4306,22 @@ const AppUI = (() => {
           updateVoiceEstimate();
           clearVoicePreview();
         });
+        modalBody.querySelectorAll("[data-voice-lang]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const start = voiceInput.selectionStart;
+            const end = voiceInput.selectionEnd;
+            if (start === end) {
+              showToast("Chọn từ hoặc cụm từ trong kịch bản trước.", "info");
+              voiceInput.focus();
+              return;
+            }
+            const language = button.dataset.voiceLang;
+            const selectedText = voiceInput.value.slice(start, end);
+            voiceInput.setRangeText(`[${language}]${selectedText}[/${language}]`, start, end, "select");
+            voiceInput.dispatchEvent(new Event("input", { bubbles: true }));
+            voiceInput.focus();
+          });
+        });
       }
       if (durationInput) {
         durationInput.addEventListener("input", updateVoiceEstimate);
@@ -4503,7 +4536,7 @@ const AppUI = (() => {
   // 5. Asset Manager View
   const renderAssetsScreen = (container, data) => {
     const list = data.assets || [];
-    let currentFilter = "all";
+    let currentFilter = activeAssetsFilter;
     let selectedAssetIds = [];
 
     const filterList = (filter) => {
@@ -4609,6 +4642,7 @@ const AppUI = (() => {
 
             </div>
             <div class="asset-actions">
+              ${assetUrl && ["video", "audio"].includes(item.type) ? `<button class="asset-action-btn btn-inspect-asset" data-id="${escapeAttribute(item.id)}" type="button" aria-label="Xem chi tiết ${escapeAttribute(item.name)}">Xem chi tiết</button>` : ""}
               <button class="asset-action-btn btn-delete-asset" data-id="${escapeAttribute(item.id)}" type="button">Xóa</button>
             </div>
           </div>
@@ -4704,12 +4738,12 @@ const AppUI = (() => {
         <div class="app-section-content assets-section-content">
           <div class="assets-filter-row">
             <div class="filter-group">
-              <button class="filter-btn active" data-filter="all">Tất cả</button>
-              <button class="filter-btn" data-filter="logo">Logo</button>
-              <button class="filter-btn" data-filter="background">Ảnh nền</button>
-              <button class="filter-btn" data-filter="image">Hình ảnh</button>
-              <button class="filter-btn" data-filter="video">Video</button>
-              <button class="filter-btn" data-filter="audio">Âm thanh</button>
+              <button class="filter-btn ${currentFilter === "all" ? "active" : ""}" data-filter="all">Tất cả</button>
+              <button class="filter-btn ${currentFilter === "logo" ? "active" : ""}" data-filter="logo">Logo</button>
+              <button class="filter-btn ${currentFilter === "background" ? "active" : ""}" data-filter="background">Ảnh nền</button>
+              <button class="filter-btn ${currentFilter === "image" ? "active" : ""}" data-filter="image">Hình ảnh</button>
+              <button class="filter-btn ${currentFilter === "video" ? "active" : ""}" data-filter="video">Video</button>
+              <button class="filter-btn ${currentFilter === "audio" ? "active" : ""}" data-filter="audio">Âm thanh</button>
             </div>
           </div>
 
@@ -4730,6 +4764,7 @@ const AppUI = (() => {
         container.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.getAttribute("data-filter");
+        activeAssetsFilter = currentFilter;
 
         const realInput = document.getElementById("real-file-input");
         if (realInput) {
@@ -5353,7 +5388,7 @@ const AppUI = (() => {
     const getDefaultSlotLayout = (slot, index) => getSceneSlotLayout(slot, index, currentAspectRatio);
 
     let slotDrafts = (template && Array.isArray(template.slots) ? template.slots : [
-      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: MIN_SLOT_DELAY_SEC, allowedAnimations: ["fade-up"] },
       { id: "description", label: "Description", type: "text", required: false, defaultDelay: 0.8, allowedAnimations: ["fade-up"] }
     ]).map((slot, index) => ({
       id: slot.id || `slot-${index + 1}`,
@@ -5363,7 +5398,7 @@ const AppUI = (() => {
       colorRole: slot.colorRole || getSceneItemAppearanceDefaults(slot).colorRole,
       displayStyle: slot.displayStyle || getSceneItemAppearanceDefaults(slot).displayStyle,
       required: Boolean(slot.required),
-      defaultDelay: 0,
+      defaultDelay: Number.isFinite(slot.defaultDelay) ? Math.max(MIN_SLOT_DELAY_SEC, slot.defaultDelay) : MIN_SLOT_DELAY_SEC,
       iconClass: slot.iconClass || slot.defaultIconClass || "",
       allowedAnimations: Array.isArray(slot.allowedAnimations) && slot.allowedAnimations.length
         ? [slot.allowedAnimations[0]]
@@ -5440,7 +5475,7 @@ const AppUI = (() => {
           </div>
           <div class="form-group">
             <label class="form-label" for="scene-template-slot-delay-${index}">Delay</label>
-            <input id="scene-template-slot-delay-${index}" class="form-control" data-slot-field="defaultDelay" type="number" min="0" step="0.1" value="${escapeAttribute(String(slot.defaultDelay))}">
+            <input id="scene-template-slot-delay-${index}" class="form-control" data-slot-field="defaultDelay" type="number" min="${MIN_SLOT_DELAY_SEC}" step="0.1" value="${escapeAttribute(String(Math.max(MIN_SLOT_DELAY_SEC, Number(slot.defaultDelay) || MIN_SLOT_DELAY_SEC)))}">
           </div>
         </div>
         <div class="scene-template-slot-options">
@@ -5486,7 +5521,7 @@ const AppUI = (() => {
           displayStyle: previousSlot.displayStyle || getSceneItemAppearanceDefaults(previousSlot).displayStyle,
           iconClass: previousSlot.iconClass || previousSlot.defaultIconClass || "",
           required: Boolean(row.querySelector('[data-slot-field="required"]')?.checked),
-          defaultDelay: Math.max(0, Number(row.querySelector('[data-slot-field="defaultDelay"]')?.value || 0)),
+          defaultDelay: Math.max(MIN_SLOT_DELAY_SEC, Number(row.querySelector('[data-slot-field="defaultDelay"]')?.value || MIN_SLOT_DELAY_SEC)),
           allowedAnimations: [selectedAnimation],
           layout: previousSlot.layout || getDefaultSlotLayout(previousSlot, index)
         };
@@ -5841,7 +5876,7 @@ const AppUI = (() => {
         displayStyle: item.displayStyle || getSceneItemAppearanceDefaults(item).displayStyle,
         iconClass: item.type === "icon" ? normalizeFontAwesomeClass(item.iconClass || item.defaultIconClass) : "",
         required: false,
-        defaultDelay: 0,
+        defaultDelay: MIN_SLOT_DELAY_SEC,
         allowedAnimations: ["none"],
         layout: getLayoutFromDropEvent(sourceEvent, getDefaultSlotLayout(item, slotDrafts.length))
       };
@@ -6295,11 +6330,79 @@ const AppUI = (() => {
   `;
   let previewSceneTimeSec = 0;
   let previewAudioPlayer = null;
+  let previewAudioSceneId = null;
   let previewBackgroundMusicPlayer = null;
   let previewAudioRequestId = 0;
   let previewAudioMuted = false;
   let previewAudioStatusState = { message: "", tone: "default" };
   const previewAudioCache = new Map();
+  let previewCaptionScene = null;
+  let previewCaptionVoiceover = null;
+
+  const getPreviewAudioCacheKey = (voiceover, script) => [
+    voiceover.provider || "edge-tts",
+    voiceover.language || "vi-VN",
+    voiceover.voiceId || "vi-VN-HoaiMyNeural",
+    voiceover.rate || "+0%",
+    voiceover.volume || "+0%",
+    script
+  ].join("::");
+
+  const parsePreviewSrt = (value) => {
+    const parseTime = (time) => {
+      const match = String(time || "").match(/^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$/);
+      return match ? ((Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3])) * 1000 + Number(match[4])) : NaN;
+    };
+    return String(value || "").replace(/\r/g, "").split(/\n\s*\n/).map((block) => {
+      const lines = block.split("\n").filter(Boolean);
+      const timingIndex = lines.findIndex((line) => line.includes("-->"));
+      if (timingIndex < 0) return null;
+      const times = lines[timingIndex].split(/\s+-->\s+/);
+      const start = parseTime(times[0]);
+      const end = parseTime(times[1]);
+      const text = lines.slice(timingIndex + 1).join("\n").trim();
+      return Number.isFinite(start) && Number.isFinite(end) && end > start && text ? { start, end, text } : null;
+    }).filter(Boolean);
+  };
+
+  const getPreviewCaptionCues = (scene, voiceover) => {
+    const config = getSubtitleConfigDefaults(scene && scene.segment && scene.segment.subtitles);
+    if (!config.enabled) return [];
+    if (config.mode === "custom") {
+      return config.text ? [{ start: 0, end: (scene.durationSec || 8) * 1000, text: config.text }] : [];
+    }
+    if (config.mode === "srt") return parsePreviewSrt(config.text);
+    const script = normalizeText(
+      (scene && scene.segment && scene.segment.voiceoverScript)
+        || (scene && scene.voiceover && scene.voiceover.script)
+        || ""
+    );
+    const cached = previewAudioCache.get(getPreviewAudioCacheKey(voiceover || {}, script));
+    return cached && Array.isArray(cached.captions) ? cached.captions : [];
+  };
+
+  const getPreviewCaptionMarkup = (scene, voiceover, timeSec) => {
+    const config = getSubtitleConfigDefaults(scene && scene.segment && scene.segment.subtitles);
+    const timeMs = Math.round(timeSec * 1000);
+    const cue = getPreviewCaptionCues(scene, voiceover).find((item) => item.start <= timeMs && item.end > timeMs);
+    if (!cue) return "";
+    if (config.style === "karaoke" && Array.isArray(cue.words) && cue.words.length) {
+      return cue.words.map((word) => `<span class="preview-caption-word${word.start <= timeMs && word.end > timeMs ? " is-active" : ""}">${escapeText(word.text)}</span>`).join(" ");
+    }
+    return escapeText(cue.text).replace(/\n/g, "<br>");
+  };
+
+  const updatePreviewCaptionOverlay = (timeSec) => {
+    const overlay = document.querySelector("#preview-canvas .preview-subtitle-overlay");
+    if (!overlay || !previewCaptionScene) return;
+    const captionTime = previewAudioPlayer && !previewAudioPlayer.paused && previewAudioSceneId === previewCaptionScene.id
+      ? previewAudioPlayer.currentTime
+      : timeSec;
+    const markup = getPreviewCaptionMarkup(previewCaptionScene, previewCaptionVoiceover, captionTime);
+    overlay.innerHTML = markup;
+    overlay.classList.toggle("is-empty", !markup);
+    overlay.setAttribute("aria-hidden", markup ? "false" : "true");
+  };
 
   const stopPreviewVoiceAudio = () => {
     if (!previewAudioPlayer) {
@@ -6307,6 +6410,7 @@ const AppUI = (() => {
     }
 
     previewAudioPlayer.pause();
+    previewAudioSceneId = null;
     try {
       previewAudioPlayer.currentTime = 0;
     } catch (_error) {}
@@ -6386,6 +6490,7 @@ const AppUI = (() => {
       const delaySec = Number.parseFloat(slotElement.getAttribute("data-delay")) || 0;
       slotElement.classList.toggle("is-visible", delaySec <= normalizedTimeSec);
     });
+    updatePreviewCaptionOverlay(normalizedTimeSec);
   };
 
   const renderPreviewScreen = (container, data) => {
@@ -6451,7 +6556,7 @@ const AppUI = (() => {
       const primaryAssetId = data.primaryAssetId || ((data.assets || [])[0] && (data.assets || [])[0].id) || "";
       const base = {
         type: slot.type,
-        delay: Number.isFinite(slot.defaultDelay) ? slot.defaultDelay : 0,
+        delay: Number.isFinite(slot.defaultDelay) ? Math.max(MIN_SLOT_DELAY_SEC, slot.defaultDelay) : MIN_SLOT_DELAY_SEC,
         animation: "none",
         displayAnimation: "none",
         enabled: true
@@ -6493,7 +6598,7 @@ const AppUI = (() => {
         slots[slot.id] = {
           ...merged,
           type: slot.type,
-          delay: Number.isFinite(delay) ? Math.max(0, delay) : fallback.delay,
+          delay: Number.isFinite(delay) ? Math.max(MIN_SLOT_DELAY_SEC, delay) : fallback.delay,
           animation: existing.animation || fallback.animation || "none",
           displayAnimation: existing.displayAnimation || fallback.displayAnimation || "none",
           enabled: true
@@ -6523,6 +6628,8 @@ const AppUI = (() => {
     }));
     const selectedIdx = Math.min(AppState.getSelectedSceneIndex(), Math.max(scenes.length - 1, 0));
     const currentScene = scenes[selectedIdx] || scenes[0];
+    previewCaptionScene = currentScene;
+    previewCaptionVoiceover = currentVoiceover;
     const ratioClass = activePreviewRatio === "9:16" ? "is-vertical" : "is-landscape";
     const estimatedDuration = activeSegments.reduce((total, item) => total + (Number.parseInt(item.durationSec, 10) || 8), 0);
     const sceneDuration = currentScene ? currentScene.duration : "0s";
@@ -6690,15 +6797,6 @@ const AppUI = (() => {
       button.setAttribute("title", isLoading ? "Đang tạo voice" : (autoplayTimer ? "Dừng" : "Chạy thử"));
     };
 
-    const getPreviewAudioCacheKey = (script) => [
-      currentVoiceover.provider || "edge-tts",
-      currentVoiceover.language || "vi-VN",
-      currentVoiceover.voiceId || "vi-VN-HoaiMyNeural",
-      currentVoiceover.rate || "+0%",
-      currentVoiceover.volume || "+0%",
-      script
-    ].join("::");
-
     const loadPreviewSceneAudio = async (scene) => {
       const script = getPreviewSceneVoiceScript(scene);
       if (!script) {
@@ -6710,7 +6808,7 @@ const AppUI = (() => {
         return "";
       }
 
-      const cacheKey = getPreviewAudioCacheKey(script);
+      const cacheKey = getPreviewAudioCacheKey(currentVoiceover, script);
       if (previewAudioCache.has(cacheKey)) {
         return previewAudioCache.get(cacheKey);
       }
@@ -6724,19 +6822,20 @@ const AppUI = (() => {
         volume: currentVoiceover.volume || "+0%",
         script
       });
-      previewAudioCache.set(cacheKey, preview.audioUrl);
-      return preview.audioUrl;
+      previewAudioCache.set(cacheKey, preview);
+      updatePreviewCaptionOverlay(previewSceneTimeSec);
+      return preview;
     };
 
-    const playPreviewSceneAudio = async (scene, preparedAudioUrl = "") => {
+    const playPreviewSceneAudio = async (scene, preparedAudio = null) => {
       if (previewAudioMuted) {
         setPreviewAudioStatus("Silent đang bật. Preview chạy không phát âm thanh.", "default");
         return true;
       }
       const requestId = ++previewAudioRequestId;
       try {
-        const audioUrl = preparedAudioUrl || await loadPreviewSceneAudio(scene);
-        if (!audioUrl || requestId !== previewAudioRequestId) {
+        const preview = preparedAudio || await loadPreviewSceneAudio(scene);
+        if (!preview || !preview.audioUrl || requestId !== previewAudioRequestId) {
           return false;
         }
 
@@ -6745,8 +6844,18 @@ const AppUI = (() => {
           previewAudioPlayer.preload = "auto";
         }
         stopPreviewVoiceAudio();
-        previewAudioPlayer.src = audioUrl;
+        previewAudioPlayer.src = preview.audioUrl;
+        try {
+          previewAudioPlayer.currentTime = previewSceneTimeSec;
+        } catch (_error) {}
         await previewAudioPlayer.play();
+        if (previewSceneTimeSec > 0) {
+          try {
+            previewAudioPlayer.currentTime = previewSceneTimeSec;
+          } catch (_error) {}
+        }
+        previewAudioSceneId = scene.id;
+        updatePreviewCaptionOverlay(previewSceneTimeSec);
         setPreviewAudioStatus(backgroundMusicEnabled ? "Đang phát voice và nhạc nền." : "Đang phát voice của phân đoạn hiện tại.", "active");
         return true;
       } catch (error) {
@@ -6849,6 +6958,11 @@ const AppUI = (() => {
     if (timeRange) {
       timeRange.addEventListener("input", () => {
         previewSceneTimeSec = Number.parseFloat(timeRange.value) || 0;
+        if (autoplayTimer && previewAudioPlayer && previewAudioSceneId === currentScene.id) {
+          try {
+            previewAudioPlayer.currentTime = previewSceneTimeSec;
+          } catch (_error) {}
+        }
         updatePreviewPlaybackTime(previewSceneTimeSec);
         if (autoplayTimer && backgroundMusicEnabled) {
           seekPreviewBackgroundMusic(currentSceneStartSec + previewSceneTimeSec);
@@ -6879,10 +6993,10 @@ const AppUI = (() => {
           currentSceneVoiceScript || backgroundMusicEnabled ? "active" : "error"
         );
         if (autoplayTimer) {
-          const voiceAudioUrl = currentSceneVoiceScript ? await loadPreviewSceneAudio(currentScene) : "";
+          const voiceAudio = currentSceneVoiceScript ? await loadPreviewSceneAudio(currentScene) : null;
           await Promise.all([
             playPreviewBackgroundMusic(currentSceneStartSec + previewSceneTimeSec),
-            voiceAudioUrl ? playPreviewSceneAudio(currentScene, voiceAudioUrl) : Promise.resolve(false)
+            voiceAudio ? playPreviewSceneAudio(currentScene, voiceAudio) : Promise.resolve(false)
           ]);
         }
       });
@@ -6906,12 +7020,12 @@ const AppUI = (() => {
           if (!previewAudioMuted) {
             setPreviewPlayLoading(true);
           }
-          const voiceAudioUrl = !previewAudioMuted && currentSceneVoiceScript
+          const voiceAudio = !previewAudioMuted && currentSceneVoiceScript
             ? await loadPreviewSceneAudio(currentScene)
-            : "";
+            : null;
           await Promise.all([
             playPreviewBackgroundMusic(currentSceneStartSec + previewSceneTimeSec),
-            voiceAudioUrl ? playPreviewSceneAudio(currentScene, voiceAudioUrl) : Promise.resolve(false)
+            voiceAudio ? playPreviewSceneAudio(currentScene, voiceAudio) : Promise.resolve(false)
           ]);
           let sceneStartedAt = performance.now() - (previewSceneTimeSec * 1000);
           const tickPreviewPlayback = (timestamp) => {
@@ -7078,7 +7192,7 @@ const AppUI = (() => {
       const backgroundColor = normalizePreviewSlotColor(value.backgroundColor);
       const borderColor = normalizePreviewSlotColor(value.borderColor);
       const borderWidth = getPreviewSlotBorderWidth(value.borderWidth);
-      return `${backgroundColor ? `--preview-slot-bg:${backgroundColor};` : ""}${borderColor ? `--preview-slot-border:${borderColor};` : ""}--preview-slot-border-width:${borderWidth}px;`;
+      return `--preview-slot-bg:${backgroundColor || "transparent"};${borderColor ? `--preview-slot-border:${borderColor};` : ""}--preview-slot-border-width:${borderWidth}px;`;
     };
     const slotTypographyStyle = (slot, value = {}) => {
       if (!isTextSlotType(slot.type)) {
@@ -7185,17 +7299,16 @@ const AppUI = (() => {
       if (!subtitleConfig.enabled) {
         return "";
       }
+      const markup = getPreviewCaptionMarkup(scene, data.audio && data.audio.voiceover, currentTimeSec);
 
       return `
         <div
-          class="preview-subtitle-overlay"
+          class="preview-subtitle-overlay is-${subtitleConfig.style}${markup ? "" : " is-empty"}"
           style="${getSubtitleLayoutStyle(subtitleConfig.layout)};--subtitle-font-size:${subtitleConfig.fontSize}px;--subtitle-font-weight:${subtitleConfig.fontWeight};"
           aria-label="Phụ đề"
+          aria-hidden="${markup ? "false" : "true"}"
         >
-          <strong>Phụ đề</strong>
-          <span class="preview-subtitle-skeleton" aria-hidden="true">
-            ${renderSubtitleSkeletonLines(subtitleConfig.maxLines)}
-          </span>
+          ${markup}
         </div>
       `;
     };
@@ -7262,7 +7375,7 @@ const AppUI = (() => {
     let logoHTML = "";
     if (showLogo) {
       const logoAsset = data.assets.find(a => a.type === 'logo' && a.useInVideo);
-      const logoUrl = logoAsset ? logoAsset.url : "https://placehold.co/120x120/1f4fd8/ffffff?text=Logo";
+      const logoUrl = logoAsset ? logoAsset.url : "/assets/logo.png";
       logoHTML = `<img src="${logoUrl}" style="position:absolute; top:12px; left:12px; height:32px; border-radius:4px; max-width:80px; object-fit:contain;">`;
     }
 
@@ -7363,7 +7476,7 @@ const AppUI = (() => {
         break;
       case "outro":
         const logoOutro = data.assets.find(a => a.type === 'logo' && a.useInVideo);
-        const logoUrlOutro = logoOutro ? logoOutro.url : "https://placehold.co/120x120/1f4fd8/ffffff?text=Logo";
+        const logoUrlOutro = logoOutro ? logoOutro.url : "/assets/logo.png";
         const outroLogoHTML = data.templateConfig.logoPosition !== 'none' ? `<img src="${logoUrlOutro}" style="height:48px; border-radius:4px; margin-bottom:16px; object-fit:contain;">` : "";
 
         innerHTML += `
@@ -7495,6 +7608,8 @@ const AppUI = (() => {
       const filename = getOutputFilename(output);
       const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
       const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
+      const subtitleFilename = output.subtitles && output.subtitles.outputPath && output.subtitles.outputPath.split("/").pop();
+      const subtitleDownloadUrl = subtitleFilename ? `/api/outputs/${encodeURIComponent(subtitleFilename)}?download=1` : "";
       const previewClass = getOutputAspectRatio(output) === "9/16" ? "is-vertical" : "is-landscape";
       const body = document.createElement("div");
 
@@ -7510,6 +7625,7 @@ const AppUI = (() => {
           <div><strong>Template:</strong> ${output.template || output.templateId || "Không rõ"}</div>
           <div><strong>Độ phân giải:</strong> ${output.resolution || "Không rõ"}</div>
           ${downloadUrl ? `<div><a class="btn btn-primary" href="${downloadUrl}" download>Tải MP4</a></div>` : ""}
+          ${subtitleDownloadUrl ? `<div><a class="btn btn-secondary" href="${subtitleDownloadUrl}" download>Tải SRT</a></div>` : ""}
         </div>
       `;
 
@@ -7580,6 +7696,8 @@ const AppUI = (() => {
       const filename = getOutputFilename(output);
       const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
       const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
+      const subtitleFilename = output.subtitles && output.subtitles.outputPath && output.subtitles.outputPath.split("/").pop();
+      const subtitleDownloadUrl = subtitleFilename ? `/api/outputs/${encodeURIComponent(subtitleFilename)}?download=1` : "";
 
       renderInlineResult.className = "render-inline-result is-success";
       renderInlineResult.classList.remove("d-none");
@@ -7596,6 +7714,7 @@ const AppUI = (() => {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </a>
           ` : ""}
+          ${subtitleDownloadUrl ? `<a class="btn btn-secondary" href="${subtitleDownloadUrl}" download>Tải SRT</a>` : ""}
         </div>
       `;
 
@@ -7857,6 +7976,8 @@ const AppUI = (() => {
           const filename = output.outputPath ? output.outputPath.split("/").pop() : output.filename;
           const videoUrl = filename ? `/api/outputs/${encodeURIComponent(filename)}` : "";
           const downloadUrl = videoUrl ? `${videoUrl}?download=1` : "";
+          const subtitleFilename = output.subtitles && output.subtitles.outputPath && output.subtitles.outputPath.split("/").pop();
+          const subtitleDownloadUrl = subtitleFilename ? `/api/outputs/${encodeURIComponent(subtitleFilename)}?download=1` : "";
           const previewAspectRatio = getOutputAspectRatio(output);
           const mockupVideoBody = document.createElement("div");
           mockupVideoBody.innerHTML = `
@@ -7875,6 +7996,7 @@ const AppUI = (() => {
               <p><strong>Dung lượng:</strong> ${output.size}</p>
               <p><strong>Thời gian render:</strong> ${output.durationMs ? `${Math.round(output.durationMs / 1000)} giây` : "Không rõ"}</p>
               ${downloadUrl ? `<p><a class="btn btn-primary" href="${downloadUrl}" download>Tải MP4</a></p>` : ""}
+              ${subtitleDownloadUrl ? `<p><a class="btn btn-secondary" href="${subtitleDownloadUrl}" download>Tải SRT</a></p>` : ""}
               <p class="text-muted">File MP4 nằm trong thư mục local outputs/; link preview/download chỉ hoạt động khi app chạy qua backend.</p>
             </div>
           `;

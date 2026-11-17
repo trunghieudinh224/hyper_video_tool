@@ -1,5 +1,7 @@
 "use strict";
 
+const { listOutputRecords } = require("../render/output-manifest");
+
 const {
   archiveProject,
   createProjectSnapshot,
@@ -328,11 +330,21 @@ async function handleProjects(request, response, requestUrl, sendJson) {
       return true;
     }
 
+    const manifestByJobId = new Map(listOutputRecords().map((output) => [output.jobId, output]));
+    const outputs = listRenderOutputs(projectPath.id).map((output) => {
+      const manifestRecord = manifestByJobId.get(output.jobId || output.id);
+      return {
+        ...output,
+        subtitles: manifestRecord && manifestRecord.filename === output.filename
+          ? manifestRecord.subtitles
+          : null
+      };
+    });
     sendJson(response, 200, {
       success: true,
       message: "Project outputs loaded.",
       data: {
-        outputs: listRenderOutputs(projectPath.id)
+        outputs
       }
     });
     return true;

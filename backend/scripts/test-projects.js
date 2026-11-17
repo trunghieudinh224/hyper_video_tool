@@ -8,6 +8,9 @@ const { Readable } = require("node:stream");
 
 const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hvt-projects-test-"));
 process.env.HVT_DATABASE_PATH = path.join(testRoot, "test.sqlite");
+const { config } = require("../src/config");
+config.outputsDir = path.join(testRoot, "outputs");
+const { upsertOutputRecord } = require("../src/render/output-manifest");
 
 const {
   archiveProject,
@@ -118,6 +121,17 @@ async function run() {
   assert.equal(listRenderOutputs(first.id).length, 1);
   assert.equal(listRenderOutputs(second.id).length, 0);
 
+  fs.mkdirSync(config.outputsDir, { recursive: true });
+  fs.writeFileSync(path.join(config.outputsDir, "codegraph.mp4"), "video");
+  fs.writeFileSync(path.join(config.outputsDir, "codegraph.srt"), "caption");
+  upsertOutputRecord({
+    id: "job_1",
+    outputPath: "outputs/codegraph.mp4",
+    templateId: "dynamic-story-vertical",
+    status: "succeeded",
+    subtitles: { enabled: true, cueCount: 1, outputPath: "outputs/codegraph.srt" }
+  });
+
   const outputsResponse = captureResponse();
   const outputsHandled = await handleProjects(
     jsonRequest("GET", `/api/projects/${encodeURIComponent(first.id)}/outputs`),
@@ -128,6 +142,7 @@ async function run() {
   assert.equal(outputsHandled, true);
   assert.equal(outputsResponse.statusCode, 200);
   assert.equal(outputsResponse.payload.data.outputs[0].id, "job_1");
+  assert.equal(outputsResponse.payload.data.outputs[0].subtitles.outputPath, "outputs/codegraph.srt");
 
   const snapshot = createProjectSnapshot(first.id, "Before rewrite");
   assert.equal(snapshot.label, "Before rewrite");

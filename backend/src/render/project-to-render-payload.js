@@ -392,6 +392,7 @@ function buildDynamicSlotScenes(project = {}, features = []) {
       },
       sceneTemplate: template,
       background: videoBackground || feature.background || null,
+      captions: feature.subtitles || { enabled: false },
       slots
     };
   });
@@ -402,6 +403,10 @@ function projectToDynamicRenderPayload(project = {}, options = {}) {
   const templatePreset = TEMPLATE_PRESETS[templateId] || TEMPLATE_PRESETS["dynamic-story-vertical"];
   const features = list(project.features).filter((feature) => feature && feature.useInVideo !== false);
   const assets = list(project.assets).filter(Boolean).map(mapAsset);
+  const audio = mapAudioConfig(project, assets);
+  if (audio.voiceover.enabled && !audio.voiceover.script) {
+    audio.voiceover.script = features.map((feature) => text(feature.voiceoverScript, "")).filter(Boolean).join("\n");
+  }
   const scenes = buildDynamicSlotScenes(project, features);
   const payload = {
     version: DYNAMIC_RENDER_PAYLOAD_VERSION,
@@ -433,7 +438,7 @@ function projectToDynamicRenderPayload(project = {}, options = {}) {
       videos: assets.filter((asset) => asset.type === "video" && asset.useInVideo && asset.url).slice(0, 2),
       all: assets
     },
-    audio: mapAudioConfig(project, assets),
+    audio,
     scenes
   };
 

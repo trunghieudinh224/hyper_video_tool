@@ -115,7 +115,7 @@
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
   gap: var(--space-3);
-  align-items: end;
+  align-items: start;
   min-width: 0;
 }
 

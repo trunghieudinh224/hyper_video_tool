@@ -34,6 +34,23 @@ function toPublicAsset(asset) {
   return publicAsset;
 }
 
+function parseByteRange(header, size) {
+  if (!header) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(String(header).trim());
+  if (!match || (!match[1] && !match[2]) || size <= 0) return false;
+
+  const first = match[1] ? Number(match[1]) : null;
+  const last = match[2] ? Number(match[2]) : null;
+  if ((first !== null && !Number.isSafeInteger(first)) || (last !== null && !Number.isSafeInteger(last))) return false;
+
+  if (first === null) {
+    if (last === 0) return false;
+    return { start: Math.max(0, size - last), end: size - 1 };
+  }
+  if (first >= size || (last !== null && last < first)) return false;
+  return { start: first, end: Math.min(last === null ? size - 1 : last, size - 1) };
+}
+
 function readMultipart(request, projectId) {
   return new Promise((resolve, reject) => {
     let parser;
@@ -116,17 +133,32 @@ function sendAssetFile(request, response, asset) {
     return;
   }
   const stats = fs.statSync(asset.filePath);
-  response.writeHead(200, {
+  const range = parseByteRange(request.headers && request.headers.range, stats.size);
+  if (range === false) {
+    response.writeHead(416, {
+      "Accept-Ranges": "bytes",
+      "Content-Range": `bytes */${stats.size}`,
+      "Content-Length": 0,
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
+    });
+    response.end();
+    return;
+  }
+  const headers = {
     "Content-Type": asset.mimeType || "application/octet-stream",
-    "Content-Length": stats.size,
+    "Content-Length": range ? range.end - range.start + 1 : stats.size,
+    "Accept-Ranges": "bytes",
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff"
-  });
+  };
+  if (range) headers["Content-Range"] = `bytes ${range.start}-${range.end}/${stats.size}`;
+  response.writeHead(range ? 206 : 200, headers);
   if (request.method === "HEAD") {
     response.end();
     return;
   }
-  fs.createReadStream(asset.filePath).pipe(response);
+  fs.createReadStream(asset.filePath, range || undefined).pipe(response);
 }
 
 async function uploadAssets(request, projectId) {
@@ -218,4 +250,4 @@ async function handleAssets(request, response, requestUrl, sendJson) {
   return true;
 }
 
-module.exports = { handleAssets, uploadAssets };
+module.exports = { handleAssets, sendAssetFile, uploadAssets };

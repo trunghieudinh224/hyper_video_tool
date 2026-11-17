@@ -5,10 +5,12 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const crypto = require("node:crypto");
 const { config } = require("../config");
+const { buildTimelinePlan } = require("../../../templates/shared/motion-core/duration");
 const { getActiveProject, getAsset, saveRenderOutput } = require("../db/database");
 const { isSafeAssetFile } = require("../storage/asset-store");
-const { generateVoiceover } = require("../audio/voiceover");
-const { muxAudioTracksIntoVideo } = require("./media");
+const { buildVoiceoverScript, generateVoiceover, getPlainVoiceScript } = require("../audio/voiceover");
+const { approximateVoiceCues, buildCaptionTimeline, parseSrtCues, toAss, toSrt } = require("../audio/subtitles");
+const { burnSubtitlesIntoVideo, getMediaDurationSeconds, muxAudioTracksIntoVideo } = require("./media");
 const { upsertOutputRecord } = require("./output-manifest");
 const { SUPPORTED_TEMPLATE_IDS, validateRenderPayload } = require("./render-payload-schema");
 
@@ -118,6 +120,7 @@ function createJobRecord(payload, projectId) {
     projectName: payload.source.projectName,
     outputPath: relativePath(outputPath),
     audio: createInitialAudioState(payload),
+    subtitles: null,
     createdAt: now,
     updatedAt: now,
     startedAt: null,
@@ -205,6 +208,16 @@ function prepareWorkDir(jobId, payload) {
   if (fs.existsSync(sharedTemplateDir)) {
     fs.cpSync(sharedTemplateDir, sharedWorkDir, { recursive: true });
   }
+  if (payload.version === "dynamic-motion-1.0.0") {
+    const duration = buildTimelinePlan(payload).totalDuration;
+    const htmlPath = path.join(compositionDir, "index.html");
+    const html = fs.readFileSync(htmlPath, "utf8");
+    const durationPattern = /(data-composition-id="[^"]+"[\s\S]*?data-duration=")[^"]+("[^>]*>)/;
+    if (!(duration > 0) || !durationPattern.test(html)) {
+      throw new Error("Dynamic composition is missing a valid scene duration.");
+    }
+    fs.writeFileSync(htmlPath, html.replace(durationPattern, (_match, prefix, suffix) => `${prefix}${duration}${suffix}`));
+  }
   const localizedPayload = localizeRenderAssets(payload, compositionDir);
   fs.writeFileSync(path.join(compositionDir, "render-payload.json"), stableJson(localizedPayload));
 
@@ -270,6 +283,7 @@ async function executeRenderJob(job, payload) {
   const voiceoverEnabled = Boolean(payload.audio && payload.audio.voiceover && payload.audio.voiceover.enabled);
   const backgroundMusicRequested = Boolean(payload.audio && payload.audio.backgroundMusic && payload.audio.backgroundMusic.enabled && payload.audio.backgroundMusic.source);
   const needsAudioMux = voiceoverEnabled || backgroundMusicRequested;
+  const captionsRequested = payload.scenes.some((scene) => scene.captions && scene.captions.enabled);
   const renderOutputPath = needsAudioMux ? getVideoOnlyOutputPath(job.id) : outputPath;
   const startedAt = Date.now();
   job.status = "running";
@@ -295,6 +309,45 @@ async function executeRenderJob(job, payload) {
         "SUCCESS",
         `Voiceover ready: ${job.audio.voiceover.outputPath}${job.audio.voiceover.cached ? " (cached)" : ""}.`
       );
+    }
+
+    let captionSrt = "";
+    if (captionsRequested) {
+      const voiceSrtPath = job.audio.voiceover.subtitlePath
+        ? path.join(config.projectRoot, job.audio.voiceover.subtitlePath)
+        : "";
+      const voiceSrt = voiceSrtPath && fs.existsSync(voiceSrtPath)
+        ? fs.readFileSync(voiceSrtPath, "utf8")
+        : "";
+      let voiceCues = parseSrtCues(voiceSrt);
+      const voiceCaptionsRequested = payload.scenes.some((scene) => scene.captions && scene.captions.enabled
+        && (scene.captions.mode || "voice") === "voice");
+      if (voiceCaptionsRequested && !voiceCues.length) {
+        const voicePath = path.join(config.projectRoot, job.audio.voiceover.outputPath);
+        const durationSec = await getMediaDurationSeconds(voicePath);
+        voiceCues = approximateVoiceCues(
+          getPlainVoiceScript(buildVoiceoverScript(payload), payload.audio.voiceover.language),
+          durationSec * 1000
+        );
+        appendLog(job, "INFO", "Voice SRT had no timing cues; caption timing was estimated from audio duration.");
+      }
+      const captions = buildCaptionTimeline(payload, voiceCues);
+      if (!captions.length) {
+        throw new Error("Captions are enabled, but no caption cues were found in the video timeline.");
+      }
+      captionSrt = toSrt(captions);
+      fs.writeFileSync(path.join(compositionDir, "captions.ass"), toAss(captions, payload.video));
+      fs.cpSync(
+        path.join(config.projectRoot, "templates", "dynamic-story-vertical", "vendor", "fonts"),
+        path.join(compositionDir, "caption-fonts"),
+        { recursive: true }
+      );
+      job.subtitles = {
+        enabled: true,
+        cueCount: captions.length,
+        outputPath: `outputs/${path.basename(outputPath, ".mp4")}.srt`
+      };
+      appendLog(job, "INFO", `Prepared ${captions.length} caption cues.`);
     }
 
     const progressTimer = setInterval(() => {
@@ -333,6 +386,13 @@ async function executeRenderJob(job, payload) {
         outputPath
       });
       appendLog(job, "SUCCESS", voiceoverEnabled && backgroundMusicPath ? "Voiceover and background music audio tracks attached." : voiceoverEnabled ? "Voiceover audio track attached." : "Background music audio track attached.");
+    }
+
+    if (job.subtitles) {
+      appendLog(job, "INFO", "Burning captions into MP4 output.");
+      await burnSubtitlesIntoVideo({ videoPath: outputPath, compositionDir, outputPath });
+      fs.writeFileSync(path.join(config.projectRoot, job.subtitles.outputPath), captionSrt);
+      appendLog(job, "SUCCESS", `Captions attached; SRT saved to ${job.subtitles.outputPath}.`);
     }
 
     const stats = fs.statSync(outputPath);

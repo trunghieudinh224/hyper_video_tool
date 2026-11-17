@@ -230,8 +230,8 @@ const SCENE_TEMPLATES = [
     aspectRatios: ["9:16", "16:9"],
     recommendedDurationSec: 8,
     slots: [
-      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in", "fade-up"] },
-      { id: "kicker", label: "Kicker", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up", "typewriter"] },
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0.1, allowedAnimations: ["scale-in", "fade-up"] },
+      { id: "kicker", label: "Kicker", type: "text", required: false, defaultDelay: 0.1, allowedAnimations: ["fade-up", "typewriter"] },
       { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.4, allowedAnimations: ["fade-up", "typewriter"] },
       { id: "description", label: "Description", type: "text", required: false, defaultDelay: 1.5, allowedAnimations: ["fade-up"] },
       { id: "tag", label: "Tag / Label", type: "tag", required: false, defaultDelay: 2.5, allowedAnimations: ["pop", "fade-up"] }
@@ -245,8 +245,8 @@ const SCENE_TEMPLATES = [
     aspectRatios: ["9:16", "16:9"],
     recommendedDurationSec: 10,
     slots: [
-      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up"] },
-      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in"] },
+      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0.1, allowedAnimations: ["fade-up"] },
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0.1, allowedAnimations: ["scale-in"] },
       { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.6, allowedAnimations: ["fade-up", "typewriter"] },
       { id: "media", label: "Image / Video", type: "media", required: true, defaultDelay: 1.4, allowedAnimations: ["scale-in", "fade-up"] },
       { id: "description", label: "Description", type: "text", required: false, defaultDelay: 3, allowedAnimations: ["fade-up"] }
@@ -260,7 +260,7 @@ const SCENE_TEMPLATES = [
     aspectRatios: ["9:16", "16:9"],
     recommendedDurationSec: 12,
     slots: [
-      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "header", label: "Header", type: "text", required: false, defaultDelay: 0.1, allowedAnimations: ["fade-up"] },
       { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.5, allowedAnimations: ["fade-up", "typewriter"] },
       { id: "grid", label: "Grid Items", type: "list", required: true, defaultDelay: 1.2, allowedAnimations: ["pop", "fade-up"] },
       { id: "description", label: "Description", type: "text", required: false, defaultDelay: 4, allowedAnimations: ["fade-up"] }
@@ -274,7 +274,7 @@ const SCENE_TEMPLATES = [
     aspectRatios: ["9:16", "16:9"],
     recommendedDurationSec: 12,
     slots: [
-      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0, allowedAnimations: ["fade-up"] },
+      { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.1, allowedAnimations: ["fade-up"] },
       { id: "steps", label: "Steps", type: "list", required: true, defaultDelay: 1, allowedAnimations: ["slide-left", "fade-up"] },
       { id: "note", label: "Note", type: "text", required: false, defaultDelay: 4, allowedAnimations: ["fade-up"] }
     ]
@@ -287,7 +287,7 @@ const SCENE_TEMPLATES = [
     aspectRatios: ["9:16", "16:9"],
     recommendedDurationSec: 6,
     slots: [
-      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0, allowedAnimations: ["scale-in"] },
+      { id: "logo", label: "Logo", type: "asset", required: false, defaultDelay: 0.1, allowedAnimations: ["scale-in"] },
       { id: "title", label: "Title", type: "text", required: true, defaultDelay: 0.4, allowedAnimations: ["fade-up"] },
       { id: "cta", label: "Call to action", type: "text", required: false, defaultDelay: 1.5, allowedAnimations: ["pop", "fade-up"] },
       { id: "tag", label: "Tag / Label", type: "tag", required: false, defaultDelay: 2.5, allowedAnimations: ["fade-up"] }

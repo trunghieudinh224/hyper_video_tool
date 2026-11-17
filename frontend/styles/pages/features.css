@@ -855,7 +855,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
 
 .script-segment-preview-slot.has-media {
   padding: 0;
-  background: color-mix(in srgb, var(--slot-bg, var(--color-primary-soft)) 48%, var(--color-surface));
+  background: var(--slot-bg, transparent);
 }
 
 .script-segment-preview-subtitle {
@@ -902,18 +902,6 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   text-overflow: ellipsis;
   white-space: nowrap;
   transform: translateY(-50%);
-}
-
-.script-segment-subtitle-skeleton {
-  display: grid;
-  gap: 3px;
-}
-
-.script-segment-subtitle-skeleton span {
-  display: block;
-  height: max(2px, calc(var(--subtitle-font-size, 11px) * 0.28));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-text) 34%, transparent);
 }
 
 .script-segment-preview-media {
@@ -1359,9 +1347,28 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
 }
 
 .scene-slot-editor-title strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--color-text);
   font-size: var(--font-base);
   line-height: 1.25;
+}
+
+.scene-slot-editor-title .scene-slot-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  line-height: 1;
 }
 
 .scene-slot-editor-title span {
@@ -1403,7 +1410,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
 
 .scene-slot-editor-head {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 32px;
+  grid-template-columns: minmax(0, 1fr) 32px;
   align-items: center;
   gap: var(--space-2);
 }
@@ -1483,7 +1490,7 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
 }
 
 .scene-slot-typography {
-  grid-template-columns: minmax(6.5rem, 0.26fr) minmax(8.5rem, 0.3fr) minmax(7rem, 0.24fr) minmax(8rem, 0.2fr);
+  grid-template-columns: minmax(7rem, 1fr) minmax(8rem, 1fr) minmax(7rem, 0.9fr) minmax(11rem, 1.25fr);
 }
 
 .scene-slot-appearance {
@@ -1682,6 +1689,16 @@ body[data-page="features"] .modal-overlay.is-script-segment-editor .modal-body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface-alt);
+}
+
+.script-voice-language-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
 }
 
 .script-voice-estimate div {

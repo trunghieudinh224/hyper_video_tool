@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { Readable } = require("node:stream");
+const { PassThrough, Readable } = require("node:stream");
 
 const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hvt-assets-test-"));
 process.env.HVT_DATABASE_PATH = path.join(testRoot, "test.sqlite");
@@ -12,7 +12,7 @@ process.env.HVT_UPLOADS_DIR = path.join(testRoot, "uploads");
 process.env.HVT_UPLOAD_IMAGE_MAX_MB = "1";
 
 const { deleteAsset, getAsset, listAssets } = require("../src/db/database");
-const { uploadAssets } = require("../src/routes/assets");
+const { sendAssetFile, uploadAssets } = require("../src/routes/assets");
 const { localizeRenderAssets } = require("../src/render/render-runner");
 const { deleteAssetFile, isSafeAssetFile } = require("../src/storage/asset-store");
 
@@ -36,6 +36,23 @@ function multipartRequest(files, fields = {}) {
   return request;
 }
 
+function readAssetResponse(asset, method = "GET", range = "") {
+  return new Promise((resolve, reject) => {
+    const response = new PassThrough();
+    const chunks = [];
+    let statusCode = 0;
+    let headers = {};
+    response.writeHead = (status, responseHeaders) => {
+      statusCode = status;
+      headers = responseHeaders;
+    };
+    response.on("data", (chunk) => chunks.push(chunk));
+    response.on("error", reject);
+    response.on("end", () => resolve({ statusCode, headers, body: Buffer.concat(chunks) }));
+    sendAssetFile({ method, headers: range ? { range } : {} }, response, asset);
+  });
+}
+
 async function run() {
   const [asset] = await uploadAssets(multipartRequest([
     { name: "logo.png", type: "image/png", content: PNG_BYTES }
@@ -52,7 +69,27 @@ async function run() {
   ], { type: "audio" }), "current");
   assert.equal(audioAsset.type, "audio");
   assert.equal(audioAsset.mimeType, "audio/mpeg");
-  assert.equal(isSafeAssetFile(getAsset(audioAsset.id, "current").filePath), true);
+  const storedAudio = getAsset(audioAsset.id, "current");
+  assert.equal(isSafeAssetFile(storedAudio.filePath), true);
+  const fullResponse = await readAssetResponse(storedAudio);
+  assert.equal(fullResponse.statusCode, 200);
+  assert.equal(fullResponse.headers["Content-Length"], MP3_BYTES.length);
+  assert.deepEqual(fullResponse.body, MP3_BYTES);
+  const partialResponse = await readAssetResponse(storedAudio, "GET", "bytes=0-2");
+  assert.equal(partialResponse.statusCode, 206);
+  assert.equal(partialResponse.headers["Content-Range"], `bytes 0-2/${MP3_BYTES.length}`);
+  assert.deepEqual(partialResponse.body, MP3_BYTES.subarray(0, 3));
+  const suffixResponse = await readAssetResponse(storedAudio, "GET", "bytes=-3");
+  assert.equal(suffixResponse.statusCode, 206);
+  assert.deepEqual(suffixResponse.body, MP3_BYTES.subarray(-3));
+  const headResponse = await readAssetResponse(storedAudio, "HEAD", "bytes=0-2");
+  assert.equal(headResponse.statusCode, 206);
+  assert.equal(headResponse.headers["Content-Length"], 3);
+  assert.equal(headResponse.body.length, 0);
+  const invalidResponse = await readAssetResponse(storedAudio, "GET", "bytes=999-");
+  assert.equal(invalidResponse.statusCode, 416);
+  assert.equal(invalidResponse.headers["Content-Range"], `bytes */${MP3_BYTES.length}`);
+  assert.equal(invalidResponse.body.length, 0);
 
   await assert.rejects(
     uploadAssets(multipartRequest([

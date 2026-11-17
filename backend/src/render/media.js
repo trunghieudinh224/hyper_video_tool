@@ -32,7 +32,7 @@ function runProcess(command, args, options = {}) {
 
   return new Promise((resolve, reject) => {
     const child = spawnImpl(command, args, {
-      cwd: config.projectRoot,
+      cwd: options.cwd || config.projectRoot,
       stdio: ["ignore", "pipe", "pipe"]
     });
     let stdout = "";
@@ -141,6 +141,48 @@ function createMuxAudioTracksArgs({ videoPath, voiceoverPath = "", backgroundMus
   return args;
 }
 
+function createBurnSubtitlesArgs({ videoPath, outputPath }) {
+  return [
+    "-y", "-i", videoPath,
+    "-vf", "ass=filename=captions.ass:fontsdir=caption-fonts",
+    "-map", "0:v:0", "-map", "0:a?",
+    "-c:v", "libx264", "-preset", "medium", "-crf", "19",
+    "-pix_fmt", "yuv420p", "-c:a", "copy",
+    "-movflags", "+faststart", outputPath
+  ];
+}
+
+function createConcatAudioSegmentsArgs({ inputPaths, outputPath }) {
+  if (!Array.isArray(inputPaths) || inputPaths.length < 2) {
+    throw new Error("At least two audio segments are required for concat.");
+  }
+  const inputs = inputPaths.flatMap((inputPath) => ["-i", inputPath]);
+  const filters = inputPaths.map((_, index) => `[${index}:a:0]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=mono[a${index}]`);
+  const labels = inputPaths.map((_, index) => `[a${index}]`).join("");
+  filters.push(`${labels}concat=n=${inputPaths.length}:v=0:a=1[outa]`);
+  return [
+    "-y", ...inputs,
+    "-filter_complex", filters.join(";"),
+    "-map", "[outa]", "-c:a", "libmp3lame", "-q:a", "3",
+    outputPath
+  ];
+}
+
+async function concatAudioSegments({ inputPaths, outputPath }, options = {}) {
+  const tempOutputPath = `${outputPath}.concat.tmp.mp3`;
+  fs.rmSync(tempOutputPath, { force: true });
+  try {
+    await runProcess(options.ffmpegPath || getFfmpegPath(), createConcatAudioSegmentsArgs({
+      inputPaths,
+      outputPath: tempOutputPath
+    }), options);
+    fs.renameSync(tempOutputPath, outputPath);
+  } finally {
+    fs.rmSync(tempOutputPath, { force: true });
+  }
+  return outputPath;
+}
+
 async function getMediaDurationSeconds(filePath, options = {}) {
   const result = await runProcess(options.ffprobePath || getFfprobePath(), [
     "-v",
@@ -198,9 +240,7 @@ async function muxAudioTracksIntoVideo({ videoPath, voiceoverPath = "", backgrou
 
   const tempOutputPath = `${outputPath}.audio.tmp.mp4`;
   fs.rmSync(tempOutputPath, { force: true });
-  const durationSeconds = backgroundMusicPath
-    ? await getMediaDurationSeconds(videoPath, options)
-    : 0;
+  const durationSeconds = await getMediaDurationSeconds(videoPath, options);
   await runProcess(options.ffmpegPath || getFfmpegPath(), createMuxAudioTracksArgs({
     videoPath,
     voiceoverPath,
@@ -212,6 +252,28 @@ async function muxAudioTracksIntoVideo({ videoPath, voiceoverPath = "", backgrou
   }), options);
   fs.renameSync(tempOutputPath, outputPath);
 
+  return outputPath;
+}
+
+async function burnSubtitlesIntoVideo({ videoPath, compositionDir, outputPath }, options = {}) {
+  if (!fs.existsSync(videoPath)) {
+    throw new Error(`Video file does not exist: ${videoPath}`);
+  }
+  const assPath = path.join(compositionDir, "captions.ass");
+  if (!fs.existsSync(assPath)) {
+    throw new Error(`Subtitle file does not exist: ${assPath}`);
+  }
+  const tempOutputPath = `${outputPath}.subtitles.tmp.mp4`;
+  fs.rmSync(tempOutputPath, { force: true });
+  try {
+    await runProcess(options.ffmpegPath || getFfmpegPath(), createBurnSubtitlesArgs({
+      videoPath,
+      outputPath: tempOutputPath
+    }), { ...options, cwd: compositionDir });
+    fs.renameSync(tempOutputPath, outputPath);
+  } finally {
+    fs.rmSync(tempOutputPath, { force: true });
+  }
   return outputPath;
 }
 
@@ -232,6 +294,10 @@ async function hasAudioStream(filePath, options = {}) {
 }
 
 module.exports = {
+  burnSubtitlesIntoVideo,
+  concatAudioSegments,
+  createBurnSubtitlesArgs,
+  createConcatAudioSegmentsArgs,
   createMuxAudioTracksArgs,
   createMuxVoiceoverArgs,
   getMediaDurationSeconds,

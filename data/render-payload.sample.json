@@ -1,93 +1,89 @@
 {
-  "version": "1.0.0",
+  "version": "dynamic-motion-1.0.0",
   "source": {
-    "projectName": "Internal Analytics Dashboard",
-    "projectSlug": "internal-analytics-dashboard",
-    "ownerTeam": "Platform Team",
-    "presenterRole": "Product Owner"
+    "projectName": "Codegraph cho AI Agent",
+    "projectSlug": "codegraph-ai-agent-intro",
+    "ownerTeam": "Codegraph",
+    "presenterRole": "Developer Tooling Guide"
   },
   "template": {
-    "id": "project-showcase-90s",
+    "id": "dynamic-story-vertical",
+    "variant": "default",
     "config": {
       "theme": "dark",
       "accentColor": "blue",
       "fontSize": "default",
-      "logoPosition": "top-left"
+      "logoPosition": "top-left",
+      "videoStyle": {
+        "id": "dark-tech",
+        "colorTheme": {
+          "background": "#05070A",
+          "surface": "#101722",
+          "surfaceAlt": "#162033",
+          "text": "#F8FAFC",
+          "mutedText": "#94A3B8",
+          "accent": "#22D3EE",
+          "accentSoft": "#164E63",
+          "border": "#1E3A5F",
+          "glow": "rgba(34, 211, 238, 0.28)"
+        },
+        "motionStyle": "dynamic",
+        "backgroundStyle": "dark-grid"
+      }
     }
   },
   "video": {
-    "aspectRatio": "16:9",
-    "width": 1920,
-    "height": 1080,
+    "aspectRatio": "9:16",
+    "width": 1080,
+    "height": 1920,
     "fps": 30,
     "format": "mp4",
-    "estimatedDuration": 74
+    "estimatedDuration": 58
   },
   "assets": {
     "logo": {
-      "id": "asset_1",
-      "name": "logo_platform_team.svg",
+      "id": "asset_codegraph_logo",
+      "name": "codegraph-logo-placeholder.png",
       "type": "logo",
-      "url": "https://placehold.co/120x120/1f4fd8/ffffff?text=Platform+Logo",
+      "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22240%22%20height%3D%22240%22%20viewBox%3D%220%200%20240%20240%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%2305070A%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%2322D3EE%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2224%22%3ECG%3C%2Ftext%3E%3C%2Fsvg%3E",
       "useInVideo": true
     },
     "screenshots": [
       {
-        "id": "asset_2",
-        "name": "dashboard_overview.png",
+        "id": "asset_codegraph_map",
+        "name": "codegraph-map-placeholder.png",
         "type": "screenshot",
-        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Dashboard+Overview",
-        "useInVideo": true
-      },
-      {
-        "id": "asset_3",
-        "name": "weekly_performance_chart.png",
-        "type": "screenshot",
-        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Performance+Chart",
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221080%22%20height%3D%22720%22%20viewBox%3D%220%200%201080%20720%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23101722%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23F8FAFC%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2272%22%3EFile%20%E2%86%92%20Symbol%20%E2%86%92%20Call%20Graph%3C%2Ftext%3E%3C%2Fsvg%3E",
         "useInVideo": true
       }
     ],
     "videos": [],
     "all": [
       {
-        "id": "asset_1",
-        "name": "logo_platform_team.svg",
+        "id": "asset_codegraph_logo",
+        "name": "codegraph-logo-placeholder.png",
         "type": "logo",
-        "url": "https://placehold.co/120x120/1f4fd8/ffffff?text=Platform+Logo",
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22240%22%20height%3D%22240%22%20viewBox%3D%220%200%20240%20240%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%2305070A%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%2322D3EE%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2224%22%3ECG%3C%2Ftext%3E%3C%2Fsvg%3E",
         "useInVideo": true
       },
       {
-        "id": "asset_2",
-        "name": "dashboard_overview.png",
+        "id": "asset_codegraph_map",
+        "name": "codegraph-map-placeholder.png",
         "type": "screenshot",
-        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Dashboard+Overview",
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221080%22%20height%3D%22720%22%20viewBox%3D%220%200%201080%20720%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23101722%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23F8FAFC%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2272%22%3EFile%20%E2%86%92%20Symbol%20%E2%86%92%20Call%20Graph%3C%2Ftext%3E%3C%2Fsvg%3E",
         "useInVideo": true
-      },
-      {
-        "id": "asset_3",
-        "name": "weekly_performance_chart.png",
-        "type": "screenshot",
-        "url": "https://placehold.co/1920x1080/1c1f24/ffffff?text=Performance+Chart",
-        "useInVideo": true
-      },
-      {
-        "id": "asset_4",
-        "name": "slack_notification_demo.mp4",
-        "type": "video",
-        "url": "",
-        "useInVideo": false
       }
     ]
   },
   "audio": {
     "voiceover": {
-      "enabled": false,
+      "enabled": true,
       "provider": "edge-tts",
       "language": "vi-VN",
       "voiceId": "vi-VN-HoaiMyNeural",
-      "rate": "+0%",
+      "rate": "+4%",
       "volume": "+0%",
-      "script": "",
+      "script": "Codegraph là bản đồ cấu trúc của codebase, giúp AI agent hiểu symbol, flow và impact trước khi sửa code. Khi codebase lớn, chỉ grep text là không đủ. Một tên hàm có thể xuất hiện ở nhiều nơi, flow có thể đi qua nhiều lớp, và agent dễ đọc thiếu context. Codegraph index source code thành knowledge graph cục bộ gồm file, symbol, định nghĩa, caller, callee và quan hệ phụ thuộc. Agent dùng explore để hiểu một khu vực, search và node để mở symbol chính xác, callers và callees để lần flow, impact để kiểm tra phạm vi ảnh hưởng. Workflow an toàn là đặt câu hỏi, explore context, inspect symbol, check impact, rồi mới sửa và verify bằng test, typecheck và review. Codegraph giúp hiểu nhanh hơn, nhưng không thay thế kiểm chứng.",
       "outputPath": ""
     },
     "backgroundMusic": {
@@ -103,188 +99,726 @@
   },
   "scenes": [
     {
-      "id": "scene-intro",
-      "type": "intro",
-      "title": "Giới thiệu nội dung",
-      "duration": 6,
-      "content": {
-        "projectName": "Internal Analytics Dashboard",
-        "tagline": "Bản điều khiển giúp team theo dõi hiệu suất dự án theo thời gian thực.",
-        "ownerTeam": "Platform Team",
-        "summary": "Hệ thống tổng hợp và trực quan hóa dữ liệu hiệu suất của các dự án đang chạy trong công ty."
+      "id": "scene_intro_codegraph",
+      "type": "slot",
+      "headline": "Codegraph là gì?",
+      "body": "Một knowledge graph cục bộ của codebase, được tối ưu để agent hỏi về symbol, flow và impact.",
+      "duration": {
+        "mode": "fixed",
+        "min": 7,
+        "max": 7
       },
-      "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
+      "sceneTemplate": {
+        "id": "intro-stack",
+        "name": "Short-form dev intro",
+        "slots": [
+          {
+            "id": "kicker",
+            "label": "Badge",
+            "type": "text",
+            "colorRole": "accent",
+            "displayStyle": "filled",
+            "layout": {
+              "x": 29,
+              "y": 28,
+              "width": 42,
+              "height": 8
+            }
+          },
+          {
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "colorRole": "text",
+            "displayStyle": "plain",
+            "layout": {
+              "x": 10,
+              "y": 40,
+              "width": 80,
+              "height": 18
+            }
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "type": "text",
+            "colorRole": "mutedText",
+            "displayStyle": "plain",
+            "layout": {
+              "x": 15,
+              "y": 59,
+              "width": 70,
+              "height": 16
+            }
+          },
+          {
+            "id": "tag",
+            "label": "Pill",
+            "type": "tag",
+            "colorRole": "accent",
+            "displayStyle": "pill",
+            "layout": {
+              "x": 20,
+              "y": 79,
+              "width": 60,
+              "height": 8
+            }
+          }
+        ],
+        "baseTemplateId": "intro-stack",
+        "aspectRatios": [
+          "9:16",
+          "16:9"
+        ]
+      },
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "kicker": {
+          "type": "text",
+          "text": "CODE GRAPH",
+          "delay": 0,
+          "animation": "fade-up",
+          "displayAnimation": "glow-soft",
+          "fontSize": 16,
+          "fontWeight": 900,
+          "textAlign": "center",
+          "enabled": true
+        },
+        "title": {
+          "type": "text",
+          "text": "CHO AI AGENT",
+          "delay": 0.35,
+          "animation": "fade-up",
+          "fontSize": 34,
+          "fontWeight": 900,
+          "textAlign": "center",
+          "enabled": true
+        },
+        "description": {
+          "type": "text",
+          "text": "Agent hiểu code trước khi sửa.",
+          "delay": 1.1,
+          "animation": "fade-up",
+          "fontSize": 21,
+          "fontWeight": 800,
+          "textAlign": "center",
+          "enabled": true
+        },
+        "tag": {
+          "type": "tag",
+          "text": "Local code graph",
+          "delay": 1.8,
+          "animation": "pop",
+          "displayAnimation": "float-soft",
+          "fontSize": 18,
+          "fontWeight": 800,
+          "textAlign": "center",
+          "enabled": true
+        }
       }
     },
     {
-      "id": "scene-problem",
-      "type": "problem",
-      "title": "Bối cảnh và vấn đề",
-      "duration": 10,
-      "content": {
-        "problem": "Dữ liệu tiến độ nằm rải rác nhiều nguồn, khó nhìn tổng quan khiến việc đưa ra quyết định chậm trễ.",
-        "targetUsers": "Quản lý dự án, team lead và các thành viên vận hành nội bộ.",
-        "useCase": "Sử dụng trong các buổi họp tiến độ hàng tuần và báo cáo tháng của các bộ phận."
+      "id": "scene_problem_text_search",
+      "type": "slot",
+      "headline": "Vì sao grep chưa đủ?",
+      "body": "Text search tìm được chuỗi, nhưng không hiểu symbol nào là định nghĩa thật, ai gọi ai, và thay đổi này ảnh hưởng tới đâu.",
+      "duration": {
+        "mode": "fixed",
+        "min": 8,
+        "max": 8
       },
-      "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
+      "sceneTemplate": {
+        "id": "intro-stack",
+        "name": "Short-form problem hook",
+        "slots": [
+          {
+            "id": "kicker",
+            "label": "Badge",
+            "type": "text",
+            "colorRole": "accent",
+            "displayStyle": "filled",
+            "layout": {
+              "x": 34,
+              "y": 24,
+              "width": 32,
+              "height": 8
+            }
+          },
+          {
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "colorRole": "text",
+            "displayStyle": "plain",
+            "layout": {
+              "x": 9,
+              "y": 37,
+              "width": 82,
+              "height": 20
+            }
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "type": "text",
+            "colorRole": "mutedText",
+            "displayStyle": "plain",
+            "layout": {
+              "x": 13,
+              "y": 60,
+              "width": 74,
+              "height": 17
+            }
+          },
+          {
+            "id": "tag",
+            "label": "Pill",
+            "type": "tag",
+            "colorRole": "accent",
+            "displayStyle": "pill",
+            "layout": {
+              "x": 22,
+              "y": 81,
+              "width": 56,
+              "height": 8
+            }
+          }
+        ],
+        "baseTemplateId": "intro-stack",
+        "aspectRatios": [
+          "9:16",
+          "16:9"
+        ]
+      },
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "kicker": {
+          "type": "text",
+          "text": "GREP",
+          "delay": 0,
+          "animation": "fade-up",
+          "displayAnimation": "glow-soft",
+          "fontSize": 20,
+          "fontWeight": 900,
+          "textAlign": "center",
+          "enabled": true
+        },
+        "title": {
+          "type": "text",
+          "text": "KHÔNG HIỂU FLOW",
+          "delay": 0.35,
+          "animation": "fade-up",
+          "fontSize": 33,
+          "fontWeight": 900,
+          "textAlign": "center",
+          "enabled": true
+        },
+        "description": {
+          "type": "text",
+          "text": "Không thấy caller/callee hay impact.",
+          "delay": 1.1,
+          "animation": "fade-up",
+          "fontSize": 21,
+          "fontWeight": 800,
+          "textAlign": "center",
+          "enabled": true
+        },
+        "tag": {
+          "type": "tag",
+          "text": "Context risk",
+          "delay": 1.9,
+          "animation": "pop",
+          "displayAnimation": "float-soft",
+          "fontSize": 18,
+          "fontWeight": 800,
+          "textAlign": "center",
+          "enabled": true
+        }
       }
     },
     {
-      "id": "scene-solution",
-      "type": "solution",
-      "title": "Giải pháp",
-      "duration": 10,
-      "content": {
-        "solution": "Gom dữ liệu vào dashboard nội bộ có biểu đồ trực quan, hệ thống cảnh báo tự động và báo cáo nhanh.",
-        "keyHighlight": "Dashboard gom dữ liệu phân tán thành một nơi dễ đọc để team ra quyết định nhanh hơn."
+      "id": "scene_solution_graph",
+      "type": "slot",
+      "headline": "Codegraph tạo bản đồ code",
+      "body": "Source được parse thành node và edge: file, class, function, method, import, definition, caller/callee và dependency relation.",
+      "duration": {
+        "mode": "fixed",
+        "min": 8,
+        "max": 8
       },
-      "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
-      }
-    },
-    {
-      "id": "scene-features",
-      "type": "features",
-      "title": "Tính năng nổi bật",
-      "duration": 18,
-      "content": {
-        "displayMode": "sequence",
-        "items": [
+      "sceneTemplate": {
+        "id": "media-showcase",
+        "name": "Media Showcase",
+        "slots": [
           {
-            "id": "feat_1",
-            "title": "Tổng quan tiến độ theo dự án",
-            "description": "Hiển thị tỷ lệ phần trăm hoàn thành, trạng thái các milestone và timeline của từng dự án.",
-            "benefit": "Giúp quản lý nắm bắt nhanh trạng thái sức khỏe của toàn bộ dự án trong 10 giây.",
-            "voiceoverScript": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy.",
-            "durationSec": 8,
-            "order": 1
+            "id": "header",
+            "label": "Header",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 0,
+            "allowedAnimations": [
+              "fade-up"
+            ]
           },
           {
-            "id": "feat_2",
-            "title": "Biểu đồ hiệu suất theo tuần",
-            "description": "Biểu diễn trực quan số lượng task hoàn thành, task mới phát sinh và task tồn đọng.",
-            "benefit": "Phát hiện ngay các điểm nghẽn trong quy trình làm việc của team.",
-            "voiceoverScript": "Biểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên.",
-            "durationSec": 10,
-            "order": 2
+            "id": "logo",
+            "label": "Logo",
+            "type": "asset",
+            "required": false,
+            "defaultDelay": 0,
+            "allowedAnimations": [
+              "scale-in"
+            ]
           },
           {
-            "id": "feat_3",
-            "title": "Cảnh báo task trễ hạn tự động",
-            "description": "Tự động quét và phát hiện các task đã quá deadline mà chưa được cập nhật.",
-            "benefit": "Hỗ trợ team lead xử lý rủi ro chậm tiến độ một cách chủ động.",
-            "voiceoverScript": "Khi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng.",
-            "durationSec": 9,
-            "order": 3
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "required": true,
+            "defaultDelay": 0.6,
+            "allowedAnimations": [
+              "fade-up",
+              "typewriter"
+            ]
           },
           {
-            "id": "feat_4",
-            "title": "Xuất báo cáo nhanh cho buổi họp",
-            "description": "Chỉ với 1 click, hệ thống tự động xuất báo cáo PDF/Slides tóm tắt các chỉ số quan trọng.",
-            "benefit": "Tiết kiệm thời gian chuẩn bị tài liệu họp cho team hàng tuần.",
-            "voiceoverScript": "Cuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần.",
-            "durationSec": 8,
-            "order": 4
+            "id": "media",
+            "label": "Image / Video",
+            "type": "media",
+            "required": true,
+            "defaultDelay": 1.4,
+            "allowedAnimations": [
+              "scale-in",
+              "fade-up"
+            ]
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 3,
+            "allowedAnimations": [
+              "fade-up"
+            ]
           }
         ]
       },
-      "voiceover": {
-        "script": "Đây là dashboard giúp team nắm nhanh sức khỏe tiến độ của các dự án đang chạy.\nBiểu đồ tuần cho thấy khối lượng task, tốc độ xử lý và phần tồn đọng cần ưu tiên.\nKhi task quá hạn, hệ thống tự động cảnh báo để team lead xử lý trước khi rủi ro lan rộng.\nCuối cùng, team có thể xuất báo cáo nhanh để dùng ngay trong buổi họp tuần.",
-        "estimatedDuration": 24,
-        "fits": false
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "header": {
+          "type": "text",
+          "text": "CÁCH HOẠT ĐỘNG",
+          "delay": 0,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "logo": {
+          "type": "asset",
+          "assetId": "asset_codegraph_logo",
+          "delay": 0,
+          "animation": "scale-in",
+          "enabled": true
+        },
+        "title": {
+          "type": "text",
+          "text": "Parse source thành knowledge graph",
+          "delay": 0.6,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "media": {
+          "type": "media",
+          "assetId": "asset_codegraph_map",
+          "delay": 1.4,
+          "animation": "scale-in",
+          "enabled": true
+        },
+        "description": {
+          "type": "text",
+          "text": "Node là symbol. Edge là quan hệ. Query trả về đúng phần code cần đọc.",
+          "delay": 3,
+          "animation": "fade-up",
+          "enabled": true
+        }
       }
     },
     {
-      "id": "scene-timeline",
-      "type": "timeline",
-      "title": "Timeline phát triển",
-      "duration": 14,
-      "content": {
-        "milestones": [
+      "id": "scene_toolbox",
+      "type": "slot",
+      "headline": "Bộ tool agent dùng hằng ngày",
+      "body": "Explore để hiểu khu vực code, search/node để mở symbol, callers/callees để lần flow, impact để kiểm tra phạm vi ảnh hưởng.",
+      "duration": {
+        "mode": "fixed",
+        "min": 11,
+        "max": 11
+      },
+      "sceneTemplate": {
+        "id": "grid-feature",
+        "name": "Grid Feature",
+        "slots": [
           {
-            "id": "ms_1",
-            "title": "Khảo sát nhu cầu nội bộ",
-            "date": "Tháng 01/2026",
-            "description": "Phỏng vấn 15 PM và Team Lead để xác định các chỉ số quan trọng cần theo dõi.",
-            "status": "completed",
-            "voiceoverScript": ""
+            "id": "header",
+            "label": "Header",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 0,
+            "allowedAnimations": [
+              "fade-up"
+            ]
           },
           {
-            "id": "ms_2",
-            "title": "Xây dựng bản MVP",
-            "date": "Tháng 02/2026",
-            "description": "Thiết kế database, tích hợp API từ Jira/Github và dựng các biểu đồ cốt lõi.",
-            "status": "completed",
-            "voiceoverScript": ""
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "required": true,
+            "defaultDelay": 0.5,
+            "allowedAnimations": [
+              "fade-up",
+              "typewriter"
+            ]
           },
           {
-            "id": "ms_3",
-            "title": "Thử nghiệm nội bộ (Alpha Test)",
-            "date": "Tháng 03/2026",
-            "description": "Triển khai thử nghiệm cho Platform Team để tìm và sửa lỗi phát sinh.",
-            "status": "completed",
-            "voiceoverScript": ""
+            "id": "grid",
+            "label": "Grid Items",
+            "type": "list",
+            "required": true,
+            "defaultDelay": 1.2,
+            "allowedAnimations": [
+              "pop",
+              "fade-up"
+            ]
           },
           {
-            "id": "ms_4",
-            "title": "Mở rộng thử nghiệm (Beta Test)",
-            "date": "Tháng 04/2026",
-            "description": "Mở quyền truy cập cho 5 team dự án khác chạy thử và thu thập feedback.",
-            "status": "active",
-            "voiceoverScript": ""
-          },
-          {
-            "id": "ms_5",
-            "title": "Ra mắt chính thức bản V1.0",
-            "date": "Tháng 05/2026",
-            "description": "Hoàn thiện các tính năng báo cáo tự động và triển khai diện rộng toàn công ty.",
-            "status": "upcoming",
-            "voiceoverScript": ""
+            "id": "description",
+            "label": "Description",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 4,
+            "allowedAnimations": [
+              "fade-up"
+            ]
           }
         ]
       },
-      "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "header": {
+          "type": "text",
+          "text": "TOOLBOX",
+          "delay": 0,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "title": {
+          "type": "text",
+          "text": "Hỏi codebase bằng graph",
+          "delay": 0.5,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "grid": {
+          "type": "list",
+          "items": [
+            "explore: hiểu một module hoặc flow",
+            "search/node: tìm đúng symbol",
+            "callers/callees: lần quan hệ gọi",
+            "impact: xem thay đổi ảnh hưởng đâu"
+          ],
+          "delay": 1.2,
+          "animation": "pop",
+          "enabled": true
+        },
+        "description": {
+          "type": "text",
+          "text": "Mục tiêu không phải đọc nhiều file hơn, mà là đọc đúng file hơn.",
+          "delay": 4,
+          "animation": "fade-up",
+          "enabled": true
+        }
       }
     },
     {
-      "id": "scene-impact",
-      "type": "impact",
-      "title": "Kết quả và tác động",
-      "duration": 10,
-      "content": {
-        "resultImpact": "Giảm 70% thời gian tổng hợp báo cáo thủ công và tăng 25% hiệu suất xử lý công việc quá hạn.",
-        "highlight": "Dashboard gom dữ liệu phân tán thành một nơi dễ đọc để team ra quyết định nhanh hơn."
+      "id": "scene_workflow",
+      "type": "slot",
+      "headline": "Workflow dùng Codegraph",
+      "body": "Bắt đầu bằng câu hỏi, explore khu vực liên quan, inspect symbol chính, kiểm caller/callee, rồi mới sửa và verify bằng test.",
+      "duration": {
+        "mode": "fixed",
+        "min": 10,
+        "max": 10
       },
-      "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
+      "sceneTemplate": {
+        "id": "step-flow",
+        "name": "Step Flow",
+        "slots": [
+          {
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "required": true,
+            "defaultDelay": 0,
+            "allowedAnimations": [
+              "fade-up"
+            ]
+          },
+          {
+            "id": "steps",
+            "label": "Steps",
+            "type": "list",
+            "required": true,
+            "defaultDelay": 1,
+            "allowedAnimations": [
+              "slide-left",
+              "fade-up"
+            ]
+          },
+          {
+            "id": "note",
+            "label": "Note",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 4,
+            "allowedAnimations": [
+              "fade-up"
+            ]
+          }
+        ]
+      },
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "title": {
+          "type": "text",
+          "text": "Workflow: hỏi đúng trước khi sửa",
+          "delay": 0,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "steps": {
+          "type": "list",
+          "items": [
+            "1. Đặt câu hỏi về module/bug",
+            "2. Explore vùng code liên quan",
+            "3. Inspect symbol chính",
+            "4. Check callers/callees/impact",
+            "5. Sửa code và chạy verification"
+          ],
+          "delay": 1,
+          "animation": "slide-left",
+          "enabled": true
+        },
+        "note": {
+          "type": "text",
+          "text": "Codegraph là bước đọc hiểu. Verification vẫn là compiler, test và review.",
+          "delay": 4,
+          "animation": "fade-up",
+          "enabled": true
+        }
       }
     },
     {
-      "id": "scene-outro",
-      "type": "outro",
-      "title": "Kết thúc",
-      "duration": 6,
-      "content": {
-        "endingNote": "Hãy truy cập dashboard tại internal.analytics và gửi phản hồi cho Platform Team nhé!",
-        "ownerTeam": "Platform Team"
+      "id": "scene_guardrails",
+      "type": "slot",
+      "headline": "Guardrail khi dùng Codegraph",
+      "body": "Graph có thể lag sau khi sửa file. Nếu index báo stale, đọc file thật hoặc re-index trước khi kết luận.",
+      "duration": {
+        "mode": "fixed",
+        "min": 8,
+        "max": 8
       },
-      "voiceover": {
-        "script": "",
-        "estimatedDuration": 0,
-        "fits": true
+      "sceneTemplate": {
+        "id": "grid-feature",
+        "name": "Grid Feature",
+        "slots": [
+          {
+            "id": "header",
+            "label": "Header",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 0,
+            "allowedAnimations": [
+              "fade-up"
+            ]
+          },
+          {
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "required": true,
+            "defaultDelay": 0.5,
+            "allowedAnimations": [
+              "fade-up",
+              "typewriter"
+            ]
+          },
+          {
+            "id": "grid",
+            "label": "Grid Items",
+            "type": "list",
+            "required": true,
+            "defaultDelay": 1.2,
+            "allowedAnimations": [
+              "pop",
+              "fade-up"
+            ]
+          },
+          {
+            "id": "description",
+            "label": "Description",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 4,
+            "allowedAnimations": [
+              "fade-up"
+            ]
+          }
+        ]
+      },
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "header": {
+          "type": "text",
+          "text": "GUARDRAILS",
+          "delay": 0,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "title": {
+          "type": "text",
+          "text": "Graph giúp hiểu nhanh, không thay thế kiểm chứng",
+          "delay": 0.5,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "grid": {
+          "type": "list",
+          "items": [
+            "Kiểm staleness sau khi edit file",
+            "Ưu tiên source thật khi index chưa sync",
+            "Không thay thế typecheck/test",
+            "Dùng impact để review blast radius"
+          ],
+          "delay": 1.2,
+          "animation": "pop",
+          "enabled": true
+        },
+        "description": {
+          "type": "text",
+          "text": "Graph định hướng. Test xác nhận.",
+          "delay": 4,
+          "animation": "fade-up",
+          "enabled": true
+        }
+      }
+    },
+    {
+      "id": "scene_outro",
+      "type": "slot",
+      "headline": "Agent hiểu code tốt hơn",
+      "body": "Codegraph giúp agent chuyển từ đọc mò sang đọc có cấu trúc: đúng symbol, đúng flow, đúng impact.",
+      "duration": {
+        "mode": "fixed",
+        "min": 6,
+        "max": 6
+      },
+      "sceneTemplate": {
+        "id": "outro-cta",
+        "name": "Outro CTA",
+        "slots": [
+          {
+            "id": "logo",
+            "label": "Logo",
+            "type": "asset",
+            "required": false,
+            "defaultDelay": 0,
+            "allowedAnimations": [
+              "scale-in"
+            ]
+          },
+          {
+            "id": "title",
+            "label": "Title",
+            "type": "text",
+            "required": true,
+            "defaultDelay": 0.4,
+            "allowedAnimations": [
+              "fade-up"
+            ]
+          },
+          {
+            "id": "cta",
+            "label": "Call to action",
+            "type": "text",
+            "required": false,
+            "defaultDelay": 1.5,
+            "allowedAnimations": [
+              "pop",
+              "fade-up"
+            ]
+          },
+          {
+            "id": "tag",
+            "label": "Tag / Label",
+            "type": "tag",
+            "required": false,
+            "defaultDelay": 2.5,
+            "allowedAnimations": [
+              "fade-up"
+            ]
+          }
+        ]
+      },
+      "background": null,
+      "captions": {
+        "enabled": false
+      },
+      "slots": {
+        "logo": {
+          "type": "asset",
+          "assetId": "asset_codegraph_logo",
+          "delay": 0,
+          "animation": "scale-in",
+          "enabled": true
+        },
+        "title": {
+          "type": "text",
+          "text": "Hiểu code trước khi sửa",
+          "delay": 0.4,
+          "animation": "fade-up",
+          "enabled": true
+        },
+        "cta": {
+          "type": "text",
+          "text": "Dùng Codegraph để hỏi codebase bằng cấu trúc, không bằng đoán mò.",
+          "delay": 1.5,
+          "animation": "pop",
+          "enabled": true
+        },
+        "tag": {
+          "type": "tag",
+          "text": "Symbol · Flow · Impact",
+          "delay": 2.5,
+          "animation": "fade-up",
+          "enabled": true
+        }
       }
     }
   ]

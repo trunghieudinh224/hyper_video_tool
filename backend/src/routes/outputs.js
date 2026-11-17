@@ -5,7 +5,7 @@ const path = require("node:path");
 const { config } = require("../config");
 const { listOutputRecords } = require("../render/output-manifest");
 
-const OUTPUT_FILENAME_PATTERN = /^[a-zA-Z0-9_-]+\.mp4$/;
+const OUTPUT_FILENAME_PATTERN = /^[a-zA-Z0-9_-]+\.(mp4|srt)$/;
 
 function sendJsonError(response, statusCode, message, errors = null) {
   const body = JSON.stringify({
@@ -68,7 +68,7 @@ function handleOutputs(request, response, requestUrl, sendJson) {
     }
 
     const headers = {
-      "Content-Type": "video/mp4",
+      "Content-Type": filename.endsWith(".srt") ? "application/x-subrip; charset=utf-8" : "video/mp4",
       "Content-Length": stats.size,
       "Cache-Control": "no-store"
     };

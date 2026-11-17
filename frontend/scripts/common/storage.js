@@ -1,6 +1,9 @@
 /* Local Storage, Import, and Export Operations */
 
 const AppStorage = (() => {
+  const sampleImage = (label, width, height) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#101722"/><text x="50%" y="50%" fill="#f8fafc" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="${Math.round(height / 12)}">${label}</text></svg>`
+  )}`;
   const STORAGE_KEY = "hyper_video_project";
   const SETTINGS_KEY = "hyper_video_settings";
   const OUTPUTS_KEY = "hyper_video_outputs";
@@ -489,7 +492,7 @@ const AppStorage = (() => {
         "type": "logo",
         "size": "45 KB",
         "dateAdded": "2026-06-28",
-        "url": "https://placehold.co/240x240/05070A/22D3EE?text=CG",
+        "url": sampleImage("CG", 240, 240),
         "useInVideo": true
       },
       {
@@ -498,7 +501,7 @@ const AppStorage = (() => {
         "type": "screenshot",
         "size": "1.2 MB",
         "dateAdded": "2026-06-28",
-        "url": "https://placehold.co/1080x720/101722/F8FAFC?text=File+%E2%86%92+Symbol+%E2%86%92+Call+Graph",
+        "url": sampleImage("File → Symbol → Call Graph", 1080, 720),
         "useInVideo": true
       }
     ],

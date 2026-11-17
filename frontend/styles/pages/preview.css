@@ -330,10 +330,9 @@
 .preview-subtitle-overlay {
   position: absolute;
   z-index: 5;
-  --subtitle-box-bg: color-mix(in srgb, var(--preview-surface) 84%, transparent);
   display: grid;
   align-content: center;
-  gap: 4px;
+  justify-items: center;
   min-width: 60px;
   min-height: 30px;
   border: 1px solid color-mix(in srgb, var(--preview-border) 78%, transparent);
@@ -341,41 +340,33 @@
   padding: 7px var(--space-2);
   box-sizing: border-box;
   overflow: hidden;
-  background: #d4d5d9;
+  background: color-mix(in srgb, var(--preview-surface) 88%, transparent);
   color: var(--preview-text);
   font-size: var(--subtitle-font-size, 11px);
   font-weight: var(--subtitle-font-weight, 500);
-  line-height: 1.2;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
   pointer-events: none;
 }
 
-.preview-subtitle-overlay strong {
-  position: absolute;
-  top: 50%;
-  left: var(--space-2);
-  z-index: 1;
-  max-width: calc(100% - var(--space-4));
-  padding: 1px 5px 2px 0;
-  overflow: hidden;
-  background: #d4d5d9;
-  font-size: inherit;
-  font-weight: var(--subtitle-font-weight, 500);
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transform: translateY(-50%);
+.preview-subtitle-overlay.is-empty {
+  visibility: hidden;
 }
 
-.preview-subtitle-skeleton {
-  display: grid;
-  gap: 3px;
+.preview-subtitle-overlay.is-minimal {
+  border: 0;
+  background: transparent;
+  text-shadow: 0 1px 4px var(--preview-bg);
 }
 
-.preview-subtitle-skeleton span {
-  display: block;
-  height: max(2px, calc(var(--subtitle-font-size, 11px) * 0.28));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--preview-text) 36%, transparent);
+.preview-subtitle-overlay.is-karaoke {
+  background: color-mix(in srgb, var(--preview-bg) 78%, transparent);
+}
+
+.preview-caption-word.is-active {
+  color: var(--preview-accent);
+  font-weight: 800;
 }
 
 .preview-slot {

@@ -1,5 +1,8 @@
 "use strict";
 
+const { parseSrtCues } = require("../audio/subtitles");
+const { parseVoiceScriptSegments } = require("../audio/voiceover");
+
 const RENDER_PAYLOAD_VERSION = "1.0.0";
 const DYNAMIC_RENDER_PAYLOAD_VERSION = "dynamic-motion-1.0.0";
 const VIDEO_PRESETS = {
@@ -117,6 +120,8 @@ function validateScene(errors, scene, index) {
     pushError(errors, `${basePath}.content`, "Scene content object is required.");
   }
 
+  validateCaptions(errors, scene.captions, basePath);
+
   if (scene.voiceover !== undefined) {
     if (!isPlainObject(scene.voiceover)) {
       pushError(errors, `${basePath}.voiceover`, "Scene voiceover must be an object.");
@@ -184,6 +189,44 @@ function validateDynamicItem(errors, item, basePath) {
   validateDynamicMedia(errors, item.media, `${basePath}.media`);
 }
 
+function validateCaptions(errors, captions, basePath) {
+  if (captions === undefined) return;
+  if (!isPlainObject(captions)) {
+    pushError(errors, `${basePath}.captions`, "Captions must be an object.");
+    return;
+  }
+  if (typeof captions.enabled !== "boolean") {
+    pushError(errors, `${basePath}.captions.enabled`, "Captions enabled must be a boolean.");
+  }
+  if (!captions.enabled) return;
+  if (captions.mode !== undefined && !["voice", "custom", "srt"].includes(captions.mode)) {
+    pushError(errors, `${basePath}.captions.mode`, "Captions mode must be voice, custom or srt.");
+  }
+  if (captions.style !== undefined && !["bottom-caption", "karaoke", "minimal"].includes(captions.style)) {
+    pushError(errors, `${basePath}.captions.style`, "Captions style is invalid.");
+  }
+  if (captions.mode === "custom" && !isNonEmptyString(captions.text)) {
+    pushError(errors, `${basePath}.captions.text`, "Custom captions require text.");
+  }
+  if (captions.mode === "srt") {
+    try {
+      if (!parseSrtCues(captions.text).length) {
+        pushError(errors, `${basePath}.captions.text`, "SRT captions require at least one valid cue.");
+      }
+    } catch (_error) {
+      pushError(errors, `${basePath}.captions.text`, "SRT captions are invalid or too long.");
+    }
+  }
+  for (const field of ["fontSize", "fontWeight", "maxLines"]) {
+    if (captions[field] !== undefined && !Number.isFinite(Number(captions[field]))) {
+      pushError(errors, `${basePath}.captions.${field}`, "Caption setting must be a number.");
+    }
+  }
+  if (captions.layout !== undefined && !isPlainObject(captions.layout)) {
+    pushError(errors, `${basePath}.captions.layout`, "Caption layout must be an object.");
+  }
+}
+
 function validateDynamicScene(errors, scene, index) {
   const basePath = `scenes[${index}]`;
 
@@ -205,6 +248,7 @@ function validateDynamicScene(errors, scene, index) {
   validateStringField(errors, scene, "body", false);
   validateDynamicMedia(errors, scene.media, `${basePath}.media`);
   validateDynamicDuration(errors, scene.duration, basePath);
+  validateCaptions(errors, scene.captions, basePath);
 
   if (scene.items !== undefined) {
     if (!Array.isArray(scene.items)) {
@@ -293,6 +337,14 @@ function validateAudio(errors, audio) {
 
     if (voiceover.enabled && !isNonEmptyString(voiceover.script)) {
       pushError(errors, "audio.voiceover.script", "Enabled voiceover requires a script.");
+    } else if (voiceover.enabled && isNonEmptyString(voiceover.script)) {
+      try {
+        if (!parseVoiceScriptSegments(voiceover.script, voiceover.language).length) {
+          pushError(errors, "audio.voiceover.script", "Voice script contains no spoken text.");
+        }
+      } catch (error) {
+        pushError(errors, "audio.voiceover.script", error.message);
+      }
     }
   }
 
@@ -398,6 +450,15 @@ function validateRenderPayload(payload) {
       }
     }
     payload.scenes.forEach((scene, index) => validateScene(errors, scene, index));
+  }
+
+  if (Array.isArray(payload.scenes) && isPlainObject(payload.audio) && isPlainObject(payload.audio.voiceover)) {
+    payload.scenes.forEach((scene, index) => {
+      if (scene && scene.captions && scene.captions.enabled && (scene.captions.mode || "voice") === "voice"
+        && !payload.audio.voiceover.enabled) {
+        pushError(errors, `scenes[${index}].captions.mode`, "Voice captions require enabled voiceover.");
+      }
+    });
   }
 
   if (!isPlainObject(payload.assets)) {

@@ -1,17 +1,25 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const {
   buildVoiceoverScript,
   createEdgeTtsArgs,
   createVoiceoverCacheKey,
   estimateSpeechDurationSeconds,
+  generateVoiceover,
   getVoiceoverSceneReports,
+  getPlainVoiceScript,
+  getSegmentVoiceId,
   normalizeVoiceoverConfig,
+  parseVoiceScriptSegments,
   VOICEOVER_VOICES
 } = require("../src/audio/voiceover");
+const { parseSrtCues } = require("../src/audio/subtitles");
+const { config } = require("../src/config");
 const { projectToRenderPayload } = require("../src/render/project-to-render-payload");
 const { validateRenderPayload } = require("../src/render/render-payload-schema");
 
@@ -114,6 +122,16 @@ const reports = getVoiceoverSceneReports({
 });
 assert.equal(reports[0].fits, false, "Long scene voiceover should be flagged as too long.");
 assert.equal(estimateSpeechDurationSeconds("Xin chào"), 1);
+assert.deepEqual(parseVoiceScriptSegments("Xin chào [en]CodeGraph[/en] và こんにちは.", "vi-VN"), [
+  { language: "vi-VN", text: "Xin chào" },
+  { language: "en-US", text: "CodeGraph" },
+  { language: "vi-VN", text: "và" },
+  { language: "ja-JP", text: "こんにちは." }
+]);
+assert.equal(getPlainVoiceScript("Xin chào [en]CodeGraph[/en]"), "Xin chào CodeGraph");
+assert.equal(getSegmentVoiceId(normalizeVoiceoverConfig({ language: "vi-VN", voiceId: "vi-VN-NamMinhNeural" }), "en-US"), "en-US-GuyNeural");
+assert.throws(() => parseVoiceScriptSegments("Xin [en]hi[/ja]"), /Mismatched/);
+assert.throws(() => parseVoiceScriptSegments("Xin [en]hi"), /Unclosed/);
 
 const invalidLanguagePayload = {
   ...defaultPayload,
@@ -182,5 +200,58 @@ assert.equal(
   }),
   "Voiceover cache key should be stable."
 );
+assert.notEqual(
+  createVoiceoverCacheKey({ provider: "edge-tts", language: "vi-VN", voiceId: "vi-VN-HoaiMyNeural", script: "[en]Hello[/en]" }),
+  createVoiceoverCacheKey({ provider: "edge-tts", language: "vi-VN", voiceId: "vi-VN-HoaiMyNeural", script: "[en]Hello[/en]", processingVersion: "multilingual-v1" })
+);
 
-console.log("Audio voiceover tests passed.");
+async function testMixedVoiceGeneration() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hvt-mixed-voice-test-"));
+  const originalRoot = config.projectRoot;
+  const voices = [];
+  config.projectRoot = tempRoot;
+  try {
+    const payload = { audio: { voiceover: {
+      enabled: true,
+      provider: "edge-tts",
+      language: "vi-VN",
+      voiceId: "vi-VN-HoaiMyNeural",
+      script: "Xin [en]CodeGraph[/en] こんにちは"
+    } } };
+    const spawn = (_command, args) => {
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      const voiceId = args[args.indexOf("--voice") + 1];
+      const mediaPath = args[args.indexOf("--write-media") + 1];
+      const subtitlePath = args[args.indexOf("--write-subtitles") + 1];
+      const text = args[args.indexOf("--text") + 1];
+      voices.push(voiceId);
+      process.nextTick(() => {
+        fs.writeFileSync(mediaPath, "fake audio");
+        fs.writeFileSync(subtitlePath, `1\n00:00:00,000 --> 00:00:01,000\n${text}\n`);
+        child.emit("close", 0);
+      });
+      return child;
+    };
+    const options = {
+      spawn,
+      getMediaDurationSeconds: async () => 1,
+      concatAudioSegments: async ({ outputPath }) => fs.writeFileSync(outputPath, "combined audio")
+    };
+    const result = await generateVoiceover(payload, options);
+    assert.deepEqual(voices, ["vi-VN-HoaiMyNeural", "en-US-JennyNeural", "ja-JP-NanamiNeural"]);
+    assert.deepEqual(parseSrtCues(fs.readFileSync(result.subtitlePath, "utf8")).map((cue) => cue.start), [0, 1000, 2000]);
+    assert.equal(result.cached, false);
+    const cached = await generateVoiceover(payload, options);
+    assert.equal(cached.cached, true);
+    assert.equal(voices.length, 3);
+  } finally {
+    config.projectRoot = originalRoot;
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
+testMixedVoiceGeneration()
+  .then(() => console.log("Audio voiceover tests passed."))
+  .catch((error) => { console.error(error); process.exitCode = 1; });

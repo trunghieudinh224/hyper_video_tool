@@ -78,3 +78,107 @@
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
   font-size: 1.35rem;
 }
+
+.asset-action-btn.btn-inspect-asset {
+  color: var(--color-primary);
+}
+
+.asset-action-btn.btn-inspect-asset:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+}
+
+.asset-inspector {
+  width: min(820px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+
+.asset-inspector::backdrop {
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.asset-inspector-content {
+  box-sizing: border-box;
+  max-height: calc(100vh - 2rem);
+  padding: var(--space-5);
+  overflow: auto;
+}
+
+.asset-inspector-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.asset-inspector-title {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-lg);
+}
+
+.asset-inspector-close {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.asset-inspector-close:hover {
+  color: var(--color-text);
+}
+
+.asset-inspector-media {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+}
+
+.asset-inspector-media video,
+.asset-inspector-media audio {
+  width: 100%;
+  max-height: min(60vh, 520px);
+}
+
+.asset-inspector-waveform {
+  min-height: 72px;
+}
+
+.asset-inspector-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.asset-inspector-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+}
+
+.asset-inspector-details > div {
+  min-width: 0;
+}
+
+.asset-inspector-details dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+}
+
+.asset-inspector-details dd {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}

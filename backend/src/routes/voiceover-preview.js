@@ -2,7 +2,9 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { generateVoiceover, estimateSpeechDurationSeconds } = require("../audio/voiceover");
+const { generateVoiceover, estimateSpeechDurationSeconds, getPlainVoiceScript, parseVoiceScriptSegments } = require("../audio/voiceover");
+const { approximateVoiceCues, groupVoiceCues, parseSrtCues } = require("../audio/subtitles");
+const { getMediaDurationSeconds } = require("../render/media");
 const { config } = require("../config");
 
 const MAX_BODY_BYTES = 1024 * 128;
@@ -63,6 +65,14 @@ function normalizePreviewInput(input = {}) {
       script: "too_long",
       maxChars: MAX_SCRIPT_CHARS
     });
+  }
+
+  try {
+    if (!parseVoiceScriptSegments(script, input.language || "vi-VN").length) {
+      throw new Error("Voice script contains no spoken text.");
+    }
+  } catch (error) {
+    throw createHttpError(422, error.message, { script: "invalid_language_tags" });
   }
 
   return {
@@ -228,6 +238,16 @@ async function createPreview(request, response, sendJson) {
       scenes: []
     });
     const filename = path.basename(result.mediaPath);
+    let voiceCues = result.subtitlePath && fs.existsSync(result.subtitlePath)
+      ? parseSrtCues(fs.readFileSync(result.subtitlePath, "utf8"))
+      : [];
+    if (!voiceCues.length) {
+      voiceCues = approximateVoiceCues(
+        getPlainVoiceScript(result.script, result.language),
+        (await getMediaDurationSeconds(result.mediaPath)) * 1000
+      );
+    }
+    const captions = groupVoiceCues(voiceCues, { maxChars: 44, language: result.language });
     const cleanup = cleanupAudioCache(path.dirname(result.mediaPath), {
       excludePaths: [result.mediaPath, result.subtitlePath].filter(Boolean)
     });
@@ -239,6 +259,7 @@ async function createPreview(request, response, sendJson) {
         preview: {
           filename,
           audioUrl: `/api/voiceover-preview/audio/${encodeURIComponent(filename)}`,
+          captions,
           cached: result.cached,
           provider: result.provider,
           language: result.language,

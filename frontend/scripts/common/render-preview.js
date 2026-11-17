@@ -152,12 +152,12 @@ const AppRender = (() => {
     useInVideo: asset.useInVideo !== false
   });
 
-  const createFallbackDynamicMedia = (projectData) => ({
+  const createFallbackDynamicMedia = () => ({
     id: "asset-dynamic-placeholder",
     type: "image",
     role: "screenshot",
     name: "Dynamic render placeholder",
-    url: `https://placehold.co/1080x720/101214/eef2f7?text=${encodeURIComponent(projectData.projectName || "Render Preview")}`,
+    url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="720" viewBox="0 0 1080 720"><rect width="1080" height="720" fill="#101214"/><text x="540" y="360" fill="#eef2f7" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-size="64">Render Preview</text></svg>')}`,
     alt: "Dynamic render placeholder",
     useInVideo: true
   });
@@ -227,6 +227,7 @@ const AppRender = (() => {
             name: sceneTemplate.name,
             slots: Array.isArray(sceneTemplate.slots) ? sceneTemplate.slots : []
           } : null,
+          captions: segment.subtitles || { enabled: false },
           slots: segment.slots || {},
           duration: { mode: "fixed", min: durationSec, max: durationSec },
           voiceover: createSceneVoiceover(segment.type || "segment", durationSec, segment.voiceoverScript)
@@ -765,6 +766,7 @@ const AppRender = (() => {
       outputSize: job.outputSize,
       durationMs: job.durationMs,
       audio: job.audio || null,
+      subtitles: job.subtitles || null,
       dateCreated: completedAt.toISOString().replace("T", " ").substring(0, 19),
       status: job.status,
       source: "backend"
@@ -784,6 +786,7 @@ const AppRender = (() => {
     outputSize: output.outputSize,
     durationMs: output.durationMs,
     audio: output.audio || null,
+    subtitles: output.subtitles || null,
     dateCreated: output.dateCreated || (output.completedAt || output.createdAt || "").replace("T", " ").substring(0, 19),
     status: output.status || "succeeded",
     source: "backend"

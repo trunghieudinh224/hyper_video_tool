@@ -6,6 +6,7 @@ const { spawnSync } = require("node:child_process");
 
 const projectRoot = path.resolve(__dirname, "../..");
 const venvDir = path.join(projectRoot, ".cache", "edge-tts-venv");
+const EDGE_TTS_VERSION = "7.3.1";
 const pythonBin = process.platform === "win32"
   ? path.join(venvDir, "Scripts", "python.exe")
   : path.join(venvDir, "bin", "python");
@@ -34,7 +35,7 @@ function main() {
   }
 
   run(pythonBin, ["-m", "pip", "install", "--upgrade", "pip"]);
-  run(pythonBin, ["-m", "pip", "install", "edge-tts"]);
+  run(pythonBin, ["-m", "pip", "install", `edge-tts==${EDGE_TTS_VERSION}`]);
   run(pythonBin, ["-m", "edge_tts", "--list-voices"]);
 
   console.log(`edge-tts local venv ready: ${pythonBin}`);

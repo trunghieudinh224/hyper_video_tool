@@ -79,6 +79,14 @@ function normalizeOutputRecord(record) {
     resolution: record.resolution || (record.width && record.height ? `${record.width}x${record.height}` : ""),
     projectName: record.projectName || "",
     audio: record.audio || null,
+    subtitles: record.subtitles && record.subtitles.enabled === true
+      && fs.existsSync(path.join(config.outputsDir, record.filename.replace(/\.mp4$/, ".srt")))
+      ? {
+        enabled: true,
+        cueCount: record.subtitles && record.subtitles.cueCount || null,
+        outputPath: `outputs/${record.filename.replace(/\.mp4$/, ".srt")}`
+      }
+      : null,
     status: record.status || "succeeded",
     outputSize,
     durationMs: record.durationMs || null,
@@ -116,6 +124,7 @@ function upsertOutputRecord(job) {
     resolution: job.resolution,
     projectName: job.projectName,
     audio: job.audio || null,
+    subtitles: job.subtitles || null,
     status: job.status,
     outputSize: job.outputSize || null,
     durationMs: job.durationMs || null,

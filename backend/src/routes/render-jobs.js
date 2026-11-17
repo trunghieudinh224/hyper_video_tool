@@ -55,6 +55,7 @@ function serializeJob(job) {
     outputRecord: job.outputRecord || null,
     outputSize: job.outputSize || null,
     audio: job.audio || null,
+    subtitles: job.subtitles || null,
     progress: job.progress || 0,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,

@@ -39,6 +39,32 @@ if (generatedPayload.version === "dynamic-motion-1.0.0") {
   assert.equal(generatedPayload.scenes[0].slots.title.text, "CHO AI AGENT");
   assert.equal(generatedPayload.scenes[1].sceneTemplate.name, "Short-form problem hook");
   assert.equal(generatedPayload.scenes[1].slots.title.text, "KHÔNG HIỂU FLOW");
+  const captionProject = {
+    ...project,
+    features: project.features.map((feature, index) => index === 0
+      ? { ...feature, subtitles: { enabled: true, mode: "custom", style: "minimal", text: "Câu mở đầu" } }
+      : feature)
+  };
+  const captionPayload = projectToRenderPayload(captionProject);
+  assert.equal(captionPayload.scenes[0].captions.text, "Câu mở đầu");
+  assert.equal(validateRenderPayload(captionPayload).valid, true);
+  const mixedVoiceProject = {
+    ...project,
+    audio: { ...project.audio, voiceover: { ...project.audio.voiceover, enabled: true, script: "" } },
+    features: project.features.map((feature, index) => index === 0
+      ? { ...feature, voiceoverScript: "Xin chào [en]CodeGraph[/en]" }
+      : feature)
+  };
+  const mixedVoicePayload = projectToRenderPayload(mixedVoiceProject);
+  assert.match(mixedVoicePayload.audio.voiceover.script, /\[en\]CodeGraph\[\/en\]/);
+  assert.equal(validateRenderPayload(mixedVoicePayload).valid, true);
+  const invalidCaptionPayload = {
+    ...captionPayload,
+    scenes: captionPayload.scenes.map((scene, index) => index === 0
+      ? { ...scene, captions: { enabled: true, mode: "srt", style: "minimal", text: "wrong" } }
+      : scene)
+  };
+  assert.equal(validateRenderPayload(invalidCaptionPayload).valid, false);
 } else {
   assert.deepEqual(generatedPayload, expectedPayload, "Generated payload must match data/render-payload.sample.json.");
 
