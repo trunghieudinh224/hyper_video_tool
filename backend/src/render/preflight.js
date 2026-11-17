@@ -126,11 +126,12 @@ function checkTemplateFiles() {
 
 function checkRunnerFiles() {
   const runnerDir = path.join(config.projectRoot, ".cache", "hyperframes-runner");
+  const binaryExtension = process.platform === "win32" ? ".exe" : "";
   const required = [
     {
       id: "runner-node",
       label: "Local Node runtime",
-      filePath: path.join(runnerDir, "node_modules", "node", "bin", "node")
+      filePath: path.join(runnerDir, "node_modules", "node", "bin", `node${binaryExtension}`)
     },
     {
       id: "runner-hyperframes",
@@ -140,12 +141,12 @@ function checkRunnerFiles() {
     {
       id: "runner-ffmpeg",
       label: "FFmpeg binary",
-      filePath: path.join(runnerDir, "bin", "ffmpeg")
+      filePath: path.join(runnerDir, "bin", `ffmpeg${binaryExtension}`)
     },
     {
       id: "runner-ffprobe",
       label: "FFprobe binary",
-      filePath: path.join(runnerDir, "bin", "ffprobe")
+      filePath: path.join(runnerDir, "bin", `ffprobe${binaryExtension}`)
     }
   ];
 

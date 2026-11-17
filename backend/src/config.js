@@ -3,10 +3,16 @@
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "../..");
+const host = process.env.HVT_HOST || "127.0.0.1";
+const portText = process.env.HVT_PORT || "3000";
+
+if (host !== "127.0.0.1" && host !== "::1") {
+  throw new Error("HVT_HOST must be a loopback address (127.0.0.1 or ::1). Hyper Video Tool runs locally only.");
+}
 
 const config = {
-  host: process.env.HVT_HOST || "127.0.0.1",
-  port: Number.parseInt(process.env.HVT_PORT || "3000", 10),
+  host,
+  port: /^\d+$/.test(portText) ? Number(portText) : NaN,
   projectRoot,
   frontendDir: path.join(projectRoot, "frontend"),
   databasePath: process.env.HVT_DATABASE_PATH || path.join(projectRoot, "data", "hyper-video-tool.sqlite"),

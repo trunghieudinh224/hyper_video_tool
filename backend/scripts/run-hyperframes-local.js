@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
@@ -9,6 +10,8 @@ const runnerPackageJson = path.join(projectRoot, "backend", "hyperframes-runner-
 const runnerPackageLock = path.join(projectRoot, "backend", "hyperframes-runner-package-lock.json");
 const runnerDir = path.join(projectRoot, ".cache", "hyperframes-runner");
 const runnerBinDir = path.join(runnerDir, "bin");
+const installFingerprintPath = path.join(runnerDir, ".install-sha256");
+const nodeBinaryName = process.platform === "win32" ? "node.exe" : "node";
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -31,35 +34,89 @@ function localModulePath(packageName) {
   return path.join(runnerDir, "node_modules", packageName);
 }
 
+function filesMatch(sourcePath, installedPath) {
+  return fs.existsSync(installedPath)
+    && fs.readFileSync(sourcePath).equals(fs.readFileSync(installedPath));
+}
+
+function getInstallFingerprint() {
+  return crypto.createHash("sha256")
+    .update(fs.readFileSync(runnerPackageJson))
+    .update("\0")
+    .update(fs.readFileSync(runnerPackageLock))
+    .digest("hex");
+}
+
 function ensureRunnerInstalled() {
+  const fingerprint = getInstallFingerprint();
+  const dependencies = JSON.parse(fs.readFileSync(runnerPackageJson, "utf8")).dependencies;
   const requiredPaths = [
-    path.join(localModulePath("node"), "bin", "node"),
+    path.join(localModulePath("node"), "bin", nodeBinaryName),
     path.join(localModulePath("hyperframes"), "dist", "cli.js"),
     localModulePath("ffmpeg-static"),
     localModulePath("ffprobe-static")
   ];
+  const versionsMatch = Object.entries(dependencies).every(([name, version]) => {
+    const installedPackage = path.join(localModulePath(name), "package.json");
+    return fs.existsSync(installedPackage)
+      && JSON.parse(fs.readFileSync(installedPackage, "utf8")).version === version;
+  });
 
-  if (requiredPaths.every((requiredPath) => fs.existsSync(requiredPath))) {
-    return;
+  const installedFilesMatch = requiredPaths.every((requiredPath) => fs.existsSync(requiredPath))
+    && versionsMatch
+    && filesMatch(runnerPackageJson, path.join(runnerDir, "package.json"))
+    && filesMatch(runnerPackageLock, path.join(runnerDir, "package-lock.json"));
+  if (installedFilesMatch) {
+    const installedFingerprint = fs.existsSync(installFingerprintPath)
+      ? fs.readFileSync(installFingerprintPath, "utf8").trim()
+      : "";
+    if (installedFingerprint === fingerprint) return false;
+    if (!installedFingerprint) {
+      // Existing local runners predate the fingerprint marker.
+      fs.writeFileSync(installFingerprintPath, fingerprint);
+      return false;
+    }
   }
 
   fs.mkdirSync(runnerDir, { recursive: true });
   fs.copyFileSync(runnerPackageJson, path.join(runnerDir, "package.json"));
   fs.copyFileSync(runnerPackageLock, path.join(runnerDir, "package-lock.json"));
   run("npm", ["ci", "--prefix", runnerDir]);
+  fs.writeFileSync(installFingerprintPath, fingerprint);
+  return true;
 }
 
-function ensureMediaBinaries() {
+function ensureMediaBinary(name, sourcePath, forceCopy = false) {
+  const binaryName = process.platform === "win32" ? `${name}.exe` : name;
+  const binaryPath = path.join(runnerBinDir, binaryName);
+
+  if (process.platform !== "win32") {
+    try {
+      if (fs.readlinkSync(binaryPath) === sourcePath) return;
+    } catch (_error) {
+      // Replace a missing or stale link below.
+    }
+    fs.rmSync(binaryPath, { force: true });
+    fs.symlinkSync(sourcePath, binaryPath, "file");
+    return;
+  }
+
+  const sourceStat = fs.statSync(sourcePath);
+  const installedStat = fs.existsSync(binaryPath) ? fs.statSync(binaryPath) : null;
+  if (forceCopy || !installedStat || installedStat.size !== sourceStat.size || installedStat.mtimeMs < sourceStat.mtimeMs) {
+    fs.copyFileSync(sourcePath, binaryPath);
+  }
+}
+
+function ensureMediaBinaries(forceCopy = false) {
   fs.mkdirSync(runnerBinDir, { recursive: true });
 
   const ffmpegPath = require(path.join(localModulePath("ffmpeg-static")));
   const ffprobeInfo = require(path.join(localModulePath("ffprobe-static")));
   const ffprobePath = ffprobeInfo.path;
 
-  fs.rmSync(path.join(runnerBinDir, "ffmpeg"), { force: true });
-  fs.symlinkSync(ffmpegPath, path.join(runnerBinDir, "ffmpeg"), "file");
-  fs.rmSync(path.join(runnerBinDir, "ffprobe"), { force: true });
-  fs.symlinkSync(ffprobePath, path.join(runnerBinDir, "ffprobe"), "file");
+  ensureMediaBinary("ffmpeg", ffmpegPath, forceCopy);
+  ensureMediaBinary("ffprobe", ffprobePath, forceCopy);
 }
 
 function parseArgs(argv) {
@@ -94,8 +151,8 @@ function parseArgs(argv) {
 function main() {
   const { cwd, setupOnly, hyperframesArgs } = parseArgs(process.argv.slice(2));
 
-  ensureRunnerInstalled();
-  ensureMediaBinaries();
+  const runnerInstalled = ensureRunnerInstalled();
+  ensureMediaBinaries(runnerInstalled);
 
   if (setupOnly) {
     console.log(`HyperFrames local runner ready at ${runnerDir}`);
@@ -107,7 +164,7 @@ function main() {
     process.exit(1);
   }
 
-  const localNode = path.join(localModulePath("node"), "bin", "node");
+  const localNode = path.join(localModulePath("node"), "bin", nodeBinaryName);
   const hyperframesCli = path.join(localModulePath("hyperframes"), "dist", "cli.js");
   const env = {
     ...process.env,

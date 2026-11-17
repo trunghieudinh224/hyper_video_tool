@@ -21,9 +21,35 @@ const MIME_TYPES = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
   ".ico": "image/x-icon",
   ".webp": "image/webp"
 };
+const LOOPBACK_HOST_HEADER = /^(?:127\.0\.0\.1|localhost|\[::1\])(?::(\d{1,5}))?$/i;
+
+function isLocalRequest(request) {
+  const headers = request.headers || {};
+  const host = String(headers.host || "");
+  const hostMatch = LOOPBACK_HOST_HEADER.exec(host);
+  if (!hostMatch || (hostMatch[1] && Number(hostMatch[1]) !== config.port)) {
+    return false;
+  }
+
+  if (headers["sec-fetch-site"] === "cross-site"
+    && request.method !== "GET" && request.method !== "HEAD") {
+    return false;
+  }
+
+  if (headers.origin) {
+    const expectedOrigin = new URL(`http://${host}`).origin;
+    if (headers.origin !== expectedOrigin) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 function sendJson(response, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -85,6 +111,11 @@ function serveStatic(request, response) {
 }
 
 async function requestHandler(request, response) {
+  if (!isLocalRequest(request)) {
+    sendText(response, 403, "Local requests only.");
+    return;
+  }
+
   const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
 
   if (request.method === "GET" && requestUrl.pathname === "/api/health") {
@@ -184,7 +215,8 @@ if (require.main === module) {
   const server = createServer();
 
   server.listen(config.port, config.host, () => {
-    console.log(`Hyper Video Tool backend running at http://${config.host}:${config.port}`);
+    const displayHost = config.host.includes(":") ? `[${config.host}]` : config.host;
+    console.log(`Hyper Video Tool backend running at http://${displayHost}:${config.port}`);
   });
 }
 
