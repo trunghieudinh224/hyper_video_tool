@@ -1,61 +1,23 @@
-# Dữ Liệu Kiểm Thử
+# Dữ Liệu Và Cách Kiểm Tra Local
 
-Ghi lại tài khoản test, dữ liệu mẫu, URL local, hoặc kịch bản kiểm thử thủ công.
+Không lưu credential, token, password hoặc dữ liệu nhạy cảm trong file này.
 
-Không lưu password/token/secret thật trong file này.
+## App Local
 
-## URL Local Dự Kiến
+- Backend + UI: `npm --prefix backend start`, mặc định `http://127.0.0.1:3000`.
+- Health endpoint: `GET /api/health`.
+- Chỉ dùng static server/file mode khi UI đang kiểm tra không cần API; các flow project/assets/settings/render cần backend.
+- Trước khi khởi chạy backend hoặc browser verification, dùng `wf-run-web` và chỉ làm khi task yêu cầu chạy app/verification.
 
-- Giai đoạn UI có thể mở trực tiếp `frontend/index.html` hoặc chạy static server đơn giản nếu cần.
-- Nếu dùng static server, URL gợi ý: `http://127.0.0.1:3000`.
-- Chưa cần route preview riêng.
+## Sample Data
 
-## Dữ Liệu Project Mẫu
+- Project mặc định cho backend: `data/sample-project.json`.
+- Render payload: `data/render-payload.sample.json`.
+- Dynamic motion samples: `data/dynamic-motion-payload.sample.json` và các project Codegraph trong `data/`.
+- Frontend có embedded sample/fallback trong `frontend/scripts/common/storage.js`; không copy sample text vào tài liệu này vì dễ lệch.
 
-Tên dự án mẫu:
+## Verification Có Side Effect
 
-```text
-Internal Analytics Dashboard
-```
-
-Tagline mẫu:
-
-```text
-Bảng điều khiển giúp team theo dõi hiệu suất dự án theo thời gian thực.
-```
-
-Nội dung mẫu:
-
-- Chủ dự án/team: Platform Team
-- Người dùng mục tiêu: quản lý dự án, team lead, vận hành nội bộ
-- Vấn đề: dữ liệu tiến độ nằm rải rác nhiều nguồn, khó nhìn tổng quan
-- Giải pháp: gom dữ liệu vào dashboard nội bộ có biểu đồ, cảnh báo và báo cáo nhanh
-- Kết quả: giảm thời gian tổng hợp báo cáo hàng tuần, giúp team phát hiện điểm nghẽn sớm hơn
-
-Tính năng mẫu:
-
-- Tổng quan tiến độ theo dự án
-- Biểu đồ hiệu suất theo tuần
-- Cảnh báo task trễ hạn
-- Xuất báo cáo nhanh cho buổi họp
-
-Timeline mẫu:
-
-- Tháng 1: khảo sát nhu cầu nội bộ
-- Tháng 2: dựng MVP dashboard
-- Tháng 3: chạy thử với một team
-- Tháng 4: mở rộng cho nhiều team hơn
-
-## Kịch Bản Kiểm Thử Thủ Công
-
-1. Mở app local.
-2. Chuyển qua lại giữa chế độ sáng và tối.
-3. Tải dữ liệu mẫu.
-4. Sửa tên dự án và mô tả.
-5. Thêm một tính năng mới.
-6. Thêm một mốc timeline mới.
-7. Chọn template `Giới thiệu dự án 90 giây`.
-8. Mở màn hình xem trước.
-9. Kiểm tra panel cảnh báo dữ liệu.
-10. Bấm render mock khi dữ liệu hợp lệ.
-11. Kiểm tra trạng thái render giả lập và danh sách video đã xuất bằng dữ liệu mock.
+- `npm --prefix backend run check` chạy syntax và các test script nội bộ; chỉ chạy khi user yêu cầu test/verification.
+- `npm --prefix backend run smoke:render-api` cần backend và tạo MP4 thật trong `outputs/`; chỉ chạy khi user yêu cầu render verification.
+- Các script hẹp có trong `backend/package.json`; chọn theo scope và báo rõ lệnh nào đã chạy.

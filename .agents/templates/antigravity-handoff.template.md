@@ -10,4 +10,8 @@
 
 ## Xác minh
 
+- Status: passed | failed | partial | not_run
+- Commands/checks đã chạy:
+- Phần chưa kiểm:
+
 ## Hành động tiếp theo

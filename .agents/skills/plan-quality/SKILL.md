@@ -21,9 +21,9 @@ description: >
 2. Không gộp các hạng mục lớn không liên quan vào cùng một plan.
 3. Ưu tiên **MVP trước** — đẩy mọi cải tiến không thiết yếu vào `Future Scope`.
 4. **Không chỉnh sửa code trong giai đoạn lập kế hoạch.**
-5. Luôn dừng và **đợi approval rõ ràng** từ user trước khi bắt đầu implement.
+5. Nếu user chỉ yêu cầu lập/review plan, dừng chờ approval. Nếu user đã yêu cầu triển khai rõ ràng (ví dụ “làm”, “tiến hành”), đó là authorization; không hỏi lại. Chỉ hỏi khi còn quyết định quan trọng chưa thể suy ra hoặc có hành động thuộc tier cần xác nhận riêng.
 6. Plan phải đủ chi tiết để checklist item có thể tick `[x]` trong quá trình thực thi.
-7. Mỗi task hoàn thành phải có **Test Report** trước khi chuyển sang task hoặc phase tiếp theo.
+7. Nếu project theo dõi task, ghi trạng thái verification trước khi đóng task; `Test Report` được để `Not run` khi user không yêu cầu chạy test/verification.
 
 ---
 
@@ -154,10 +154,7 @@ Checklist item phải **nhỏ, có thể hành động, có pass/fail rõ ràng*
 
 > ⚠️ Nếu checklist **> 15 item** → tách plan.
 
-Luôn bao gồm item cho:
-- Cập nhật tài liệu task của project (tên file tùy project quy định).
-- Chạy test tự động.
-- Điền Test Report.
+Bao gồm item cập nhật task/report nếu project có quy định và task đủ lớn để theo dõi. Verification phải phù hợp scope: dùng kiểm tra tự động khi có lệnh liên quan; với docs-only hoặc thay đổi không có test phù hợp, ghi rõ review/check thủ công hoặc `Not run` thay vì ép thêm test.
 
 ---
 
@@ -172,7 +169,7 @@ Liệt kê cụ thể cách kiểm thử:
 
 ### 3.9 Approval Gate
 
-Kết thúc plan bằng câu hỏi xác nhận. **Không bắt đầu code trước khi có approval.**
+Kết thúc bằng approval gate chỉ khi user yêu cầu plan mà chưa yêu cầu triển khai, hoặc còn quyết định quan trọng cần chốt. **Không bắt đầu code nếu chưa có authorization.** Yêu cầu triển khai rõ trong cùng task đã là authorization.
 
 ```
 Bạn xác nhận plan này thì tôi mới bắt đầu triển khai.
@@ -186,7 +183,7 @@ Nếu muốn điều chỉnh scope, hãy cho tôi biết trước khi tiếp t�
 ```markdown
 ### Test Report
 
-Status: passed | failed | partial
+Status: passed | failed | partial | not_run
 
 - Total checks/tests:
 - Passed:
@@ -234,7 +231,7 @@ Trong quá trình phân tích hoặc implement, agent thường phát hiện cá
 | Checklist mơ hồ: "Update backend" | Ghi cụ thể: file nào, function nào, behavior thay đổi thế nào |
 | Chỉ liệt kê risk, không phân loại | Dùng Risk Tier 🟢/🟡/🔴 với quyết định rõ ràng |
 | Phát hiện vấn đề ngoài scope → làm luôn | Ghi vào Future Scope, báo cáo user |
-| Bắt đầu code ngay sau khi viết plan | Đợi user phê duyệt rõ ràng |
+| Bắt đầu code khi user chỉ yêu cầu plan | Đợi user phê duyệt rõ ràng |
 | Checklist > 15 item | Tách plan, giữ mỗi plan ≤ 15 item |
 | Plan ảnh hưởng > 7 file | Tách plan theo thin vertical slice |
 | Thay đổi 🔴 Block mà không escalate | Luôn dừng và hỏi user trước |

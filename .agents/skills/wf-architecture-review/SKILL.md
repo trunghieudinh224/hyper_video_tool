@@ -29,7 +29,7 @@ Dùng khi user muốn xem codebase/module có đang khó sửa, khó test, hoặ
 
 ### 1. Explore
 
-Đọc rule/docs/domain context của project nếu có. Với MVP nhỏ, ưu tiên đọc trực tiếp các file liên quan trong `frontend/`, `server.js`, `templates/`, `data/` và tài liệu trong `.agents/context/`.
+Đọc rule/docs/domain context của project nếu có. Với Hyper Video Tool, ưu tiên đọc file liên quan trong `frontend/`, `backend/src/`, `templates/`, `data/` và tài liệu trong `.agents/context/`.
 
 ### 2. Tìm friction
 

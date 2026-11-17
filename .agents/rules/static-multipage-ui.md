@@ -1,6 +1,6 @@
 ---
 trigger: always_on
-description: Rule bắt buộc cho UI tĩnh Hyper Video Tool: multi-page HTML/CSS/JS thuần, không SPA gom view, không backend/build step ở phase hiện tại.
+description: Rule bắt buộc cho frontend Hyper Video Tool: multi-page HTML/CSS/JS thuần, không SPA gom view hoặc build framework; dùng backend local hiện có khi flow cần API.
 ---
 
 # Static Multi-page UI Rules
@@ -9,8 +9,8 @@ File này là rule bắt buộc khi tạo, sửa, refactor hoặc review UI tron
 
 ## Nguyên Tắc Chính
 
-- Hyper Video Tool giai đoạn hiện tại là UI tĩnh chạy local bằng HTML, CSS và JavaScript thuần.
-- Không thêm Node.js, Vite, React, Vue, Tailwind, backend, API server hoặc build step nếu user chưa yêu cầu rõ.
+- Frontend vẫn là HTML/CSS/JavaScript thuần, multi-page, không có client build step.
+- App được backend Node.js local hiện có serve cho các flow cần API. Dùng API hiện tại khi feature cần persistence/upload/render; không tạo backend/server/framework/build pipeline mới nếu user chưa yêu cầu.
 - Không gom nhiều màn hình vào một `frontend/index.html` dạng SPA tab ẩn/hiện.
 - Không dùng route giả bằng hash, ví dụ `#/preview`, để thay cho page thật.
 - Không dùng `data-tab` + `.tab-pane` để điều hướng giữa các màn hình chính.
@@ -24,6 +24,17 @@ File này là rule bắt buộc khi tạo, sửa, refactor hoặc review UI tron
 ```text
 frontend/
   index.html
+  vendor/
+    Sortable.min.js
+    driver/
+      driver.css
+      driver.js.iife.js
+    media/
+      README.md
+      mediabunny-1.66.0.min.js
+      mediabunny-LICENSE.txt
+      wavesurfer-8.1.0.min.js
+      wavesurfer-LICENSE.txt
   shared/
     base.html
   pages/
@@ -55,15 +66,15 @@ frontend/
       settings.css
   scripts/
     common/
+      api.js
       constants.js
+      navigation.js
+      onboarding.js
+      page-bootstrap.js
+      render-preview.js
+      shell.js
       state.js
       storage.js
-      validation.js
-      shell.js
-      navigation.js
-      theme.js
-      toast.js
-      modal.js
       ui-components.js
     pages/
       overview.js
@@ -118,10 +129,16 @@ Ví dụ:
 
   <script src="../scripts/common/constants.js"></script>
   <script src="../scripts/common/state.js"></script>
+  <script src="../scripts/common/api.js"></script>
   <script src="../scripts/common/storage.js"></script>
-  <script src="../scripts/common/theme.js"></script>
+  <script src="../scripts/common/validation.js"></script>
+  <script src="../scripts/common/render-preview.js"></script>
   <script src="../scripts/common/navigation.js"></script>
   <script src="../scripts/common/shell.js"></script>
+  <script src="../vendor/driver/driver.js.iife.js"></script>
+  <script src="../scripts/common/ui-components.js"></script>
+  <script src="../scripts/common/onboarding.js"></script>
+  <script src="../scripts/common/page-bootstrap.js"></script>
   <script src="../scripts/pages/overview.js"></script>
 </body>
 ```
@@ -157,29 +174,29 @@ Ví dụ:
   - `state.js`: state app và helpers cập nhật state.
   - `storage.js`: localStorage/import/export JSON.
   - `validation.js`: validate project data.
-  - `theme.js`: light/dark mode.
   - `navigation.js`: active nav, link helpers.
   - `shell.js`: render shell chung.
-  - `toast.js`: feedback ngắn.
-  - `modal.js`: confirm/custom modal.
-  - `ui-components.js`: helpers render component nhỏ dùng lại.
+  - `api.js`: request tới backend local.
+  - `page-bootstrap.js`: khởi tạo shell, state, storage, validation và page.
+  - `ui-components.js`: component/helper UI dùng chung, gồm feedback và modal.
+  - `onboarding.js`, `render-preview.js`: hướng dẫn UI và preview helper dùng chung.
 - JS page riêng chỉ init DOM và behavior của page đó.
 - Page JS không được query DOM của page khác.
 - Common JS không được phụ thuộc vào DOM chỉ tồn tại ở một page, trừ khi có guard rõ.
 - Không dùng `alert`, `confirm`, `prompt`; dùng modal/toast chung.
 - Không để console debug linh tinh khi bàn giao.
-- Khi thêm hoặc sửa color picker trong `frontend/scripts/common/ui-components.js`, phải kiểm cả các field màu hiện có trong cùng modal/page để không làm đổi popup đã được duyệt. Tối thiểu cần test: mở picker, đổi màu bằng vùng chọn/hue, nhập mã `HEXA`, đóng bằng `Esc`, và kiểm field disabled nếu setting liên quan đang tắt.
+- Khi user yêu cầu verification cho color picker, kiểm cả các field màu hiện có trong cùng modal/page: chọn màu, nhập `HEXA`, đóng bằng `Esc`, và trạng thái disabled liên quan.
 
 ## Dữ Liệu Và State
 
-- Giai đoạn hiện tại dùng dữ liệu mock và `localStorage`.
-- Page nào cũng phải đọc/ghi qua common state/storage, không tự tạo key localStorage riêng lẻ nếu chưa có lý do.
-- Chuyển page không được làm mất dữ liệu đang nhập.
-- Import/export JSON là UI local, chưa ghi file thật qua backend.
+- Khi chạy qua backend, dùng API/persistence hiện có; `storage.js` còn giữ localStorage cache/fallback và embedded sample cho static/file mode.
+- Page dùng common state/storage/API, không tự tạo key localStorage riêng nếu chưa có lý do.
+- Luồng chuyển page phải giữ dữ liệu qua backend hoặc storage layer.
+- Không mô tả import/export hay persistence là mock nếu code của feature đã nối backend; kiểm tra implementation hiện tại.
 
-## Refactor Bắt Buộc Theo Slice
+## Khi Chuyển Một Màn Hình Cũ Sang Multi-page
 
-Khi refactor từ SPA hiện tại sang multi-page, không đổi toàn bộ một lần.
+Nếu có màn hình/flow cũ còn gộp kiểu SPA, chuyển theo slice nhỏ; các page hiện tại đã là multi-page.
 
 Thứ tự:
 
@@ -192,7 +209,7 @@ Thứ tự:
 
 Không được xóa `frontend/index.html` cũ hoặc logic cũ trước khi page thay thế đã hoạt động.
 
-## Verification Bắt Buộc
+## Viewport Và Verification
 
 ### Phạm Vi Thiết Bị
 
@@ -201,16 +218,16 @@ Không được xóa `frontend/index.html` cũ hoặc logic cũ trước khi pag
 - Không test viewport tablet/mobile (`768px`, `390px`), không làm responsive mobile và không tốn thời gian sửa lỗi chỉ xuất hiện ngoài phạm vi PC/laptop.
 - Chỉ test tablet/mobile khi người dùng yêu cầu rõ hoặc task có scope riêng cho thiết bị đó.
 
-Trước khi bàn giao UI:
+Khi user yêu cầu verification, dùng `wf-test`/`webapp-testing` và chỉ kiểm scope bị ảnh hưởng. Không tự chạy browser/test khi user chưa yêu cầu; thay vào đó ghi rõ phần chưa verify.
 
-- Mở `frontend/index.html`, xác nhận vào được `pages/overview.html`.
-- Mở trực tiếp từng page HTML, không lỗi runtime.
-- Click sidebar qua đủ 10 page.
-- Reload từng page, theme và dữ liệu vẫn ổn.
+Trong phạm vi UI đã yêu cầu:
+
+- Kiểm tra page bị ảnh hưởng; kiểm entry/sidebar đủ pages khi thay đổi shell hoặc navigation.
+- Kiểm tra reload/state ở các page bị ảnh hưởng.
 - Light mode và dark mode đều đọc được.
 - Desktop/laptop `1440x900` và khi cần `1366x768` không vỡ layout.
 - Không có horizontal scroll ngoài vùng có chủ đích.
-- Console không có lỗi runtime.
+- Console không có lỗi runtime liên quan thay đổi.
 - Không có gradient, hero marketing hoặc copy bán hàng.
 
 ## Nếu Có Xung Đột Rule

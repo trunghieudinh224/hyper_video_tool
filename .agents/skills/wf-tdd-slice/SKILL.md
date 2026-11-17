@@ -2,13 +2,13 @@
 name: wf-tdd-slice
 description: >
   Workflow phát triển hoặc sửa bug theo TDD dạng vertical slice/tracer bullet:
-  một behavior test -> minimal implementation -> refactor. Dùng khi user muốn
-  test-first hoặc khi thay đổi logic rủi ro cao cần guardrail.
+  một behavior test -> minimal implementation -> refactor. Dùng khi user yêu cầu
+  test-first/TDD hoặc yêu cầu rõ thêm test.
 ---
 
 # Workflow: TDD Slice
 
-Dùng khi cần xây feature/fix bug theo test-first, đặc biệt với logic quan trọng.
+Dùng khi user yêu cầu xây feature/fix theo test-first/TDD hoặc yêu cầu thêm test. Không tự chọn workflow này chỉ vì task có rủi ro cao.
 
 ## Nguyên Tắc
 

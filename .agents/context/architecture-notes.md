@@ -1,94 +1,42 @@
 # Ghi Chú Kiến Trúc
 
-## Hướng MVP Hiện Tại
+## Trạng Thái Hiện Tại
 
-MVP hiện tại chỉ tập trung dựng UI tĩnh bằng HTML, CSS và JavaScript thuần. Dữ liệu dùng để hiển thị là dữ liệu tĩnh/mock. Chưa cần Node.js server, backend API, upload thật, lưu file thật hoặc render HyperFrames thật.
-
-Không cần React/Next.js ở giai đoạn đầu vì mục tiêu là tool nội bộ chạy local, ít người dùng, ít yêu cầu cộng tác.
-
-## Cấu Trúc Hiện Tại
-
-```text
-frontend/
-  index.html
-  pages/
-  styles/
-  scripts/
-  shared/
-
-backend/
-  README.md
-
-templates/
-  project-showcase-90s/
-
-data/
-  sample-project.json
-```
-
-`frontend/` là UI tĩnh hiện tại. `backend/` là chỗ dành cho API local, HyperFrames integration và quản lý render ở phase sau. Không tạo `server.js`, `package.json`, API routes hoặc backend runtime ở root nếu chưa có quyết định kiến trúc mới.
-
-Các thư mục dữ liệu runtime để phase backend sau:
-
-- `data/projects/`
-- `uploads/`
-- `outputs/`
+Hyper Video Tool là app local gồm frontend nhiều trang và backend Node.js. `README.md`, `backend/README.md` và code hiện tại là nguồn kiểm tra implementation; roadmap bên dưới chỉ mô tả hướng phát triển, không mặc định phản ánh trạng thái runtime.
 
 ## Frontend
 
-- Tách CSS thành token, base, layout và components.
-- Tách JavaScript theo nhóm: constants, state, storage, api, validation, ui, preview.
-- Không dùng inline event handler.
-- Không dùng inline style.
-- Không hardcode màu rải rác, phải dùng CSS variables.
+- HTML/CSS/JavaScript thuần trong `frontend/`, không có framework hoặc build step.
+- Entry point là `frontend/index.html`; mỗi màn hình chính có HTML/CSS/JS riêng theo `.agents/rules/static-multipage-ui.md`.
+- `frontend/scripts/common/state.js` giữ state đang mở; `storage.js` kết nối backend khi chạy qua HTTP và duy trì localStorage/sample fallback. `api.js` gom các request API.
+- App chạy ở `http://127.0.0.1:3000` qua backend cho các flow cần API. Chỉ dùng static server/file mode để xem những phần có hỗ trợ fallback.
+- UI target mặc định: PC/laptop; tablet/mobile chỉ nằm trong scope khi user yêu cầu.
 
-## Backend Local
+## Backend Và Persistence
 
-Chưa làm trong giai đoạn UI. Khi chuyển sang backend phase, server local trong `backend/` có thể xử lý:
+- Backend nằm trong `backend/src/`; `server.js` serve `frontend/` và route request sang các module trong `routes/`.
+- API hiện có các flow project, settings, assets, render preflight/jobs, outputs và voiceover preview.
+- `db/database.js` dùng SQLite CLI; database mặc định là `data/hyper-video-tool.sqlite`.
+- Asset binary nằm trong `uploads/`; MP4 nằm trong `outputs/`. Các thư mục này là runtime data, không phải source/docs.
+- Frontend có localStorage fallback/cache. Khi sửa persistence, kiểm tra riêng hành vi backend và fallback; không mặc định localStorage đã bị loại bỏ.
 
-- Serve UI tĩnh từ `frontend/`.
-- Lưu và đọc project JSON.
-- Nhận upload tài nguyên.
-- Liệt kê tài nguyên.
-- Gọi HyperFrames để render.
-- Liệt kê video đã xuất.
-- Cung cấp trạng thái render.
+## Render Và Media
 
-Roadmap triển khai backend nằm ở `.agents/tasks/backend-roadmap.md`.
+- Backend tạo render job local và gọi runner HyperFrames; template video nằm trong `templates/`.
+- Render output được ghi dưới `outputs/`; manifest giữ metadata output, còn trạng thái/log job hiện được giữ trong memory và mất khi backend restart theo `README.md`.
+- Voiceover preview dùng backend route và local `edge-tts` environment theo `backend/README.md`.
+- Thay đổi scene, asset hoặc media phải đối chiếu frontend payload, backend schema/mapper và template runtime. Xem `.agents/rules/video-style-scene-item-contract.md` khi thay contract scene.
 
-## Render
+## Ranh Giới Và Quyết Định
 
-Chưa gọi HyperFrames thật trong giai đoạn UI. Màn hình Render chỉ mô phỏng trạng thái.
+- Giữ UI ở `frontend/`, API/runtime ở `backend/`, project/sample data ở `data/`, composition ở `templates/`.
+- Không thêm cloud/auth hoặc framework frontend nếu user chưa yêu cầu.
+- Không đổi schema, format project, dữ liệu local hay render contract ngoài scope đã được chốt.
+- Chi tiết persistence còn phải cải thiện nằm ở `.agents/tasks/backend-database-roadmap.md`; kiểm tra code trước khi coi mục roadmap là trạng thái hiện tại.
 
-Luồng render dự kiến cho phase sau:
+## Tham Chiếu Chính
 
-```text
-Project JSON
--> tạo hoặc truyền dữ liệu vào template HyperFrames
--> gọi HyperFrames render
--> ghi MP4 vào outputs/
--> cập nhật trạng thái render cho UI
-```
-
-Roadmap tích hợp HyperFrames nằm ở `.agents/tasks/hyperframes-roadmap.md`.
-
-## Lưu Trữ
-
-Giai đoạn UI:
-
-- Dùng dữ liệu tĩnh/mock để minh họa.
-- Có thể lưu nháp bằng `localStorage` nếu cần, nhưng không bắt buộc.
-
-Giai đoạn backend sau này:
-
-- Project data: JSON.
-- Upload: file local.
-- Output: MP4 local.
-
-SQLite chỉ nên thêm khi JSON bắt đầu khó quản lý, ví dụ có nhiều project, nhiều output và cần query lịch sử tốt hơn.
-
-## Ràng Buộc
-
-- Không lưu secret trong repo.
-- Không commit `.codegraph/`, `node_modules/`, file MP4 output hoặc database local.
-- Không tạo cloud/auth trong MVP.
+- `README.md`: trạng thái app và cách chạy/kiểm tra.
+- `backend/README.md`: backend, render, HyperFrames và voiceover.
+- `.agents/rules/static-multipage-ui.md`: rule cấu trúc UI và viewport.
+- `.agents/tasks/current-task.md`: task đang được theo dõi; `.agents/tasks/task-history.md`: các task/report cũ.

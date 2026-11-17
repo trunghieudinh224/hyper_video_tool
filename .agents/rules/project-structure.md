@@ -10,8 +10,8 @@ File này là rule bắt buộc khi tạo, sửa, refactor hoặc review cấu t
 ## Cấu Trúc Chuẩn
 
 ```text
-frontend/   UI tĩnh HTML/CSS/JS thuần
-backend/    Backend local ở phase sau
+frontend/   UI nhiều trang HTML/CSS/JS thuần, không có build step
+backend/    Backend Node.js local hiện tại, serve UI và API
 data/       Dữ liệu mẫu và project JSON dùng chung
 templates/  Template video/render demo
 .agents/    Rule, context, workflow và task cho agent
@@ -31,20 +31,17 @@ templates/  Template video/render demo
 - Không tạo `server.js`, `package.json`, route API hoặc backend runtime ở root khi chưa có quyết định kiến trúc mới.
 - Không đặt backend code trong `frontend/`.
 - Không đặt page UI chính trong `backend/`.
-- Không move `data/` hoặc `templates/` vào `frontend/` nếu backend phase sau còn cần dùng chung.
+- Không move `data/` hoặc `templates/` vào `frontend/`; backend và render templates dùng chung các thư mục này.
 - Không thêm dependency/build step vào root chỉ để phục vụ UI tĩnh.
 
-## Backend Phase Sau
+## Backend Local Hiện Tại
 
-Khi bắt đầu backend:
-
-- Bắt đầu trong `backend/`.
-- Cập nhật roadmap/task tương ứng trong `.agents/tasks/`.
-- Nếu cần Node.js, tạo `backend/package.json`, không tạo `package.json` ở root.
-- Nếu cần runtime output, dùng thư mục root-level dự kiến:
-  - `data/projects/`
-  - `uploads/`
-  - `outputs/`
+- Mọi API/runtime code nằm trong `backend/`; không tạo backend mới ở root.
+- Dependency và script Node nằm trong `backend/package.json`, không tạo `package.json` ở root.
+- SQLite mặc định nằm ở `data/hyper-video-tool.sqlite`.
+- Asset/output runtime dùng `uploads/` và `outputs/`; không commit file runtime.
+- Khi đổi schema hoặc API contract, cập nhật roadmap/task tương ứng nếu scope yêu cầu.
+- Không chạy migration hoặc xóa dữ liệu local nếu user chưa xác nhận.
 - Không commit file output runtime như MP4, database local, upload thật hoặc cache render.
 
 ## Frontend Phase Hiện Tại

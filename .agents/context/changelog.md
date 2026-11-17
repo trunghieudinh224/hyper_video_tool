@@ -1,11 +1,13 @@
 # Nhật Ký Thay Đổi
 
-Ghi lại các thay đổi kỹ thuật/kiến trúc đáng chú ý theo thời gian.
+Đây là tóm tắt lịch sử, không phải trạng thái phát hành đầy đủ. Dùng `README.md` và code để biết tính năng hiện có; dùng roadmap tương ứng để xem kế hoạch còn mở.
 
-## Chưa phát hành
+## Các mốc đã có trong repository
 
-- Thiết lập workspace `.agents` cho dự án Hyper Video Tool.
-- Bổ sung kỹ năng và quy tắc dùng chung cho web nội bộ.
-- Tạo roadmap giao diện tại `.agents/tasks/ui-roadmap.md`.
-- Tạo danh sách item giao diện chi tiết tại `.agents/tasks/ui-items.md`.
-- Bổ sung bối cảnh sản phẩm, dữ liệu kiểm thử mẫu và các quyết định tạm thời trong `.agents/context/`.
+- Tạo workspace `.agents` với context, rules, skills, task history và templates.
+- Chuyển frontend sang multi-page HTML/CSS/JavaScript thuần.
+- Thêm backend Node.js local, SQLite persistence, project/settings/assets APIs.
+- Thêm HyperFrames render jobs, MP4 outputs/manifest, local templates và voiceover preview.
+- Báo cáo task UI và persistence cũ được giữ ở `.agents/tasks/task-history.md`; task đang được theo dõi nằm trong `.agents/tasks/current-task.md`.
+
+Không dùng các dòng này như changelog release hoặc xác nhận mọi roadmap phase đã hoàn tất.

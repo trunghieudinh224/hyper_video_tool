@@ -6,18 +6,17 @@ File này ghi lại thông tin onboarding ban đầu để agent không hỏi l�
 
 - Tên dự án: Hyper Video Tool
 - Slug dự án: hyper-video-tool
-- Loại dự án: web tĩnh, ưu tiên UI trước
+- Loại dự án: web app nội bộ chạy local, frontend tĩnh nhiều trang + Node.js backend
 - Miền nghiệp vụ: công cụ nội bộ
 - Kiểu giao diện: giao diện quản trị/nội bộ
-- Cơ sở dữ liệu dự kiến: chưa dùng ở giai đoạn UI; JSON local/SQLite để sau nếu cần
-- Template gốc: không có
+- Cơ sở dữ liệu: SQLite local cho project/settings/metadata; file local cho asset và output
+- Không có template framework gốc; repository có các template video trong `templates/`
 
-## Cấu Hình Ban Đầu
+## Cấu Hình Runtime Hiện Tại
 
-- Tên database dự kiến: chưa dùng ở giai đoạn UI
-- Cổng app mặc định: chưa bắt buộc; nếu chạy static server có thể dùng `3000`
-- Domain hoặc deploy target dự kiến: internal.local
-- Môi trường ưu tiên: chạy local trên máy cá nhân
+- Database mặc định: `data/hyper-video-tool.sqlite` (xem `backend/src/config.js`)
+- Host/port mặc định: `127.0.0.1:3000`
+- Deploy target: chưa có; ưu tiên chạy local trên máy cá nhân
 
 ## Agent Setup
 
@@ -41,4 +40,5 @@ File này ghi lại thông tin onboarding ban đầu để agent không hỏi l�
 - Không làm timeline editor phức tạp ở MVP.
 - Giao diện phải ưu tiên rõ ràng, sang, gọn và đủ chức năng cho nội bộ.
 - Người dùng clone project về máy cá nhân rồi chạy local.
-- Giai đoạn hiện tại chỉ cần dữ liệu tĩnh/mock để minh họa UI, chưa cần Node.js, backend, API hoặc render HyperFrames thật.
+- Project hiện có Node.js backend, SQLite, asset upload và render MP4 thật. Xem `README.md` và `backend/README.md` để biết lệnh/runtime hiện tại.
+- Frontend vẫn là HTML/CSS/JavaScript thuần, multi-page; UI target mặc định là PC/laptop theo `.agents/rules/static-multipage-ui.md`.

@@ -1,5 +1,7 @@
 # Roadmap Video Dọc 9:16 Cho Điện Thoại
 
+> **Trạng thái:** Đây là roadmap giai đoạn đầu. Template dọc và render backend đã có test report ở `.agents/tasks/task-history.md`; voiceover được thêm sau roadmap này. Đối chiếu code và `README.md` trước khi tiếp tục các mục cũ.
+
 ## Mục Tiêu
 
 Thêm khả năng tạo video dọc `9:16` để xem tốt trên điện thoại, song song với template ngang `16:9` hiện tại.
@@ -12,7 +14,7 @@ Kết quả cuối cùng mong muốn:
 - Trang Video đã xuất hiển thị đúng resolution/template.
 - Flow ngang hiện tại không bị regression.
 
-Lưu ý: phase này chưa làm âm thanh/voiceover. Video hiện vẫn là hình ảnh, text và animation.
+Lưu ý lịch sử: phase ban đầu chưa làm âm thanh/voiceover; voiceover đã được thêm ở task/phase sau.
 
 ## Nguyên Tắc
 

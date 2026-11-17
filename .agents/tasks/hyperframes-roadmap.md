@@ -1,6 +1,6 @@
 # Roadmap HyperFrames Render
 
-Roadmap này mô tả cách tích hợp HyperFrames để xuất video thật. Chưa triển khai code render thật trong phase hiện tại.
+> **Trạng thái:** HyperFrames render MP4 thật đã được tích hợp. File này giữ roadmap và test report lịch sử; phase 6 có status cũ và cần audit lại trước khi coi là backlog hiện tại. Xem `README.md`, `backend/README.md` và code `backend/src/render/` để biết khả năng đang có.
 
 Tham chiếu chính: `heygen-com/hyperframes`.
 
@@ -49,7 +49,7 @@ Không làm:
 
 Files impact dự kiến:
 
-- `.agents/context/hyperframes-notes.md`
+- `backend/README.md`
 - `.agents/tasks/current-task.md`
 - Có thể thêm `backend/scripts/check-hyperframes.js` nếu cần spike có kiểm chứng.
 
@@ -108,7 +108,7 @@ Files impact dự kiến:
 - `data/render-payload.sample.json`
 - `backend/src/render/project-to-render-payload.js`
 - `backend/src/render/render-payload-schema.js`
-- `.agents/context/hyperframes-notes.md`
+- `backend/README.md`
 - `.agents/tasks/current-task.md`
 
 Verification:
@@ -318,7 +318,7 @@ Files impact dự kiến:
 - `templates/project-showcase-90s/script.js`
 - `backend/src/render/preflight.js`
 - `backend/README.md`
-- `.agents/context/hyperframes-notes.md`
+- `backend/README.md`
 - `.agents/tasks/current-task.md`
 
 Verification:

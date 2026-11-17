@@ -10,7 +10,7 @@ Workflow này dùng khi người dùng muốn tạo video giải thích kỹ thu
 Mục tiêu không phải là sửa code project nguồn. Mục tiêu là:
 
 ```text
-Hỏi path project nguồn
+Xác định path project nguồn; chỉ hỏi nếu còn thiếu
 -> đọc context/rules/docs cần thiết
 -> hiểu project ở mức đủ dùng
 -> chờ người dùng chọn tính năng cụ thể
@@ -43,10 +43,10 @@ Dùng workflow này khi người dùng nói các kiểu:
 
 ## Bước 0 - Grill Người Dùng Để Lấy Đầu Vào
 
-Khi workflow bắt đầu, hỏi người dùng các câu tối thiểu sau. Không làm gì tiếp nếu chưa có path project.
+Xác định path project từ yêu cầu, repo hiện tại hoặc context đã cung cấp. Chỉ hỏi path nếu chưa xác định được project nguồn.
 
 ```text
-Đưa tao path project cần explore.
+Đưa tao path project cần explore nếu chưa nêu.
 
 Nếu đã biết luôn thì nói thêm:
 - Muốn làm video cho project tổng quan hay tính năng cụ thể?
@@ -87,7 +87,6 @@ README.md
 .agents/context/project-overview.md
 .agents/context/project-profile.md
 .agents/context/architecture-notes.md
-.agents/context/current-task.md
 .agents/tasks/current-task.md
 .agents/context/known-issues.md
 .agents/context/test-data.md

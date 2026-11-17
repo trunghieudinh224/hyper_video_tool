@@ -1,19 +1,18 @@
-# Lỗi Đã Biết
+# Known Issues Và Giới Hạn Đã Ghi Nhận
 
-Ghi lại lỗi đã biết, workaround, và quyết định tạm thời để agent không debug lại từ đầu.
+Đây là các giới hạn được tài liệu hiện tại xác nhận; chưa phải kết quả runtime audit mới. Xem README/code trước khi dùng chúng làm kết luận cho một bug cụ thể.
 
-## Đang theo dõi
+## Giới Hạn Được README Xác Nhận
 
-- Chưa có app MVP, nên chưa có lỗi runtime cụ thể.
-- Chưa làm backend, upload thật, lưu file thật hoặc render HyperFrames thật.
-- Chưa kiểm tra chính thức FFmpeg và HyperFrames trên máy chạy thực tế.
-- Chưa chốt cách gọi HyperFrames ở phase sau.
-- Chưa có template video đầu tiên để kiểm thử render MP4.
+- Render job status/log nằm trong memory; restart backend làm mất job history. MP4 và manifest vẫn còn trong `outputs/`.
+- App chạy local, chưa có cloud/auth/user management.
+- Smoke render tạo MP4 thật trong `outputs/`; không chạy như một bước kiểm tra mặc định.
 
-## Quyết định tạm thời
+## Hạng Mục Cần Đối Chiếu Lại
 
-- MVP hiện tại dùng UI tĩnh và dữ liệu mock trước.
-- JSON local/SQLite chỉ xét sau khi cần lưu project/output thật.
-- Reorder danh sách trong UI dùng nút lên/xuống trước, chưa làm kéo thả phức tạp.
-- Render queue ban đầu có thể là một job tại một thời điểm, chưa cần hàng đợi nhiều job song song.
-- Xóa tài nguyên hoặc video output phải dùng modal xác nhận riêng, không dùng `confirm()` của trình duyệt.
+- Persistence và project lifecycle còn có roadmap tại `.agents/tasks/backend-database-roadmap.md`; trạng thái roadmap cần đối chiếu với code trước khi tiếp tục.
+- Render quality/hardening có ghi trạng thái cũ trong `.agents/tasks/hyperframes-roadmap.md`; các mục còn lại chưa được xác minh lại ở đây.
+
+## Phạm Vi Chưa Rà
+
+File này không xác nhận bug runtime mới. Khi debug, tái hiện lỗi theo `wf-diagnose` và ghi kết quả mới nếu có bài học tái sử dụng.

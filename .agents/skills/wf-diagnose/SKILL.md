@@ -1,8 +1,8 @@
 ---
 name: wf-diagnose
 description: >
-  Workflow debug có kỷ luật cho bug khó, lỗi runtime, test fail, hoặc
-  performance regression. Bắt buộc dựng feedback loop/repro trước khi đoán và sửa.
+Workflow debug có kỷ luật cho bug khó, lỗi runtime, test fail, hoặc
+  performance regression. Dùng evidence/repro để tránh đoán; không tự chạy test/server nếu user chưa yêu cầu verification.
 ---
 
 # Workflow: Diagnose
@@ -11,13 +11,13 @@ Dùng khi user báo lỗi, test fail, hành vi sai, hoặc performance regressio
 
 ## Nguyên Tắc Chính
 
-Không đoán trước khi có feedback loop. Một vòng lặp pass/fail nhanh và đáng tin cậy là phần quan trọng nhất của debug.
+Không đoán trước khi đọc evidence có sẵn. Chỉ chạy test, script, browser hoặc server khi user yêu cầu test/verification; bug report không tự động cho phép chạy chúng.
 
 ## Quy Trình
 
 ### 1. Dựng feedback loop
 
-Tìm cách tái hiện lỗi bằng một trong các cách:
+Tìm feedback loop từ log/output/repro user đã cung cấp hoặc code path. Các cách dưới đây chỉ chạy khi user yêu cầu verification:
 
 - Failing test.
 - CLI/script với fixture.
@@ -28,9 +28,9 @@ Tìm cách tái hiện lỗi bằng một trong các cách:
 
 Nếu không dựng được loop, báo rõ đã thử gì và cần artifact nào từ user.
 
-### 2. Reproduce
+### 2. Xác Nhận Symptom
 
-Chạy loop và xác nhận:
+Nếu đã được yêu cầu chạy verification, chạy loop và xác nhận:
 
 - Lỗi đúng với mô tả của user.
 - Lỗi tái hiện được nhiều lần, hoặc flake rate đủ cao để debug.
@@ -64,16 +64,16 @@ Nếu thêm log tạm, dùng tag duy nhất:
 
 ### 5. Fix + regression
 
-- Nếu có seam test đúng, viết regression test fail trước.
-- Sửa tối thiểu để test pass.
-- Chạy lại loop gốc.
+- Sửa tối thiểu theo scope.
+- Chỉ thêm/chạy regression test khi user yêu cầu test/TDD/verification.
+- Nếu không được yêu cầu chạy, ghi loop/test chưa chạy thay vì nói fix đã pass.
 
 ### 6. Cleanup
 
 Trước khi báo xong:
 
-- Loop gốc không còn reproduce lỗi.
-- Regression test pass hoặc ghi rõ vì sao chưa có seam test đúng.
+- Ghi rõ symptom đã được xác nhận bằng evidence nào.
+- Ghi regression test/loop đã chạy hoặc `Not run` kèm lý do.
 - Xóa mọi debug log/prototype tạm.
 - Ghi nguyên nhân thật sự và test đã chạy.
 

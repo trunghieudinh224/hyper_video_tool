@@ -10,12 +10,23 @@ MVP hiện tại đã có UI tĩnh, backend local và render MP4 thật bằng H
 
 - UI HTML/CSS/JS thuần trong `frontend/`.
 - Backend local Node.js trong `backend/`.
+- Nhập brief, dựng kịch bản theo phân đoạn/scene slot, chọn video style và template, xem trước nội dung trước khi render.
+- Lưu project/settings và metadata tài nguyên trong SQLite local; upload hình ảnh, video và audio vào `uploads/`.
+- Tạo voiceover bằng `edge-tts` sau khi setup môi trường Python local; hỗ trợ đổi giọng theo đoạn Việt, Anh, Nhật trong cùng kịch bản và ghép nhạc nền vào MP4.
+- Bật phụ đề theo từng phân đoạn: lấy từ voiceover, nhập text riêng hoặc dán SRT. Render burn phụ đề vào MP4 và tạo file SRT để tải riêng; chế độ karaoke ước lượng mốc từ khi Edge TTS chỉ trả cue theo câu.
+- Chọn output ngang `16:9` hoặc dọc `9:16`; có template showcase và dynamic story tương ứng.
 - Render job async qua `POST /api/render-jobs`.
 - Poll trạng thái qua `GET /api/render-jobs/:id`.
 - Output MP4 trong `outputs/`.
 - Trang Outputs xem/download video qua backend.
+- Trang Outputs có link tải SRT cho video đã render với phụ đề.
+
+Trong Kịch bản, chọn một từ/cụm từ rồi bấm VI/EN/JA để đánh dấu giọng đọc. Ví dụ: `Xin chào [en]CodeGraph[/en] こんにちは`. Chữ Nhật tự nhận theo ký tự; từ Latin khác ngôn ngữ chính cần đánh dấu thủ công. Cùng một câu nhiều ngôn ngữ sẽ dùng nhiều voice nên âm sắc có thể thay đổi tại chỗ chuyển giọng.
+- Trang Tài nguyên xem video/audio đã upload, đọc thời lượng/codec/độ phân giải bằng Mediabunny và hiển thị waveform cho audio nhỏ bằng wavesurfer.js. File media được phục vụ từ backend với HTTP byte range để trình phát seek.
 - Manifest runtime `outputs/manifest.json` để khôi phục danh sách video đã render.
 - Template `project-showcase-90s` dùng GSAP local, không phụ thuộc CDN.
+
+Hai thư viện media của trang Tài nguyên được vendor local cùng license trong `frontend/vendor/media/`; không cần cài dependency frontend hoặc gọi CDN cho inspector. Font Awesome của UI cũng được lưu trong `frontend/vendor/fontawesome/`.
 
 ## Cấu trúc chính
 
@@ -27,36 +38,39 @@ templates/  Template video/render demo
 .agents/    Rule, context, workflow cho agent
 ```
 
-## Chạy MVP Local
+## Cài và chạy trên máy sau khi clone
 
 Yêu cầu:
 
-- Node.js 18+ để chạy backend.
-- Lần đầu cần setup HyperFrames runner local.
+- Node.js 18+ và npm để chạy backend.
+- `sqlite3` CLI có trong `PATH` để lưu project/settings.
+- Python 3 có module `venv` nếu muốn tạo voiceover.
+- Internet lúc cài dependency; Edge TTS vẫn cần Internet mỗi lần tạo giọng mới.
 
-Setup runner:
+Mỗi người dùng clone repo về máy riêng, mở terminal trong thư mục project rồi chạy:
 
 ```bash
+npm ci --prefix backend
 npm --prefix backend run hf:setup
-```
-
-Chạy backend + UI:
-
-```bash
+npm --prefix backend run audio:setup
 npm --prefix backend start
 ```
 
-Mở:
+Nếu không dùng voiceover, có thể bỏ qua `audio:setup`. Mở UI tại:
 
 ```text
 http://127.0.0.1:3000
 ```
 
-Có thể đổi port:
+Backend chỉ bind địa chỉ loopback (`127.0.0.1`, hoặc `::1` nếu cấu hình rõ), đồng thời từ chối Host/Origin không phải địa chỉ local. `HVT_HOST=0.0.0.0` và địa chỉ mạng LAN bị từ chối. Có thể đổi **port** mà vẫn chỉ chạy trên máy hiện tại:
 
 ```bash
 HVT_PORT=3010 npm --prefix backend start
 ```
+
+Mỗi clone lưu SQLite ở `data/hyper-video-tool.sqlite`, file tải lên ở `uploads/`, MP4/SRT ở `outputs/`, dependency render/TTS ở `.cache/`. Các file runtime này được Git ignore, không đồng bộ qua repo. Dừng server bằng `Ctrl+C`; không cần tài khoản, `.env` hay dịch vụ cloud để chạy UI/backend/render local. Font Awesome và ảnh placeholder mặc định cũng được phục vụ local. Edge TTS là ngoại lệ cần mạng khi tổng hợp giọng.
+
+Không mở port 3000 bằng port forwarding hoặc reverse proxy cho máy khác: API local không có đăng nhập.
 
 ## Test Thử Render
 

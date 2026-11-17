@@ -1,8 +1,10 @@
 # UI Roadmap - Hyper Video Tool
 
-## Objective
+> **Trạng thái:** Đây là roadmap UI giai đoạn mock ban đầu. Project hiện đã có multi-page UI, backend local và render MP4 thật; đọc `README.md` và code trước khi coi scope mock bên dưới là hiện tại.
 
-Xay dung UI noi bo de tao video thuyet trinh du an ca nhan trong cong ty. Giai doan hien tai chi lam UI tinh bang HTML/CSS/JS va dung du lieu mock de minh hoa; HyperFrames render va backend de phase sau.
+## Original Objective (Historical)
+
+Xây dựng UI nội bộ để tạo video thuyết trình dự án. Khi lập roadmap này, scope chỉ gồm UI tĩnh/mock; backend và HyperFrames thật được triển khai ở các phase sau.
 
 UI can de nhin, sang, gon, day du chuc nang, khong mang cam giac landing page AI. Uu tien workflow tao video nhanh, preview ro, render de theo doi.
 

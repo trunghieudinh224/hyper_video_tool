@@ -19,9 +19,12 @@ Chạy:
 
 ```bash
 git status --short
+git ls-files --others --exclude-standard
 git diff --name-only HEAD
 git diff --stat HEAD
 ```
+
+`git diff` không hiển thị nội dung file untracked. Đọc các file mới liên quan trong danh sách untracked như một phần của review; không bỏ chúng chỉ vì chưa được Git track.
 
 Phân loại file thay đổi:
 
@@ -86,13 +89,15 @@ Loại trừ khỏi review sâu nếu không liên quan trực tiếp:
 
 ## Bước 3 - Verification Cần Xem Xét
 
-Tùy diff, đề xuất hoặc chạy:
+Đề xuất kiểm tra phù hợp theo diff. Chỉ chạy test, browser check hoặc smoke khi user yêu cầu test/verification; review mặc định chỉ đọc diff và code.
 
 ```bash
 node --check frontend/scripts/common/*.js
 node --check frontend/scripts/pages/*.js
 python3 -m http.server 8019
 ```
+
+Chỉ dùng Python static server cho thay đổi UI tĩnh không cần API. Với flow cần backend/API, dùng `wf-run-web`.
 
 Browser/static checks:
 
@@ -104,11 +109,11 @@ Browser/static checks:
 Backend/render checks nếu liên quan:
 
 ```bash
-npm --prefix backend test
+npm --prefix backend run check
 npm --prefix backend run smoke:render-api
 ```
 
-Chỉ chạy lệnh tồn tại trong project; nếu thiếu script thì báo rõ "không có script".
+`backend/package.json` không có script `test`; `check` là lệnh kiểm tra tổng hợp. `smoke:render-api` tạo output runtime. Nêu các lệnh này như đề xuất nếu user chưa yêu cầu chạy verification.
 
 ## Bước 4 - Báo Cáo
 

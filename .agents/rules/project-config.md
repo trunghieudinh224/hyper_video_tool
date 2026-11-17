@@ -9,36 +9,37 @@ File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu 
 - Loại dự án: công cụ nội bộ chạy local
 - Mục đích: tạo video thuyết trình dự án cá nhân/nội bộ bằng HyperFrames
 - Đối tượng dùng: nhân viên hoặc team nội bộ
-- Domain local dự kiến: internal.local
+- URL local mặc định: `http://127.0.0.1:3000`
 
-## Công Nghệ Dự Kiến
+## Công Nghệ Hiện Tại
 
 - Frontend: HTML, CSS, JavaScript thuần
-- Backend local: chưa làm trong giai đoạn UI
-- Render engine: HyperFrames để phase sau
-- Video output: MP4 để phase sau
-- Dữ liệu MVP: dữ liệu tĩnh/mock trong frontend
-- Database sau MVP: JSON local hoặc SQLite nếu cần quản lý nhiều project/output
-- Upload: mô phỏng bằng UI trước, thư mục local `uploads/` để phase sau
-- Output: mô phỏng bằng UI trước, thư mục local `outputs/` để phase sau
+- Backend: Node.js local trong `backend/`, chạy bằng `npm --prefix backend start`
+- Persistence: SQLite local qua SQLite CLI; project/settings và metadata nằm trong DB
+- Runtime cần có lệnh `sqlite3` khả dụng hoặc cấu hình `HVT_SQLITE_BIN`
+- Asset: binary files local dưới `uploads/`, metadata qua backend API
+- Render: HyperFrames local, tạo MP4 dưới `outputs/`
+- Voiceover: `edge-tts` cài trong venv local; mỗi lần tổng hợp giọng mới vẫn gọi dịch vụ online; xem `backend/README.md`
+- Dependencies/version: backend yêu cầu Node.js 18+; HyperFrames runner có runtime requirement riêng trong README
 
 ## Cổng Và URL Local
 
-- Giai đoạn UI có thể mở trực tiếp `frontend/index.html`.
-- Nếu dùng static server, cổng gợi ý là `3000`.
-- Chưa cần route preview riêng.
+- Mặc định chạy `127.0.0.1:3000` bằng backend.
+- `HVT_HOST` chỉ nhận `127.0.0.1` hoặc `::1`; IP LAN và `0.0.0.0` bị từ chối. `HVT_PORT` có thể đổi.
+- Mỗi người dùng clone và setup dependency trên máy riêng; không cấu hình cloud deploy, reverse proxy hoặc port forwarding cho backend không có đăng nhập này.
+- Static/file mode chỉ dùng cho phần UI có fallback và không cần API.
 
-## Đường Dẫn Dự Kiến
+## Đường Dẫn Hiện Tại
 
 - UI app: `frontend/`
 - CSS: `frontend/styles/`
 - JavaScript: `frontend/scripts/`
-- Backend local phase sau: `backend/`
+- Backend local: `backend/`
 - Template video: `templates/`
 - Dữ liệu mẫu: `data/sample-project.json`
-- Project JSON thật: `data/projects/` ở phase sau.
-- Upload thật: `uploads/` ở phase sau.
-- Video xuất ra thật: `outputs/` ở phase sau.
+- SQLite database mặc định: `data/hyper-video-tool.sqlite`.
+- Asset upload runtime: `uploads/`.
+- Video output runtime: `outputs/`.
 
 ## Quy Tắc Giao Diện
 
@@ -58,7 +59,7 @@ File này ghi thông tin vận hành riêng của Hyper Video Tool. Không lưu 
 - Không commit database local.
 - Không commit secret.
 
-## API Response Dự Kiến Cho Phase Backend Sau
+## API Response Envelope Hiện Tại
 
 Thành công:
 
@@ -76,6 +77,8 @@ Lỗi:
 {
   "success": false,
   "message": "Không thể xử lý yêu cầu.",
-  "errors": {}
+  "errors": null
 }
 ```
+
+`errors` có thể là object validation hoặc `null` tùy endpoint.

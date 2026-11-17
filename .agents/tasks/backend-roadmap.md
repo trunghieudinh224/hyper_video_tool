@@ -1,6 +1,6 @@
 # Roadmap Backend Local
 
-Roadmap này mô tả backend local cho Hyper Video Tool. Chưa triển khai code backend trong phase hiện tại.
+> **Trạng thái:** Đây là roadmap khởi tạo backend, không còn mô tả trạng thái hiện tại. Backend Node.js, SQLite, asset API và render integration đã được thêm; xem `README.md`, `backend/README.md` và `.agents/tasks/backend-database-roadmap.md`. Các phase cũ bên dưới là lịch sử/kế hoạch snapshot; xác minh code trước khi tiếp tục một mục.
 
 ## Mục Tiêu
 

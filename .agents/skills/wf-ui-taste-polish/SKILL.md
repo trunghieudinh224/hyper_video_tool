@@ -21,7 +21,7 @@ Dùng workflow này khi cần cải thiện giao diện hiện có hoặc polish
 
 1. `GEMINI.md`, `AGENTS.md`, hoặc rule entrypoint của project
 2. `.agents/rules/project-config.md`
-3. `.agents/rules/frontend_architecture.md` hoặc `.agents/rules/frontend-architecture.md`
+3. `.agents/rules/frontend-architecture.md`
 4. `.agents/rules/design-presets.md` và `.agents/context/ui-direction.md` nếu có
 5. HTML/CSS/JS đang cần polish
 6. Screenshot/mockup/feedback của người dùng nếu có
@@ -35,7 +35,7 @@ Báo cáo ngắn gọn theo các mục:
 - Mismatch: điểm nào không hợp domain/người dùng?
 - Slop signals: card/gradient/icon/text/spacing/layout nào trông generic?
 - Functional risk: chỗ nào có thể gây nhầm lẫn, khó scan, khó click, khó đọc?
-- Responsive risk: chỗ nào dễ vỡ trên mobile/tablet?
+- Viewport risk: chỗ nào dễ vỡ ở desktop/laptop target?
 
 Nếu người dùng yêu cầu implement ngay, có thể audit ngắn trong nội bộ rồi tiến hành, nhưng vẫn phải tôn trọng các phát hiện đó.
 
@@ -58,7 +58,7 @@ Sửa theo thứ tự ưu tiên:
 3. Color/surface/border/shadow: dùng token project, giảm màu thừa.
 4. Components: button, card, form, table, modal, nav, empty/loading/error.
 5. Interaction: hover/focus/active/loading/disabled.
-6. Responsive: mobile/tablet/desktop, touch target, text wrap.
+6. Viewport/layout: desktop/laptop `1440x900`; thêm `1366x768` nếu thay đổi ảnh hưởng layout/modal. Chỉ kiểm tra mobile/tablet nếu người dùng yêu cầu.
 7. Asset quality: image/icon/media phù hợp ngữ cảnh.
 
 Với Hyper Video Tool:
@@ -70,10 +70,10 @@ Với Hyper Video Tool:
 
 ## Bước 5 - Verify
 
-Chạy verify phù hợp:
+Static review theo scope là một phần của polish. Chỉ chạy browser/console verification khi user yêu cầu test/verification; nếu chưa yêu cầu, báo rõ phần browser chưa chạy.
 
-- Static check: đọc lại Blade/HTML/CSS/JS.
-- Browser check nếu app chạy local: desktop + mobile screenshots.
+- Static check: đọc lại HTML/CSS/JS.
+- Browser check nếu app chạy local: desktop/laptop `1440x900`; thêm `1366x768` khi cần.
 - Console/network check nếu có JS/API.
 - Kiểm tra text overflow, overlap, horizontal scroll, modal/dropdown, form focus.
 

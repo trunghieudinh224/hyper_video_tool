@@ -6,6 +6,8 @@ license: "Apache-2.0 — source: https://github.com/anthropics/skills/tree/main/
 
 # Web Application Testing
 
+For Hyper Video Tool, `.agents/rules/static-multipage-ui.md` sets the viewport scope: PC/laptop by default, tablet/mobile only when the user requests it. Use `wf-run-web` for backend-dependent flows. Never read `.env` to discover the local URL.
+
 To test local web applications, write native Python Playwright scripts.
 
 ## Decision Tree: Choosing Your Approach
@@ -17,8 +19,8 @@ User task → Is it static HTML?
     │         └─ Fails/Incomplete → Treat as dynamic (below)
     │
     └─ No (dynamic webapp) → Is the server already running?
-        ├─ No → Start server first (e.g. php artisan serve)
-        │        Then write Playwright script
+        ├─ No → Start server using the project's run instructions
+        │        For Hyper Video Tool, follow wf-run-web when browser verification was requested
         │
         └─ Yes → Reconnaissance-then-action:
             1. Navigate and wait for networkidle
@@ -35,7 +37,7 @@ from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
-    page.goto('http://localhost:8000')          # Replace with APP_PORT from .env
+    page.goto('http://localhost:8000')          # Replace with URL from the project's run instructions
     page.wait_for_load_state('networkidle')    # CRITICAL: wait for JS
     # Take screenshot to verify UI
     page.screenshot(path='/tmp/inspect.png', full_page=True)
@@ -71,16 +73,10 @@ with sync_playwright() as p:
 
 ## Usage for Hyper Video Tool
 
-Đọc port local từ `.env`, project config, hoặc dev-server output để xác định URL local, ví dụ `http://localhost:{APP_PORT}`. Dùng skill này để:
-- Verify UI sau khi convert Stitch → Blade
-- Check responsive layout ở các kích thước màn hình khác nhau
-- Capture screenshot để so sánh với mockup gốc từ Stitch
-- Debug JS errors trong console
-- Test flow chính của feature, dashboard/list/detail, modal, form, gallery, và các state lỗi/thành công
+Chỉ chạy browser test khi user yêu cầu test/verification. Nếu đã yêu cầu:
 
-```python
-# Check responsive - mobile view
-page.set_viewport_size({"width": 375, "height": 812})
-page.goto('http://localhost:{APP_PORT}/{feature-path}')
-page.screenshot(path='/tmp/mobile-view.png', full_page=True)
-```
+- Chạy app theo `wf-run-web`; mặc định dùng `http://127.0.0.1:3000` trừ khi user chỉ định port khác.
+- Mở đúng page/flow nằm trong scope; kiểm console và network/API errors.
+- Dùng `1440x900`; thêm `1366x768` nếu layout/modal bị ảnh hưởng.
+- Tablet/mobile chỉ kiểm khi user yêu cầu; không dùng ví dụ framework/Blade/Stitch nếu project không dùng chúng.
+- Lưu screenshot/artifact chỉ khi hữu ích cho yêu cầu; không để runtime output trong repo.

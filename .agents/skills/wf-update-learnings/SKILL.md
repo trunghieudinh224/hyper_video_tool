@@ -20,11 +20,11 @@ Dùng workflow này khi cần ghi bài học dài hạn vào `.agents/memory/lea
 
 Gọi workflow này từ các workflow khác khi có bài học thật sự:
 
-- `wf-update-docs` hoặc `wf-doc-audit`: phát hiện docs/code/rule lệch nhau, convention mới, known issue mới.
+- `wf-doc-audit`: phát hiện docs/code/rule lệch nhau, convention mới, known issue mới.
 - `wf-diagnose`: fix xong bug khó hoặc lỗi lặp.
 - `wf-review`: phát hiện pattern dễ sai hoặc rule cần nhớ.
 - `wf-commit-ready`: trước khi commit nếu task có bài học mới.
-- `wf-agent-team-create` / handoff: phát hiện sai lệch phối hợp agent hoặc cách bàn giao tốt hơn.
+- Handoff/phối hợp: phát hiện quy tắc bàn giao có thể tái sử dụng.
 - Migration/setup/test: có cạm bẫy framework/database/cache/timezone/API.
 
 Không gọi khi chỉ sửa typo, đổi text nhỏ, cleanup đơn giản hoặc không có bài học tái sử dụng.
@@ -39,7 +39,7 @@ Tìm:
 .agents/memory/learnings.md
 ```
 
-Nếu chưa có, tạo thư mục/file theo template chung hoặc báo user chạy `wf-shared-skills-setup-project`.
+Nếu chưa có, kiểm tra `.agents/rules/project-structure.md` và `.agents/README.md` trước; chỉ tạo file nếu cấu trúc project cho phép.
 
 ### 2. Xác định bài học có đáng ghi không
 
@@ -104,4 +104,4 @@ Learnings update:
 
 - Không ghi secrets, token, API key, mật khẩu, dữ liệu khách hàng nhạy cảm.
 - Không thay đổi entry cũ trừ khi sửa format hoặc user yêu cầu.
-- Nếu bài học thuộc tài liệu kỹ thuật chính, cập nhật docs tương ứng bằng `wf-update-docs` / `wf-doc-audit`; `learnings.md` chỉ ghi quy tắc tái sử dụng.
+- Nếu bài học thuộc tài liệu kỹ thuật chính, cập nhật tài liệu tương ứng khi task cho phép; `learnings.md` chỉ ghi quy tắc tái sử dụng.

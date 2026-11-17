@@ -1,142 +1,37 @@
 ---
 trigger: always_on
-description: Kiến trúc frontend dùng chung cho web project: layout, CSS variables, responsive, modal/toast, Grid.js, verification.
+description: Quy tắc kiến trúc frontend Hyper Video Tool; cấu trúc multi-page và viewport chi tiết nằm trong static-multipage-ui.md.
 ---
 
-# Web Frontend Architecture Rules
+# Frontend Architecture Rules
 
-Đọc file này khi tạo màn hình mới, sửa CSS/JS, thêm modal, thêm bảng dữ liệu, hoặc polish UI.
+Đọc file này khi tạo màn hình mới, sửa CSS/JS, thêm interaction hoặc polish UI. Luôn đọc kèm `.agents/rules/static-multipage-ui.md`; file đó là nguồn chính cho cấu trúc page và viewport.
 
-## Layout
+## Ranh Giới Code
 
-- Dùng layout/component sẵn có của project.
-- Không tự tạo boilerplate nếu project có layout chuẩn.
-- Không nhúng lại thư viện đã inject ở layout.
-- CSS/JS page-specific phải nằm ở file riêng theo convention project.
-- Với Hyper Video Tool giai đoạn UI tĩnh, không gom nhiều màn hình vào một `index.html` dạng SPA tab ẩn/hiện.
-- Mỗi màn hình chính phải là một trang HTML riêng, có CSS riêng và JS riêng nếu có logic riêng.
-- Phần dùng chung như topbar, sidebar, validation panel, modal, toast, theme toggle và navigation phải nằm trong CSS/JS chung.
-- Vì HTML thuần không có `include`/`extends` như template engine, phần "base HTML chung" phải được xử lý theo một trong hai cách:
-  - Dùng file `frontend/shared/base.html` làm mẫu tham chiếu và copy shell nhất quán sang từng page khi chưa có build step.
-  - Hoặc dùng `frontend/scripts/common/shell.js` để render shell/topbar/sidebar chung vào từng page. Đây là hướng ưu tiên khi vẫn muốn chạy tĩnh không cần Node.js/backend.
-- `frontend/index.html` chỉ nên redirect/link sang trang mặc định, ví dụ `pages/overview.html`, không chứa toàn bộ nội dung các màn hình.
+- Frontend là HTML/CSS/JavaScript thuần trong `frontend/`, không có client build step.
+- Backend Node.js local hiện có serve UI và API; dùng API qua `frontend/scripts/common/api.js` khi flow cần persistence, upload, settings hoặc render.
+- `frontend/scripts/common/state.js` quản lý state đang mở; `storage.js` kết nối backend và fallback/cache localStorage; `ui-components.js` chứa component/helper dùng chung.
+- Code page-specific nằm trong `frontend/scripts/pages/` và `frontend/styles/pages/`. Không để logic page trong HTML hoặc phụ thuộc DOM của page khác.
+- Đọc cấu trúc thực tế trước khi tạo file. Không giả định có `theme.js`, `toast.js`, `modal.js` hoặc utility riêng nếu chúng chưa tồn tại.
 
-## Multi-page Static Structure
+## CSS Và UI
 
-Áp dụng cấu trúc này cho UI tĩnh:
+- Dùng tokens/components/layout chung trước khi tạo style hoặc component mới.
+- Không inline style hoặc inline event handler.
+- Không hardcode màu nếu có CSS token; không thêm gradient/hero marketing.
+- Dùng common `app-section` và các modal/toast/color-picker component hiện có khi phù hợp.
+- Giữ loading, empty, error, disabled, focus và success states cho interaction liên quan.
+- Không thêm framework hoặc dependency frontend nếu user chưa yêu cầu.
 
-```text
-frontend/
-  index.html
-  shared/
-    base.html
-  pages/
-    overview.html
-    content.html
-    features.html
-    timeline.html
-    assets.html
-    template.html
-    preview.html
-    render.html
-    outputs.html
-    settings.html
-  styles/
-    tokens.css
-    base.css
-    layout.css
-    components.css
-    pages/
-      overview.css
-      content.css
-      features.css
-      timeline.css
-      assets.css
-      template.css
-      preview.css
-      render.css
-      outputs.css
-      settings.css
-  scripts/
-    common/
-      constants.js
-      state.js
-      storage.js
-      validation.js
-      shell.js
-      navigation.js
-      theme.js
-      toast.js
-      modal.js
-    pages/
-      overview.js
-      content.js
-      features.js
-      timeline.js
-      assets.js
-      template.js
-      preview.js
-      render.js
-      outputs.js
-      settings.js
-```
+## Viewport
 
-Quy ước import:
+- Target mặc định của HVT là PC/laptop, theo `.agents/rules/static-multipage-ui.md`.
+- Kiểm tra không tràn/overlap ở `1440x900`; dùng thêm `1366x768` nếu layout/modal bị ảnh hưởng.
+- Tablet/mobile chỉ nằm trong scope khi user yêu cầu rõ.
 
-- Mỗi page load `tokens.css`, `base.css`, `layout.css`, `components.css`, sau đó mới load CSS riêng của page.
-- Mỗi page load JS chung cần thiết trước, sau đó mới load JS riêng của page.
-- JS riêng của page chỉ xử lý nội dung page đó, không chứa logic render toàn bộ app.
-- Navigation dùng link thật giữa các file HTML, ví dụ `href="./content.html"`, không dùng button đổi tab bằng `data-tab`.
-- Active nav được set bằng `navigation.js` dựa trên file hiện tại hoặc `data-page`.
+## Verification
 
-## CSS
-
-- Không inline style.
-- Không hardcode màu nếu project có CSS variables/design tokens.
-- Không dùng class styling tùy tiện nếu project đã có class/component chung.
-- Responsive theo `max-width`, từ breakpoint lớn xuống nhỏ.
-- Không scale font bằng viewport width.
-- Text không được tràn/overlap ở mobile, tablet, desktop.
-- Dùng stable dimensions cho toolbar, grid, card, tile, button, board, modal để hover/loading/dynamic text không làm shift layout.
-
-## JavaScript
-
-- Tách rõ Constants, State, Helpers, UI, API, Events, Init.
-- Không inline event handler trong template.
-- Không để debug log trong production.
-- Không dùng alert/confirm/prompt nếu project có modal/toast.
-- Dynamic list/table/grid phải dùng event delegation.
-
-## UI State
-
-Mọi UI quan trọng cần đủ state:
-
-- Loading
-- Empty
-- Error
-- Disabled
-- Focus
-- Hover/active
-- Success/failure feedback
-
-Form cần:
-
-- Label rõ
-- Required marker nếu cần
-- Error message
-- Focus state
-- Disabled/loading state
-
-## Browser Verification
-
-Khi project chạy local được, verify UI bằng browser/Playwright/CDP:
-
-- Desktop viewport
-- Mobile viewport
-- Console errors
-- Network/API errors nếu có
-- Horizontal scroll
-- Text overflow/overlap
-- Modal/dropdown/table/list interaction
-
-Nếu không chạy được browser/server, báo rõ lý do và checklist đã kiểm bằng code.
+- Chỉ chạy test/browser verification khi user yêu cầu test hoặc verification.
+- Khi được yêu cầu, chỉ kiểm page/flow bị ảnh hưởng; dùng `wf-test`, `wf-run-web` và `webapp-testing` phù hợp.
+- Nếu chưa chạy browser, ghi rõ phần chưa được kiểm; không khẳng định runtime đã pass dựa trên đọc code.

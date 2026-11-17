@@ -5,7 +5,7 @@ description: "Chạy và báo cáo test/verification cho Hyper Video Tool: JS sy
 
 # Workflow: Test
 
-Dùng khi người dùng gọi `wf-test`, `/test`, "chạy test", "verify", "smoke test", hoặc trước khi commit một thay đổi có rủi ro.
+Dùng khi người dùng gọi `wf-test`, `/test`, "chạy test", "verify" hoặc "smoke test".
 
 ## Mục Đích
 
@@ -43,7 +43,7 @@ node --check frontend/scripts/pages/<page>.js
 
 ### Static UI Smoke
 
-Start server:
+Chỉ dùng static server cho page/UI không cần backend API:
 
 ```bash
 python3 -m http.server 8019
@@ -62,16 +62,18 @@ Kiểm:
 - Modal/form/drag/drop/click workflow chính hoạt động nếu vừa sửa.
 - Desktop/laptop `1440x900`; thêm `1366x768` nếu layout/modal thay đổi đáng kể. Không test tablet/mobile trừ khi người dùng yêu cầu rõ.
 
+Với flow project, asset, settings hoặc render cần API thật, dùng `wf-run-web` thay cho Python static server.
+
 ### Backend/Render Smoke
 
 Chỉ chạy khi backend/template/render bị sửa hoặc người dùng yêu cầu:
 
 ```bash
-npm --prefix backend test
+npm --prefix backend run check
 npm --prefix backend run smoke:render-api
 ```
 
-Nếu script không tồn tại, báo rõ và dùng lệnh khả dụng trong `backend/package.json`.
+`backend/package.json` không có script `test`; `check` chạy syntax và các test script backend. Có thể chạy script hẹp hơn từ `backend/package.json` nếu scope nhỏ. Chỉ chạy `smoke:render-api` khi người dùng yêu cầu render verification; smoke này tạo MP4 thật và cần backend đang chạy.
 
 Với smoke render video, nếu job succeeded vẫn phải kiểm ít nhất:
 

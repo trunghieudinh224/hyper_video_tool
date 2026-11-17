@@ -15,7 +15,7 @@ Mục tiêu: UI phải có chủ đích, hợp domain công cụ nội bộ, dù
 
 1. `GEMINI.md`, `AGENTS.md`, hoặc entrypoint rule tương đương nếu có
 2. `.agents/rules/project-config.md` nếu có
-3. `.agents/rules/frontend_architecture.md` hoặc `.agents/rules/frontend-architecture.md` nếu có
+3. `.agents/rules/frontend-architecture.md`
 4. `.agents/rules/design-presets.md` hoặc `DESIGN.md` nếu có
 5. `.agents/context/ui-direction.md`
 6. UI/HTML/CSS/JS hiện tại liên quan
@@ -48,7 +48,7 @@ Tránh các dấu hiệu sau trừ khi project yêu cầu rõ:
 - Placeholder content, lorem ipsum, fake stat không có ngữ cảnh.
 - Section lặp lại cùng một rhythm: title, paragraph, three cards.
 - Ảnh stock/tối/mờ/crop không giúp người dùng hiểu dự án hoặc video preview.
-- Mobile chỉ thu nhỏ desktop, không sắp xếp lại ưu tiên.
+- Nếu mobile nằm trong scope, tránh chỉ thu nhỏ desktop; sắp xếp lại ưu tiên nội dung.
 
 ## Taste checklist
 
@@ -86,8 +86,8 @@ Với HTML/CSS/JS thuần:
 
 Không xem UI là xong nếu chưa có pass này:
 
-- Desktop, tablet, mobile không overlap/tràn text.
+- Không overlap/tràn text ở viewport thuộc scope; với Hyper Video Tool mặc định kiểm tra desktop/laptop theo `.agents/rules/static-multipage-ui.md`.
 - Nút/form/input có state cần thiết.
 - Không còn placeholder, mock text vô nghĩa, hoặc section làm nửa vời.
-- Screenshot/browser verify nếu project có thể chạy local.
+- Screenshot/browser verify khi user yêu cầu verification; nếu chưa yêu cầu, ghi rõ chưa chạy browser check.
 - Nếu sửa UI đang tồn tại, báo rõ đã giữ lại gì và đã modernize gì.

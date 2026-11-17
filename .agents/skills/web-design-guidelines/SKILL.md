@@ -9,6 +9,8 @@ metadata:
 
 # Web Interface Guidelines
 
+For Hyper Video Tool, read `.agents/rules/static-multipage-ui.md` first. The default viewport scope is PC/laptop; tablet/mobile are included only when the user asks for them.
+
 Review files for compliance with Web Interface Guidelines.
 
 ## How It Works

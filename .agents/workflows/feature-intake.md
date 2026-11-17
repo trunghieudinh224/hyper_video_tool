@@ -1,12 +1,12 @@
 # Workflow: Tiếp Nhận Tính Năng Mới
 
-Workflow thực thi nằm ở:
+Workflow thực thi duy nhất nằm ở:
 
 ```text
 .agents/skills/wf-feature-intake/SKILL.md
 ```
 
-Dùng khi người dùng đưa yêu cầu tính năng mới cho Hyper Video Tool nhưng scope chưa rõ.
+Dùng chỉ khi còn quyết định sản phẩm/scope quan trọng chưa rõ. Nếu yêu cầu triển khai đã rõ và có authorization, bỏ intake.
 
 Ví dụ:
 
@@ -19,8 +19,7 @@ Ví dụ:
 
 Nguyên tắc:
 
-- Intake trước, code sau.
-- Luôn đọc `plan-quality`.
-- Luôn cập nhật `.agents/tasks/current-task.md` sau khi người dùng duyệt.
-- Không mở rộng sang cloud/auth/timeline editor phức tạp nếu chưa được yêu cầu rõ.
-- Không dùng gradient hoặc landing page trong task UI.
+- Intake chỉ làm rõ mục tiêu/MVP; implementation plan thuộc `plan-quality`.
+- Không hỏi duyệt lần hai nếu user đã yêu cầu triển khai và không còn quyết định chặn.
+- Chỉ ghi `.agents/tasks/current-task.md` khi task cần tracking hoặc user yêu cầu.
+- Chi tiết thực thi: `.agents/skills/wf-feature-intake/SKILL.md`.

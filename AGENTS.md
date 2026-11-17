@@ -2,6 +2,12 @@
 
 Tài liệu này là entrypoint hướng dẫn AI agent khi làm việc trong project.
 
+## Khởi Đầu Mỗi Cuộc Trò Chuyện
+
+- Khi bắt đầu một cuộc trò chuyện mới trong project này, phải đọc và làm theo `.agents/skills/wf-onboard/SKILL.md` trước khi trả lời về project hoặc sửa file.
+- Nếu người dùng đã giao task trong cùng tin nhắn, onboard nhanh rồi tiếp tục task đó; không dừng lại hỏi người dùng muốn làm gì.
+- Onboard chỉ đọc. Không tự chạy test, mở server, cài dependency hoặc sửa file trong bước này.
+
 ## Agent Workspace
 
 - Đọc `.agents/README.md` để hiểu cấu trúc agent workspace.
@@ -32,14 +38,20 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 
 ### Engineering
 - Review toàn bộ diff trước commit hoặc trước khi sửa tiếp: dùng `wf-review`.
-- Chạy test/verification theo scope thay đổi: dùng `wf-test`.
-- Chuẩn bị/chia phase commit hoặc commit/push: dùng `wf-commit-ready`.
+- Khi người dùng yêu cầu test/verification: dùng `wf-test` để chọn scope phù hợp.
+- Kiểm tra và chuẩn bị/chia phase commit: dùng `wf-commit-ready`; chỉ commit/push khi người dùng yêu cầu rõ hành động đó.
 - Bug, test fail, runtime error, performance regression: dùng `wf-diagnose`.
-- Feature/fix cần test-first hoặc logic rủi ro cao: dùng `wf-tdd-slice`.
+- Khi người dùng yêu cầu TDD/test-first hoặc thêm test: dùng `wf-tdd-slice`.
 - Review/refactor kiến trúc: dùng `wf-architecture-review`.
 - Thuật ngữ nghiệp vụ mơ hồ hoặc cần thống nhất vocabulary: dùng `domain-glossary`.
 
+### Onboarding / Docs
+- Đầu mỗi cuộc trò chuyện mới: dùng `wf-onboard` để nạp context project, task hiện tại và trạng thái working tree.
+- Khi nghi tài liệu lệch code hoặc được yêu cầu rà docs: dùng `wf-doc-audit`.
+- Khi được yêu cầu kiểm tra nền `.agents` và các liên kết workflow: dùng `wf-project-health-check`.
+
 ### Web
+- Khi người dùng yêu cầu chạy app hoặc browser verification cần backend: dùng `wf-run-web`.
 - UI/layout mới: dùng `design-taste-frontend`, `web-design-guidelines`.
 - UI cần responsive: dùng `responsive-ui`.
 - Polish UI sau khi chạy được: dùng `wf-ui-taste-polish`.
@@ -55,10 +67,10 @@ Khi xử lý task trong dự án, agent phải ưu tiên dùng các workflow/ski
 
 ### Planning / Coordination
 - Trước khi lập implementation plan hoặc checklist lớn: dùng `plan-quality`.
-- Khi người dùng yêu cầu tính năng mới nhưng scope chưa rõ: dùng `wf-feature-intake`.
+- Khi người dùng yêu cầu tính năng mới nhưng còn quyết định sản phẩm/scope chưa rõ: dùng `wf-feature-intake`; yêu cầu rõ và được giao triển khai thì onboard rồi làm, không hỏi lại intake.
 - Khi người dùng muốn đọc hiểu project khác để tạo video brief: dùng `wf-explore-project`.
 
-Các workflow nghiên cứu/planning không được tự sửa code nếu chưa có yêu cầu hoặc approval rõ ràng.
+Các workflow nghiên cứu/planning không tự sửa code nếu user chỉ yêu cầu nghiên cứu/lập plan. Yêu cầu triển khai rõ ràng trong task hiện tại là authorization; vẫn phải hỏi riêng khi còn quyết định quan trọng chưa chốt hoặc project rule yêu cầu xác nhận cho hành động rủi ro.
 <!-- shared-skills:end -->
 
 ## Quy Tắc An Toàn

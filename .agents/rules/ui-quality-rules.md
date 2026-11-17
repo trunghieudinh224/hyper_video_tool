@@ -66,11 +66,9 @@ Tránh:
 
 ## Responsive
 
-- Mobile không chỉ là desktop thu nhỏ.
-- Ưu tiên lại nội dung trên mobile.
-- Touch target đủ lớn.
-- Không horizontal scroll ngoài các bảng có chủ đích.
-- Button text phải wrap hoặc rút gọn có chủ đích.
+- HVT target PC/laptop theo `.agents/rules/static-multipage-ui.md`; kiểm tra `1440x900`, thêm `1366x768` khi layout/modal bị ảnh hưởng.
+- Tablet/mobile chỉ nằm trong scope khi user yêu cầu rõ.
+- Trong viewport thuộc scope: tránh overflow/overlap, giữ text và controls dễ dùng, không để button label bị cắt.
 
 ## Final UI Pass
 
@@ -79,6 +77,6 @@ Trước khi bàn giao:
 - Không còn placeholder.
 - Không có text tràn/overlap.
 - Form/modal/dropdown/table dùng được.
-- Desktop/mobile đã được kiểm.
-- Console không có lỗi liên quan thay đổi.
+- Viewport thuộc scope đã được kiểm nếu user yêu cầu verification; nếu chưa, ghi rõ chưa chạy browser check.
+- Console không có lỗi liên quan thay đổi khi browser verification nằm trong scope.
 - Nếu có dark mode, hierarchy light/dark tương đương.

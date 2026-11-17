@@ -12,7 +12,7 @@ Dùng khi cần rà soát thay đổi frontend/backend web trước khi bàn gia
 ## Mục Tiêu
 
 - Review route/form/API/UI thay đổi.
-- Tìm lỗi hành vi, security cơ bản, accessibility/responsive, và regression.
+- Tìm lỗi hành vi, security cơ bản, accessibility, viewport regression và integration.
 - Đề xuất test hoặc browser check cần chạy.
 
 ## Quy Trình
@@ -35,38 +35,42 @@ Phân loại file:
 - Tests.
 - Config/migrations.
 
-### 2. Checklist backend web
+### 2. Checklist backend local của HVT
 
-- Route/method đúng chưa?
-- Request validation có đủ chưa?
-- Auth/permission có bị bypass không?
-- Error handling trả response hợp lý không?
-- Không hardcode secrets/env.
-- Database write có transaction/rollback phù hợp không?
+- Route/method và response contract có đúng không?
+- Request validation có đủ cho payload và file input không?
+- Asset API có kiểm project association, MIME/size, safe path và rollback batch không?
+- Render payload có khớp schema và template contract không?
+- Error handling có trả lỗi rõ mà không lộ path/secret không?
+- File writes/asset batches có rollback phù hợp không?
 
 ### 3. Checklist frontend
 
-- Form action/method/CSRF hợp lý.
+- Form/control payload và submit behavior khớp với API/local storage contract.
 - JS không phụ thuộc selector dễ vỡ nếu template đổi.
 - Không dùng `alert/confirm` nếu project có toast/modal chuẩn.
-- CSS không gây overflow ngang trên mobile.
+- Không gây overflow hoặc overlap ở desktop/laptop `1440x900`; thêm `1366x768` nếu layout/modal thay đổi đáng kể.
 - Loading/error/empty states đủ cho workflow chính.
 - Không còn `console.log` debug không cần thiết.
 
-### 4. Browser/API verification
+### 4. Gợi ý browser/API verification
+
+Các bước dưới đây là gợi ý kiểm tra. Chỉ chạy browser check hoặc gọi API khi user yêu cầu test/verification; nếu không, review contract và test coverage bằng cách đọc code.
 
 Nếu có UI:
 
 - Mở trang local.
 - Click workflow chính.
 - Kiểm tra console errors.
-- Kiểm tra mobile width nếu layout thay đổi.
+- Dùng viewport desktop/laptop theo `.agents/rules/static-multipage-ui.md`; chỉ kiểm tra tablet/mobile nếu người dùng yêu cầu.
 
 Nếu API:
 
 - Gọi endpoint với happy path và một invalid input.
 
 ### 5. Báo cáo
+
+Nếu review API hoặc UI cần backend, dùng `wf-run-web`. Review toàn bộ diff chưa commit thì dùng `wf-review`; workflow này dành cho một phạm vi web cụ thể.
 
 Review theo thứ tự severity:
 

@@ -1,11 +1,13 @@
 ---
 name: wf-commit-ready
-description: "Chuẩn bị commit cho Hyper Video Tool: review diff, chạy verification phù hợp, kiểm secrets/runtime output, chia phase commit và soạn commit message tiếng Anh."
+description: "Chuẩn bị commit cho Hyper Video Tool: review diff, đề xuất verification, kiểm secrets/runtime output, chia phase commit và soạn commit message tiếng Anh."
 ---
 
 # Workflow: Commit Ready
 
-Dùng khi người dùng nói `commit-ready`, `chuẩn bị commit`, `chia phase commit`, `commit giúp tao`, hoặc trước khi push code.
+Dùng khi người dùng nói `commit-ready`, `chuẩn bị commit`, `chia phase commit`, hoặc `commit giúp tao`.
+
+`commit-ready`, `chuẩn bị commit` và `chia phase commit` chỉ cho phép kiểm tra diff, đề xuất cách chia và soạn commit message. Chỉ stage/commit khi người dùng yêu cầu rõ việc commit. Chỉ push khi người dùng yêu cầu rõ việc push.
 
 ## Mục Đích
 
@@ -20,9 +22,12 @@ Chạy:
 
 ```bash
 git status --short
+git ls-files --others --exclude-standard
 git diff --stat HEAD
 git diff --name-only HEAD
 ```
+
+`git diff` không chứa nội dung file untracked. Đọc từng file mới liên quan trước khi phân loại hoặc đưa vào một phase commit.
 
 Phân loại thay đổi:
 
@@ -51,14 +56,14 @@ git diff --name-only HEAD
 
 Nếu có file nhạy cảm: dừng và báo người dùng.
 
-## Bước 3 - Verification Trước Commit
+## Bước 3 - Đề Xuất Verification
 
-Chọn test theo diff, không chạy bừa:
+Chọn kiểm tra phù hợp theo diff và báo lệnh đề xuất. Chỉ chạy test/browser/smoke khi user yêu cầu test hoặc verification; yêu cầu commit tự nó không đồng nghĩa với yêu cầu chạy test.
 
 - JS changed: `node --check` file JS liên quan.
 - Static UI/layout changed: browser/static smoke page liên quan nếu khả dụng.
-- Backend changed: test/smoke trong `backend/package.json` nếu có.
-- Render changed: smoke render và kiểm output/frame nếu feasible.
+- Backend changed: đề xuất `npm --prefix backend run check`.
+- Render changed: đề xuất `smoke:render-api` riêng khi user yêu cầu render verification vì lệnh tạo MP4 runtime.
 - Docs/rules only: không cần runtime test.
 
 Nếu không chạy được test/browser vì thiếu dependency/tool, báo rõ trong final.
@@ -76,7 +81,11 @@ Nếu không chạy được test/browser vì thiếu dependency/tool, báo rõ 
 
 Không tách quá nhỏ bằng `git add -p` nếu cùng file có dependency chặt khiến commit trung gian vỡ app. Khi cùng file chứa nhiều phase nhưng khó split an toàn, gom vào phase feature và nói rõ lý do.
 
-## Bước 5 - Stage Và Commit
+## Bước 5 - Stage Và Commit Khi Được Yêu Cầu Rõ
+
+Ở chế độ `commit-ready` mặc định, dừng sau khi báo phase đề xuất, file thuộc từng phase và commit message. Không stage hoặc commit.
+
+Chỉ chạy tiếp phần này khi người dùng yêu cầu rõ `commit` hoặc `commit giúp tao`. Chỉ stage file thuộc phase đã thống nhất; không stage toàn bộ worktree theo mặc định.
 
 Trước mỗi commit:
 
@@ -98,7 +107,7 @@ Ví dụ:
 - `feat(template): add editable scene layouts`
 - `fix(preview): preserve scene slot positions`
 
-Chỉ push khi người dùng yêu cầu hoặc xác nhận rõ.
+Chỉ push khi người dùng yêu cầu rõ. Yêu cầu chuẩn bị commit không bao gồm quyền push.
 
 ## Bước 6 - Báo Cáo Sau Commit
 

@@ -6,6 +6,11 @@
 
 ## Sửa đổi
 
-## Kiểm thử
+## Verification
+
+- Status: passed | failed | partial | not_run
+- Nếu `not_run`, nêu lý do.
+- Commands/checks đã chạy:
+- Phần chưa kiểm:
 
 ## Rủi ro còn lại
